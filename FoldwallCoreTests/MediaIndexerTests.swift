@@ -17,7 +17,7 @@ final class MediaIndexerTests: XCTestCase {
 
         try writePNG(fixtureRoot.appending(path: "a.JPG"), width: 400, height: 300)   // 大小寫不敏感
         try writePNG(fixtureRoot.appending(path: "sub/c.png"), width: 300, height: 300)
-        try writePNG(fixtureRoot.appending(path: "tiny.png"), width: 64, height: 64)   // 短邊 <256
+        try writePNG(fixtureRoot.appending(path: "tiny.png"), width: 64, height: 64)   // 短邊 <256，抽片時才剔除
         try writePNG(fixtureRoot.appending(path: ".hidden/d.png"), width: 400, height: 400)
         try Data("not a real movie".utf8).write(to: fixtureRoot.appending(path: "b.mp4"))
         try Data("{}".utf8).write(to: fixtureRoot.appending(path: "note.json"))
@@ -53,7 +53,8 @@ final class MediaIndexerTests: XCTestCase {
         XCTAssertFalse(names.contains("note.json"), "sidecar JSON 不進池")
         XCTAssertFalse(names.contains(".ds_store"))
         XCTAssertFalse(names.contains("._a.jpg"), "AppleDouble 不進池")
-        XCTAssertFalse(names.contains("tiny.png"), "短邊 <256px 不進靜態池")
+        XCTAssertTrue(names.contains("tiny.png"),
+                      "索引只看副檔名：尺寸門檻挪到抽片時（開檔在 SMB 上太貴）")
         XCTAssertFalse(names.contains("d.png"), "隱藏資料夾整棵略過")
 
         XCTAssertEqual(items.first { $0.url.lastPathComponent == "b.mp4" }?.kind, .video)
@@ -63,5 +64,16 @@ final class MediaIndexerTests: XCTestCase {
     func testEmptyRootsYieldsEmptyPool() async {
         let items = await MediaIndexer().scan(roots: [])
         XCTAssertTrue(items.isEmpty)
+    }
+
+    /// 索引不得開檔：壞掉的影像檔照樣進清單，由抽片端剔除。
+    /// 這條鎖住「不在索引時讀 metadata」——那在大型 SMB 相簿上是 400 倍的代價差。
+    func testScanDoesNotOpenFiles() async throws {
+        let broken = fixtureRoot.appending(path: "broken.jpg")
+        try Data("這不是 JPEG".utf8).write(to: broken)
+
+        let items = await MediaIndexer().scan(roots: [fixtureRoot])
+        XCTAssertTrue(items.contains { $0.url.lastPathComponent == "broken.jpg" },
+                      "壞檔在索引階段驗不出來，也不該驗")
     }
 }

@@ -238,12 +238,103 @@ final class RemoteSourceTests: XCTestCase {
     func testKindCapabilitiesAreConsistent() {
         // OAuth 來源刻意不存在
         XCTAssertEqual(Set(RemoteSourceKind.allCases.map(\.rawValue)),
-                       ["unsplash", "pexels", "pixabay", "wallhaven", "flickr", "immich", "rss"])
+                       ["unsplash", "pexels", "pixabay", "wallhaven", "flickr", "immich", "rss",
+                        "pexelsVideo"])
         XCTAssertFalse(RemoteSourceKind.wallhaven.requiresKey)
         XCTAssertFalse(RemoteSourceKind.rss.requiresKey)
         XCTAssertTrue(RemoteSourceKind.immich.requiresEndpoint)
         XCTAssertTrue(RemoteSourceKind.rss.requiresEndpoint)
         XCTAssertFalse(RemoteSourceKind.immich.supportsQuery)
+    }
+
+    /// 沒有任何 Google／YouTube 來源：規格第一條。
+    /// YouTube 三條路全不通——Data API 是 Google API；官方 IFrame 嵌入要求播放器
+    /// 可見不被遮蔽（桌布定義上就違反）；抽串流網址是規避技術保護措施。
+    func testNoGoogleBackedSources() {
+        for kind in RemoteSourceKind.allCases {
+            let name = kind.rawValue.lowercased() + kind.displayName.lowercased()
+            XCTAssertFalse(name.contains("google"), "\(kind) 不該存在")
+            XCTAssertFalse(name.contains("youtube"), "\(kind) 不該存在")
+        }
+    }
+
+    // MARK: - Pexels 影片
+
+    func testPexelsVideoUsesPopularWithoutQuery() throws {
+        let popular = try PexelsVideoSource(key: "K", query: "").listRequest(limit: 5)
+        XCTAssertEqual(popular.url?.path, "/videos/popular")
+        XCTAssertEqual(query(popular)["max_duration"], "60", "桌布是短迴圈，不要長片")
+        XCTAssertEqual(popular.value(forHTTPHeaderField: "Authorization"), "K")
+
+        let search = try PexelsVideoSource(key: "K", query: "ocean").listRequest(limit: 5)
+        XCTAssertEqual(search.url?.path, "/videos/search")
+        XCTAssertEqual(query(search)["query"], "ocean")
+        XCTAssertEqual(query(search)["orientation"], "landscape")
+    }
+
+    func testPexelsVideoPicksLargestMP4WithinBudget() throws {
+        let data = Data("""
+        {"videos":[{"id":7,"user":{"name":"Ana"},"video_files":[
+          {"link":"https://v.pexels.com/4k.mp4","width":3840,"height":2160,"file_type":"video/mp4"},
+          {"link":"https://v.pexels.com/hd.mp4","width":1920,"height":1080,"file_type":"video/mp4"},
+          {"link":"https://v.pexels.com/sd.mp4","width":640,"height":360,"file_type":"video/mp4"}]}]}
+        """.utf8)
+        let items = try PexelsVideoSource(key: "K", query: "").parse(data)
+        XCTAssertEqual(items.map(\.id), ["7"])
+        XCTAssertEqual(items[0].url.lastPathComponent, "hd.mp4",
+                       "4K 檔案大好幾倍、縮放後看不出差別，還會撞到單檔上限")
+        XCTAssertEqual(items[0].attribution, "Ana / Pexels")
+    }
+
+    func testPexelsVideoFallsBackToSmallestWhenAllOversized() throws {
+        let data = Data("""
+        {"videos":[{"id":8,"user":{"name":"Bo"},"video_files":[
+          {"link":"https://v.pexels.com/8k.mp4","width":7680,"height":4320,"file_type":"video/mp4"},
+          {"link":"https://v.pexels.com/4k.mp4","width":3840,"height":2160,"file_type":"video/mp4"}]}]}
+        """.utf8)
+        let items = try PexelsVideoSource(key: "K", query: "").parse(data)
+        XCTAssertEqual(items[0].url.lastPathComponent, "4k.mp4", "全都超過預算就挑最小的")
+    }
+
+    func testPexelsVideoSkipsNonMP4() throws {
+        let data = Data("""
+        {"videos":[{"id":9,"user":{"name":"Cy"},"video_files":[
+          {"link":"https://v.pexels.com/x.webm","width":1920,"height":1080,"file_type":"video/webm"}]}]}
+        """.utf8)
+        XCTAssertTrue(try PexelsVideoSource(key: "K", query: "").parse(data).isEmpty)
+    }
+
+    /// 實測 /videos/popular 回的前三支全是直式短影音，且該端點不支援 orientation——
+    /// 這條擋的就是那個。直式素材當桌布是災難。
+    func testPexelsVideoRejectsPortraitClips() throws {
+        let data = Data("""
+        {"videos":[
+          {"id":1,"width":1080,"height":1920,"user":{"name":"A"},"video_files":[
+            {"link":"https://v/p.mp4","width":1080,"height":1920,"file_type":"video/mp4"}]},
+          {"id":2,"width":1920,"height":1080,"user":{"name":"B"},"video_files":[
+            {"link":"https://v/l.mp4","width":1920,"height":1080,"file_type":"video/mp4"}]}]}
+        """.utf8)
+        let items = try PexelsVideoSource(key: "K", query: "").parse(data)
+        XCTAssertEqual(items.map(\.id), ["2"], "只留橫式")
+    }
+
+    func testPexelsVideoSkipsPortraitFileVariants() throws {
+        let data = Data("""
+        {"videos":[{"id":3,"width":1920,"height":1080,"user":{"name":"C"},"video_files":[
+          {"link":"https://v/portrait.mp4","width":1080,"height":1920,"file_type":"video/mp4"},
+          {"link":"https://v/land.mp4","width":1280,"height":720,"file_type":"video/mp4"}]}]}
+        """.utf8)
+        let items = try PexelsVideoSource(key: "K", query: "").parse(data)
+        XCTAssertEqual(items[0].url.lastPathComponent, "land.mp4")
+    }
+
+    func testPexelsVideoIsRoutedToVideoPool() {
+        XCTAssertEqual(RemoteSourceKind.pexelsVideo.media, .video)
+        XCTAssertEqual(RemoteSourceKind.pexels.media, .image, "同一個站，圖片來源仍走靜態池")
+    }
+
+    func testPexelsVideoRejectsMalformedResponse() {
+        XCTAssertThrowsError(try PexelsVideoSource(key: "K", query: "").parse(Data("nope".utf8)))
     }
 
     func testCacheFilenameIsStableAndKeepsExtension() {
@@ -259,5 +350,35 @@ final class RemoteSourceTests: XCTestCase {
         let noExt = RemoteImage(id: "abc", url: URL(string: "https://e.com/download")!)
         XCTAssertEqual(fetcher.cacheURL(for: noExt, kind: .immich).pathExtension, "jpg",
                        "沒副檔名要補一個，ImageIO 才好認")
+    }
+}
+
+/// 同一個站可以加好幾條、各自不同關鍵字。清單只顯示站名的話完全分不出來。
+final class RemoteSourceTitleTests: XCTestCase {
+
+    func testQueryDistinguishesSameKind() {
+        let hololive = RemoteSourceConfig(kind: .wallhaven, query: "Hololive")
+        let random = RemoteSourceConfig(kind: .wallhaven, query: "")
+        XCTAssertEqual(hololive.displayTitle, "Wallhaven：Hololive")
+        XCTAssertEqual(random.displayTitle, "Wallhaven：隨機")
+        XCTAssertNotEqual(hololive.displayTitle, random.displayTitle)
+    }
+
+    func testWhitespaceQueryCountsAsEmpty() {
+        XCTAssertEqual(RemoteSourceConfig(kind: .pexels, query: "   ").displayTitle, "Pexels：隨機")
+    }
+
+    func testEndpointSourcesShowTheirHost() {
+        let feed = RemoteSourceConfig(kind: .rss, endpoint: "https://www.nasa.gov/feeds/iotd-feed/")
+        XCTAssertEqual(feed.displayTitle, "RSS 相片來源：www.nasa.gov")
+    }
+
+    func testSourceWithoutQuerySupportKeepsPlainName() {
+        XCTAssertEqual(RemoteSourceConfig(kind: .rss).displayTitle, "RSS 相片來源")
+    }
+
+    func testVideoSourceIsDistinguishableToo() {
+        XCTAssertEqual(RemoteSourceConfig(kind: .pexelsVideo, query: "ocean").displayTitle,
+                       "Pexels 影片：ocean")
     }
 }

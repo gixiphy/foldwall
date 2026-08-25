@@ -130,6 +130,47 @@ final class StillPipelineTests: XCTestCase {
         XCTAssertTrue(paths.smbCache.path.contains("Caches"))
     }
 
+    // MARK: - 抽片時剔除過小圖
+
+    /// 索引只看副檔名，池裡會混進 icon。整池都太小 → 視同空池，保留現桌布。
+    func testPoolOfOnlyTinyImagesIsTreatedAsEmpty() async throws {
+        let dir = root.appending(path: "icons")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let tiny = try (0..<5).map { index -> URL in
+            let url = dir.appending(path: "icon\(index).png")
+            try TestImage.writePNG(TestImage.solid(0.5, 0.5, 0.5, size: 64), to: url)
+            return url
+        }
+
+        let outcome = try await makePipeline().refresh(
+            displays: [displayA], skipIDs: [], pool: tiny,
+            effect: .none, tier: .full, cycleNonce: 1
+        )
+        XCTAssertTrue(desktop.calls.isEmpty, "短邊 <256 的圖不該被拿去合成")
+        XCTAssertTrue(outcome.poolWasEmpty)
+        XCTAssertTrue(outcome.written.isEmpty, "沒圖可用就保留現桌布，不寫黑圖")
+    }
+
+    /// 混池：雜訊圖被換掉，合格圖照樣出得了圖。
+    func testTinyImagesAreSkippedButPoolStillComposes() async throws {
+        let dir = root.appending(path: "mixed")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        var mixed: [URL] = []
+        for index in 0..<12 {
+            let url = dir.appending(path: "m\(index).png")
+            try TestImage.writePNG(TestImage.solid(0.2, 0.6, 0.9, size: 64), to: url)
+            mixed.append(url)
+        }
+        mixed.append(contentsOf: pool)   // pool 是 300px 的合格圖
+
+        let outcome = try await makePipeline().refresh(
+            displays: [displayA], skipIDs: [], pool: mixed,
+            effect: .none, tier: .full, cycleNonce: 2
+        )
+        XCTAssertEqual(outcome.written, [displayA.id], "有合格圖就該出圖")
+        XCTAssertFalse(outcome.poolWasEmpty)
+    }
+
     // MARK: - 每螢不同
 
     func testDisplaysGetDifferentComposition() async throws {

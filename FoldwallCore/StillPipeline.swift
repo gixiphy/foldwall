@@ -47,6 +47,8 @@ public struct StillPipeline: Sendable {
     public static let jpegQuality: Double = 0.85
     /// 只留當前輪＋上一輪：系統可能仍持有上一輪 URL。
     public static let generationsKept = 2
+    /// 每要一張圖，最多試幾次（壞檔／離線／短邊不足都算一次）。
+    public static let attemptsPerPiece = 6
 
     private let composer: any MontageComposing
     private let desktop: any DesktopSetting
@@ -130,13 +132,17 @@ public struct StillPipeline: Sendable {
     // MARK: - 私有
 
     /// 依 seed 抽片並載入。**只物化抽中的**，不是整池下載。
-    /// 壞檔／離線略過（視同離線），不讓一顆爛蘋果毀掉整輪。
+    /// 壞檔／離線／過小略過（視同離線），不讓一顆爛蘋果毀掉整輪。
+    ///
+    /// 短邊門檻在這裡驗而不是在索引時：索引只看副檔名（開檔太貴，見 MediaIndexer），
+    /// 所以池裡會混著 icon 等雜訊圖，由這個迴圈當場換掉。
     private func loadImages(from pool: [URL], count: Int, seed: UInt64, maxPixel: Int) async -> [CGImage] {
         guard !pool.isEmpty else { return [] }
         var rng = SeededGenerator(seed: seed)
         var images: [CGImage] = []
         var attempts = 0
-        let budget = count * 3   // 壞檔多時不要無限重試
+        // 剔除從索引時挪到這裡後，撞到不合格的機率變高 → 預算跟著放寬。
+        let budget = count * Self.attemptsPerPiece
 
         while images.count < count, attempts < budget {
             attempts += 1
@@ -146,7 +152,9 @@ public struct StillPipeline: Sendable {
                 guard let prepared = try? await preparer.prepare(url) else { continue }
                 local = prepared
             }
-            if let image = try? ImageLoader.load(local, maxPixel: maxPixel) {
+            if let image = try? ImageLoader.load(
+                local, maxPixel: maxPixel, minimumShortSide: MediaIndexer.minimumShortSide
+            ) {
                 images.append(image)
             }
         }

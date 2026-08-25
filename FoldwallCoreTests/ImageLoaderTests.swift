@@ -33,6 +33,25 @@ final class ImageLoaderTests: XCTestCase {
         return url
     }
 
+    // MARK: - 短邊門檻（索引不再驗，改在載入時）
+
+    func testRejectsImageBelowMinimumShortSide() throws {
+        let url = try writeJPEG("icon.jpg", width: 512, height: 64)
+        XCTAssertThrowsError(try ImageLoader.load(url, maxPixel: 400, minimumShortSide: 256)) { error in
+            XCTAssertEqual(error as? ImageLoader.Failure, .tooSmall(url), "短邊 64 < 256 應被剔除")
+        }
+    }
+
+    func testAcceptsImageAtMinimumShortSide() throws {
+        let url = try writeJPEG("ok.jpg", width: 512, height: 256)
+        XCTAssertNoThrow(try ImageLoader.load(url, maxPixel: 400, minimumShortSide: 256), "剛好等於門檻要放行")
+    }
+
+    func testNoThresholdMeansNoSizeCheck() throws {
+        let url = try writeJPEG("small.jpg", width: 64, height: 64)
+        XCTAssertNoThrow(try ImageLoader.load(url, maxPixel: 400), "不給門檻就不檢查")
+    }
+
     func testDownsamplesToMaxPixel() throws {
         let url = try writeJPEG("big.jpg", width: 1200, height: 900)
         let image = try ImageLoader.load(url, maxPixel: 200)

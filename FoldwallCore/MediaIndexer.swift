@@ -1,8 +1,12 @@
 //  MediaIndexer.swift
-//  掃根目錄、分類、濾掉 sidecar 與過小圖。不解析書籤、不物化、不 decode 影像。
+//  掃根目錄、分類、濾掉 sidecar。不解析書籤、不物化、不開檔。
+//
+//  **只看副檔名。** 短邊 <256px 的雜訊圖不在這裡濾——那要開檔讀 metadata，
+//  走 SMB 是每檔一次網路往返：實測 90 萬檔的相簿，純列舉 3589 項/秒（4.2 分鐘），
+//  逐檔讀 header 只有 9.1 張/秒（27 小時）。門檻改由 StillPipeline 在抽中時驗，
+//  一輪只付 6–12 張的成本。
 
 import Foundation
-import ImageIO
 
 public protocol MediaIndexing: Sendable {
     func scan(roots: [URL]) async -> [IndexedItem]
@@ -15,7 +19,7 @@ public struct MediaIndexer: MediaIndexing {
     ]
     public static let videoExtensions: Set<String> = ["mp4", "mov", "m4v"]
 
-    /// 短邊低於此值視為 icon 等雜訊圖，不進靜態池。影片不受此限。
+    /// 短邊低於此值視為 icon 等雜訊圖，抽片時剔除（見 StillPipeline）。影片不受此限。
     public static let minimumShortSide = 256
 
     public init() {}
@@ -47,7 +51,6 @@ public struct MediaIndexer: MediaIndexing {
         var items: [IndexedItem] = []
         for case let url as URL in walker {
             guard let kind = classify(url) else { continue }
-            if kind == .image, !hasUsableDimensions(url) { continue }
             items.append(IndexedItem(url: url, kind: kind))
         }
         return items
@@ -62,16 +65,5 @@ public struct MediaIndexer: MediaIndexing {
         if imageExtensions.contains(ext) { return .image }
         if videoExtensions.contains(ext) { return .video }
         return nil   // 含 .json 等 sidecar
-    }
-
-    /// 只讀 metadata 判斷尺寸，**不 decode**。讀不到（壞檔）→ 不進池。
-    private static func hasUsableDimensions(_ url: URL) -> Bool {
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-              let width = props[kCGImagePropertyPixelWidth] as? Int,
-              let height = props[kCGImagePropertyPixelHeight] as? Int
-        else { return false }
-
-        return min(width, height) >= minimumShortSide
     }
 }

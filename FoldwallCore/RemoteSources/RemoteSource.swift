@@ -7,7 +7,7 @@
 import Foundation
 
 public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
-    case unsplash, pexels, pixabay, wallhaven, flickr, immich, rss
+    case unsplash, pexels, pixabay, wallhaven, flickr, immich, rss, pexelsVideo
 
     public var displayName: String {
         switch self {
@@ -18,13 +18,14 @@ public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
         case .flickr: "Flickr（公開搜尋）"
         case .immich: "Immich"
         case .rss: "RSS 相片來源"
+        case .pexelsVideo: "Pexels 影片"
         }
     }
 
     /// 需要 API key 才能用。
     public var requiresKey: Bool {
         switch self {
-        case .unsplash, .pexels, .pixabay, .flickr, .immich: true
+        case .unsplash, .pexels, .pixabay, .flickr, .immich, .pexelsVideo: true
         case .wallhaven, .rss: false   // Wallhaven 公開內容免 key；RSS 完全免驗證
         }
     }
@@ -41,7 +42,7 @@ public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
     public var keyRequestURL: URL? {
         switch self {
         case .unsplash: URL(string: "https://unsplash.com/oauth/applications")
-        case .pexels: URL(string: "https://www.pexels.com/api/new/")
+        case .pexels, .pexelsVideo: URL(string: "https://www.pexels.com/api/new/")
         case .pixabay: URL(string: "https://pixabay.com/api/docs/")
         case .flickr: URL(string: "https://www.flickr.com/services/apps/create/apply/")
         case .wallhaven: URL(string: "https://wallhaven.cc/settings/account")
@@ -53,8 +54,16 @@ public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
     /// 搜尋關鍵字有意義嗎。
     public var supportsQuery: Bool {
         switch self {
-        case .unsplash, .pexels, .pixabay, .wallhaven, .flickr: true
+        case .unsplash, .pexels, .pixabay, .wallhaven, .flickr, .pexelsVideo: true
         case .immich, .rss: false
+        }
+    }
+
+    /// 這個來源送出來的是圖還是片。決定下載到哪個池——影片不進靜態蒙太奇池。
+    public var media: MediaKind {
+        switch self {
+        case .pexelsVideo: .video
+        default: .image
         }
     }
 }
@@ -89,6 +98,24 @@ public struct RemoteSourceConfig: Codable, Sendable, Equatable, Identifiable {
         self.isEnabled = isEnabled
         self.query = query
         self.endpoint = endpoint
+    }
+}
+
+extension RemoteSourceConfig {
+    /// 清單上要顯示的標題。
+    ///
+    /// **不能只用 kind.displayName**：同一個站可以加好幾條、各自不同關鍵字
+    /// （例如兩個 Wallhaven，一個搜 Hololive 一個取隨機），只顯示站名就完全分不出來。
+    public var displayTitle: String {
+        let detail = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !detail.isEmpty { return "\(kind.displayName)：\(detail)" }
+
+        if kind.requiresEndpoint {
+            let host = URL(string: endpoint)?.host()
+            if let host { return "\(kind.displayName)：\(host)" }
+        }
+        // 沒有關鍵字＝取精選／隨機，講清楚比留白好
+        return kind.supportsQuery ? "\(kind.displayName)：隨機" : kind.displayName
     }
 }
 
@@ -134,6 +161,7 @@ public enum RemoteSourceFactory {
         case .flickr: return FlickrSource(key: key ?? "", query: config.query)
         case .immich: return try ImmichSource(key: key ?? "", server: config.endpoint)
         case .rss: return try RSSPhotoSource(feed: config.endpoint)
+        case .pexelsVideo: return PexelsVideoSource(key: key ?? "", query: config.query)
         }
     }
 }
