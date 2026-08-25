@@ -1,0 +1,5 @@
+# source 這個檔再跑 xcodebuild，建置產物就不會落在 iCloud 裡。
+#   source .xcodebuild-env
+#   xcodebuild -scheme Foldwall -destination 'platform=macOS' $FOLDWALL_DD test
+export FOLDWALL_BUILD_DIR="${TMPDIR:-/tmp}/foldwall-build"
+export FOLDWALL_DD="-derivedDataPath $FOLDWALL_BUILD_DIR"

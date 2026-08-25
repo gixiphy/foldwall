@@ -61,13 +61,29 @@ Foldwall.app（選單列，不沙盒）
 
 ## 開發
 
-需要 [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`brew install xcodegen`）。改 `project.yml` 後：
+原始碼與規格同住一個 iCloud 資料夾：`Hermes/App/foldwall/`（規格在上層，程式碼在 `src/`）。
 
-```
+> ⚠️ **建置產物不要放進這個資料夾。** iCloud 同步磁碟上的所有檔案，**不看 `.gitignore`**——
+> 一次 Release 建置就是 228 MB，放在專案裡會讓 iCloud 每次編譯都上傳一輪。
+> 用下面的指令或 `packaging/make-dmg.sh`，兩者都已把輸出導到 `$TMPDIR`。
+
+需要 [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`brew install xcodegen`）。加了新檔案或改
+`project.yml` 之後都要重新產生專案：
+
+```bash
 xcodegen generate
-xcodebuild -scheme Foldwall -destination 'platform=macOS' build
-xcodebuild -scheme Foldwall -destination 'platform=macOS' test
 ```
+
+建置與測試（`FOLDWALL_DD` 把產物導出 iCloud）：
+
+```bash
+source .xcodebuild-env
+xcodebuild -scheme Foldwall -destination 'platform=macOS' $FOLDWALL_DD build
+xcodebuild -scheme Foldwall -destination 'platform=macOS' $FOLDWALL_DD test
+```
+
+用 Xcode 開的話，`Foldwall.xcodeproj` 直接開沒問題——Xcode 預設的 DerivedData
+本來就在 `~/Library/Developer/Xcode/`，不在 iCloud 裡。
 
 ## 打包安裝檔
 

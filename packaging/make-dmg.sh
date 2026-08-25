@@ -11,7 +11,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$PWD"
 VERSION="$(grep -m1 'MARKETING_VERSION' project.yml | tr -d ' "' | cut -d: -f2)"
-BUILD="$ROOT/build-release"
+# 建置產物一律放 iCloud 外面：iCloud 同步磁碟上所有檔案，**不看 .gitignore**，
+# 幾百 MB 的中間產物放在專案裡會讓它每次編譯都上傳一輪。
+BUILD="${TMPDIR:-/tmp}/foldwall-build"
 DIST="$ROOT/dist"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
@@ -31,6 +33,7 @@ echo "==> 產生專案"
 xcodegen generate >/dev/null
 
 echo "==> Release 建置（$IDENTITY）"
+echo "    建置目錄：$BUILD"
 rm -rf "$BUILD"
 xcodebuild -scheme Foldwall -configuration Release -destination 'platform=macOS' \
   -derivedDataPath "$BUILD" \

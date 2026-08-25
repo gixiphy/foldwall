@@ -18,7 +18,7 @@
 
 ## 待人工（需要真實資料夾、雙螢、鎖屏）
 
-執行檔：`~/workspace/foldwall/DerivedData/Build/Products/Debug/Foldwall.app`（已在跑）
+安裝檔：`dist/Foldwall-0.1.0-arm64.dmg`（拖進 Applications 後從那裡啟動）
 
 | # | 項目 | 步驟 |
 | --- | --- | --- |
