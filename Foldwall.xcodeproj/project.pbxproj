@@ -1,0 +1,580 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		091134F43F3E9697E215BD56 /* FoldwallCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		16649CB4399A84CEE2CC4B86 /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 564344F73AFB43461C1C5C6F /* SmokeTests.swift */; };
+		23BBDD3C9164C1F85EA7160A /* FoldwallCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */; };
+		29662DE33EFC38AD76C0F490 /* FoldwallCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; };
+		8F165965AF7C999A7B627A59 /* FoldwallCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A0A9099A6D996FB5B3536C8A /* FoldwallCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; };
+		F284864AD5D3FFD2108FABF6 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1D4C56749604071D777F79 /* App.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		36EE5595143A46F7DFDF5318 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D42663548EAAA55EEC2DDED /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2FC1E52C177B72AD8E14D3E7;
+			remoteInfo = FoldwallCore;
+		};
+		D3AF93C9F1CCA6AA81767133 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9D42663548EAAA55EEC2DDED /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2FC1E52C177B72AD8E14D3E7;
+			remoteInfo = FoldwallCore;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8A263DBD35C01BD0C03C3224 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				091134F43F3E9697E215BD56 /* FoldwallCore.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CF1DB9C5BB78FB689CBDFEDA /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				8F165965AF7C999A7B627A59 /* FoldwallCore.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		330F76F05B90DA6A2C8994B2 /* FoldwallCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoldwallCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		482A530F542F9E528E053F99 /* Foldwall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Foldwall.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		564344F73AFB43461C1C5C6F /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
+		A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoldwallCore.swift; sourceTree = "<group>"; };
+		BC1D4C56749604071D777F79 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
+		E404CF85EC5B012A6502A22F /* Foldwall.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Foldwall.entitlements; sourceTree = "<group>"; };
+		E49E531D6B989F9304A2E022 /* FoldwallCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FoldwallCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7E6289C27F9A372E35A139DB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				29662DE33EFC38AD76C0F490 /* FoldwallCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8699D32BB9A1A12F6E4B4396 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A0A9099A6D996FB5B3536C8A /* FoldwallCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1E3B0AB547E5B1C5FAA0C7C6 = {
+			isa = PBXGroup;
+			children = (
+				67A6D6E1870A8E48D3F392EF /* Foldwall */,
+				D835018F0782A3A7A6FD6E67 /* FoldwallCore */,
+				D0124B9B35C7BE554E63590F /* FoldwallCoreTests */,
+				5509EF074B754DF578AF0B3B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5509EF074B754DF578AF0B3B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				482A530F542F9E528E053F99 /* Foldwall.app */,
+				E49E531D6B989F9304A2E022 /* FoldwallCore.framework */,
+				330F76F05B90DA6A2C8994B2 /* FoldwallCoreTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		67A6D6E1870A8E48D3F392EF /* Foldwall */ = {
+			isa = PBXGroup;
+			children = (
+				BC1D4C56749604071D777F79 /* App.swift */,
+				E404CF85EC5B012A6502A22F /* Foldwall.entitlements */,
+			);
+			path = Foldwall;
+			sourceTree = "<group>";
+		};
+		D0124B9B35C7BE554E63590F /* FoldwallCoreTests */ = {
+			isa = PBXGroup;
+			children = (
+				564344F73AFB43461C1C5C6F /* SmokeTests.swift */,
+			);
+			path = FoldwallCoreTests;
+			sourceTree = "<group>";
+		};
+		D835018F0782A3A7A6FD6E67 /* FoldwallCore */ = {
+			isa = PBXGroup;
+			children = (
+				A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */,
+			);
+			path = FoldwallCore;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2FC1E52C177B72AD8E14D3E7 /* FoldwallCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1F314ED627A9469BC8024C4A /* Build configuration list for PBXNativeTarget "FoldwallCore" */;
+			buildPhases = (
+				619EC6F6768C8B2F0F3EE865 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FoldwallCore;
+			packageProductDependencies = (
+			);
+			productName = FoldwallCore;
+			productReference = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		B2F573E00142193084436564 /* Foldwall */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FB465A697F9A21958400BDC2 /* Build configuration list for PBXNativeTarget "Foldwall" */;
+			buildPhases = (
+				5EE716B05A1F5CB8309BB198 /* Sources */,
+				8699D32BB9A1A12F6E4B4396 /* Frameworks */,
+				CF1DB9C5BB78FB689CBDFEDA /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C95B0D9AAC1C27F3DC2A87D7 /* PBXTargetDependency */,
+			);
+			name = Foldwall;
+			packageProductDependencies = (
+			);
+			productName = Foldwall;
+			productReference = 482A530F542F9E528E053F99 /* Foldwall.app */;
+			productType = "com.apple.product-type.application";
+		};
+		F774F423953AEE15C0F3C4C1 /* FoldwallCoreTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2DB42DA536EAB088C38BC0C0 /* Build configuration list for PBXNativeTarget "FoldwallCoreTests" */;
+			buildPhases = (
+				F33B5E600A4DC2A31C30AD0F /* Sources */,
+				7E6289C27F9A372E35A139DB /* Frameworks */,
+				8A263DBD35C01BD0C03C3224 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5308CF4D42C4DAE215816E8C /* PBXTargetDependency */,
+			);
+			name = FoldwallCoreTests;
+			packageProductDependencies = (
+			);
+			productName = FoldwallCoreTests;
+			productReference = 330F76F05B90DA6A2C8994B2 /* FoldwallCoreTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9D42663548EAAA55EEC2DDED /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					2FC1E52C177B72AD8E14D3E7 = {
+						ProvisioningStyle = Manual;
+					};
+					B2F573E00142193084436564 = {
+						ProvisioningStyle = Manual;
+					};
+					F774F423953AEE15C0F3C4C1 = {
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = F196A47AFBA473A49EF4E78C /* Build configuration list for PBXProject "Foldwall" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 1E3B0AB547E5B1C5FAA0C7C6;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 5509EF074B754DF578AF0B3B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B2F573E00142193084436564 /* Foldwall */,
+				2FC1E52C177B72AD8E14D3E7 /* FoldwallCore */,
+				F774F423953AEE15C0F3C4C1 /* FoldwallCoreTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		5EE716B05A1F5CB8309BB198 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F284864AD5D3FFD2108FABF6 /* App.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		619EC6F6768C8B2F0F3EE865 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				23BBDD3C9164C1F85EA7160A /* FoldwallCore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F33B5E600A4DC2A31C30AD0F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				16649CB4399A84CEE2CC4B86 /* SmokeTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5308CF4D42C4DAE215816E8C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2FC1E52C177B72AD8E14D3E7 /* FoldwallCore */;
+			targetProxy = D3AF93C9F1CCA6AA81767133 /* PBXContainerItemProxy */;
+		};
+		C95B0D9AAC1C27F3DC2A87D7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2FC1E52C177B72AD8E14D3E7 /* FoldwallCore */;
+			targetProxy = 36EE5595143A46F7DFDF5318 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		16BC753257B1522D910E2D6F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.core;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		1A9A9D6E2322AFDDFCBA853B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Foldwall/Foldwall.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "MIT. Video pipeline forked from Phosphene (MIT).";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall;
+				PRODUCT_NAME = Foldwall;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		25A9D45F5EB2B4EA8E485C10 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				GENERATE_INFOPLIST_FILE = YES;
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.core;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		6798828E9BF5124159E7D928 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.FoldwallCoreTests;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		71734ADB53D6DF8C66AC91BD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				VALID_ARCHS = arm64;
+			};
+			name = Release;
+		};
+		B58FD43AAB89C551F3985A05 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = arm64;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_TREAT_WARNINGS_AS_ERRORS = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				VALID_ARCHS = arm64;
+			};
+			name = Debug;
+		};
+		CE3D15FBD1C0D0A2D0487C37 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.FoldwallCoreTests;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		F68D497E8A070AB1B62F47D3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Foldwall/Foldwall.entitlements;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "MIT. Video pipeline forked from Phosphene (MIT).";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall;
+				PRODUCT_NAME = Foldwall;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1F314ED627A9469BC8024C4A /* Build configuration list for PBXNativeTarget "FoldwallCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				25A9D45F5EB2B4EA8E485C10 /* Debug */,
+				16BC753257B1522D910E2D6F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		2DB42DA536EAB088C38BC0C0 /* Build configuration list for PBXNativeTarget "FoldwallCoreTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6798828E9BF5124159E7D928 /* Debug */,
+				CE3D15FBD1C0D0A2D0487C37 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F196A47AFBA473A49EF4E78C /* Build configuration list for PBXProject "Foldwall" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B58FD43AAB89C551F3985A05 /* Debug */,
+				71734ADB53D6DF8C66AC91BD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FB465A697F9A21958400BDC2 /* Build configuration list for PBXNativeTarget "Foldwall" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A9A9D6E2322AFDDFCBA853B /* Debug */,
+				F68D497E8A070AB1B62F47D3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9D42663548EAAA55EEC2DDED /* Project object */;
+}

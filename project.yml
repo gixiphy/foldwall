@@ -1,0 +1,77 @@
+name: Foldwall
+options:
+  bundleIdPrefix: app.foldwall
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+  minimumXcodeGenVersion: "2.38"
+
+settings:
+  base:
+    # v1 只 arm64：不要 $(ARCHS_STANDARD)，不做 universal
+    ARCHS: arm64
+    VALID_ARCHS: arm64
+    ONLY_ACTIVE_ARCH: YES
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    GCC_TREAT_WARNINGS_AS_ERRORS: NO
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+
+targets:
+  FoldwallCore:
+    type: framework
+    platform: macOS
+    sources: [FoldwallCore]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.foldwall.core
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+
+  Foldwall:
+    type: application
+    platform: macOS
+    sources: [Foldwall]
+    dependencies:
+      - target: FoldwallCore
+        embed: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.foldwall
+        PRODUCT_NAME: Foldwall
+        GENERATE_INFOPLIST_FILE: YES
+        # 選單列 app：不進 Dock、不開主視窗
+        INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_NSHumanReadableCopyright: "MIT. Video pipeline forked from Phosphene (MIT)."
+        # v1 不沙盒；Hardened Runtime 開、Library Validation 由 entitlements 關（私有 framework dlopen）
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: NO
+        CODE_SIGN_ENTITLEMENTS: Foldwall/Foldwall.entitlements
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+
+  FoldwallCoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [FoldwallCoreTests]
+    dependencies:
+      - target: FoldwallCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+
+schemes:
+  Foldwall:
+    build:
+      targets:
+        Foldwall: all
+        FoldwallCore: all
+    test:
+      targets: [FoldwallCoreTests]
+      gatherCoverageData: false
+    run:
+      config: Debug
