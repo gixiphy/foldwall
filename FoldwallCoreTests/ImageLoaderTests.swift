@@ -90,7 +90,7 @@ final class ImageLoaderTests: XCTestCase {
 
         var images: [CGImage] = []
         if let source = env["FOLDWALL_SAMPLE_SOURCE"] {
-            let items = await MediaIndexer().scan(roots: [URL(filePath: source)])
+            let items = await MediaIndexer().scan(roots: [URL(filePath: source)]).items
             images = items.filter { $0.kind == .image }.prefix(12)
                 .compactMap { try? ImageLoader.load($0.url, maxPixel: 1600) }
         }

@@ -37,6 +37,7 @@
 		3299FC78A3798C3B872890F5 /* PexelsVideoSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80F91579F24C55ADDFD99008 /* PexelsVideoSource.swift */; };
 		35BDF2810C811F30745A5F45 /* VideoLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71E708670941E4004FD0507F /* VideoLibrary.swift */; };
 		375747239E8D23673EDA3BE0 /* FolderIndexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92B9B55B320A65ABD988F12 /* FolderIndexTests.swift */; };
+		3B0887B428FF82B68E3F0751 /* FolderIndexStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E6AC595791A19D8A7AB3A57 /* FolderIndexStore.swift */; };
 		3D39C32EF99363B96CAEBA34 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9F4CC304EBB9F0D5D0E651C7 /* Assets.xcassets */; };
 		3DBC7A44F0A669CF5AC6090E /* RemoteSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D67A68B60193D7474651E2 /* RemoteSourceTests.swift */; };
 		3E57E6D2B78746BB87456FE4 /* BMPCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD192E373AC2E51D47E0D53 /* BMPCache.swift */; };
@@ -104,6 +105,7 @@
 		F0F35D7FBBF9A88B621B8E38 /* WallpaperPrefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF3539615A6B30B3606F7909 /* WallpaperPrefs.swift */; };
 		F284864AD5D3FFD2108FABF6 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1D4C56749604071D777F79 /* App.swift */; };
 		F593D897BEADF40EECBD3D19 /* AggregateFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1BCF4E6B8D0C80FAD7A08E /* AggregateFolder.swift */; };
+		F59EC11F583C393266428B53 /* FolderIndexStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FBDE4A13042A4B4C60E6F9A /* FolderIndexStoreTests.swift */; };
 		F5BDA3E030571A72F08DD061 /* URLCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C5157584F83440AAC77604 /* URLCommands.swift */; };
 		F62BD57266782820386C1DD8 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B89E4469A8396C7755B3F3 /* KeychainStore.swift */; };
 		F6D52EE27881CC76F93FEF53 /* SettingsPush.swift in Sources */ = {isa = PBXBuildFile; fileRef = B343126CD55D783EC5E00EE5 /* SettingsPush.swift */; };
@@ -229,6 +231,8 @@
 		84B50A679DBCF07FED1D81F6 /* SettingsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsProvider.swift; sourceTree = "<group>"; };
 		8B45849AE2A80D42B0C75DA0 /* SourceTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceTest.swift; sourceTree = "<group>"; };
 		8D180418083ACDF14855DAA6 /* StillPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StillPipelineTests.swift; sourceTree = "<group>"; };
+		8E6AC595791A19D8A7AB3A57 /* FolderIndexStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderIndexStore.swift; sourceTree = "<group>"; };
+		8FBDE4A13042A4B4C60E6F9A /* FolderIndexStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderIndexStoreTests.swift; sourceTree = "<group>"; };
 		91AE3B3B6B0191D157896C0E /* VideoEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEngineTests.swift; sourceTree = "<group>"; };
 		96BF4ACFCEF62570A95D743D /* VideoDownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDownloadService.swift; sourceTree = "<group>"; };
 		99FD0A1A28C404C32BB9339F /* VideoDownloadTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDownloadTests.swift; sourceTree = "<group>"; };
@@ -391,6 +395,7 @@
 				04785BCF5442C9B2FF9BCA60 /* AggregateFolderTests.swift */,
 				BE46C077CBAA4384DAC0ACD7 /* BookmarkCodecTests.swift */,
 				4E01CE88CBBB810189D8DA9F /* CacheLocationTests.swift */,
+				8FBDE4A13042A4B4C60E6F9A /* FolderIndexStoreTests.swift */,
 				C92B9B55B320A65ABD988F12 /* FolderIndexTests.swift */,
 				80EB9ED77FE384AFBBD4E399 /* ImageLoaderTests.swift */,
 				AEDD0B93BBDE07B3885CA805 /* ImageTranscoderTests.swift */,
@@ -424,6 +429,7 @@
 				82AF9FEF27C90104972F2A43 /* CacheLocation.swift */,
 				3B012BB744EF3731DFE4932C /* FocusMode.swift */,
 				323DC509BC0D0DC3F24DF2B0 /* FolderIndex.swift */,
+				8E6AC595791A19D8A7AB3A57 /* FolderIndexStore.swift */,
 				21CCF36F676D3CBC0E595622 /* FolderStore.swift */,
 				A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */,
 				DBB8D3B7FAF0FF86FEB4C4B3 /* ImageLoader.swift */,
@@ -634,6 +640,7 @@
 				B3C57A19BAB25B7EBCFCBDCB /* CacheLocation.swift in Sources */,
 				D74A7F0CFB9EC1027461EEC5 /* FocusMode.swift in Sources */,
 				1ADDE794B590B6AF3765C839 /* FolderIndex.swift in Sources */,
+				3B0887B428FF82B68E3F0751 /* FolderIndexStore.swift in Sources */,
 				BBAB65431B2DFD61F0889A4B /* FolderStore.swift in Sources */,
 				23BBDD3C9164C1F85EA7160A /* FoldwallCore.swift in Sources */,
 				40E7998011B4545649176ABF /* ImageLoader.swift in Sources */,
@@ -672,6 +679,7 @@
 				C0531F96CBD217A66D2A7715 /* AggregateFolderTests.swift in Sources */,
 				FA6BD13E5C5D78CF617584B6 /* BookmarkCodecTests.swift in Sources */,
 				151782763573134BF1A2DB6F /* CacheLocationTests.swift in Sources */,
+				F59EC11F583C393266428B53 /* FolderIndexStoreTests.swift in Sources */,
 				375747239E8D23673EDA3BE0 /* FolderIndexTests.swift in Sources */,
 				D78F40C2C2CB739C8376EC74 /* ImageLoaderTests.swift in Sources */,
 				44D09EBA28FA329203E3AFA6 /* ImageTranscoderTests.swift in Sources */,
