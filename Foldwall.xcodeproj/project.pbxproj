@@ -22,6 +22,7 @@
 		27166EDA9AF7EBCAC515D4D5 /* BookmarkCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDCF3EE91465CE5238202918 /* BookmarkCodec.swift */; };
 		29662DE33EFC38AD76C0F490 /* FoldwallCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; };
 		35BDF2810C811F30745A5F45 /* VideoLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71E708670941E4004FD0507F /* VideoLibrary.swift */; };
+		3D39C32EF99363B96CAEBA34 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9F4CC304EBB9F0D5D0E651C7 /* Assets.xcassets */; };
 		3E57E6D2B78746BB87456FE4 /* BMPCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD192E373AC2E51D47E0D53 /* BMPCache.swift */; };
 		40E7998011B4545649176ABF /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB8D3B7FAF0FF86FEB4C4B3 /* ImageLoader.swift */; };
 		495C27A4ACA263CB4FEBBCBE /* MaterializerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 370E7E214D59EA0EA71EA2AE /* MaterializerTests.swift */; };
@@ -165,6 +166,7 @@
 		80EB9ED77FE384AFBBD4E399 /* ImageLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoaderTests.swift; sourceTree = "<group>"; };
 		84B50A679DBCF07FED1D81F6 /* SettingsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsProvider.swift; sourceTree = "<group>"; };
 		8D180418083ACDF14855DAA6 /* StillPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StillPipelineTests.swift; sourceTree = "<group>"; };
+		9F4CC304EBB9F0D5D0E651C7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoldwallCore.swift; sourceTree = "<group>"; };
 		A1F33540AF00E0706871101C /* MediaIndexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaIndexer.swift; sourceTree = "<group>"; };
 		A5E2643B0C660DA235688E63 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
@@ -244,6 +246,7 @@
 			isa = PBXGroup;
 			children = (
 				BC1D4C56749604071D777F79 /* App.swift */,
+				9F4CC304EBB9F0D5D0E651C7 /* Assets.xcassets */,
 				B0C5AB7864D8B64E462BEBFC /* BookmarkStore.swift */,
 				E404CF85EC5B012A6502A22F /* Foldwall.entitlements */,
 				A9DBB3AC09D4C639CC4D6F16 /* Log.swift */,
@@ -353,6 +356,7 @@
 			buildConfigurationList = FB465A697F9A21958400BDC2 /* Build configuration list for PBXNativeTarget "Foldwall" */;
 			buildPhases = (
 				5EE716B05A1F5CB8309BB198 /* Sources */,
+				A8A027BF279448E5A149EB08 /* Resources */,
 				8699D32BB9A1A12F6E4B4396 /* Frameworks */,
 				95348531D1C6736FBDBA5ECA /* Embed ExtensionKit Extensions */,
 				CF1DB9C5BB78FB689CBDFEDA /* Embed Frameworks */,
@@ -451,6 +455,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A8A027BF279448E5A149EB08 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3D39C32EF99363B96CAEBA34 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5EE716B05A1F5CB8309BB198 /* Sources */ = {
