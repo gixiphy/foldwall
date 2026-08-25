@@ -127,10 +127,13 @@ struct MenuBarView: View {
     private var displayMenu: some View {
         Menu("此螢幕改用影片") {
             ForEach(Array(coordinator.displays.enumerated()), id: \.element.uuid) { index, display in
+                // 設備名稱優先（"AG493UCX2"）；查不到才退回「螢幕 N」。
+                // 兩台同型號時系統會自己加後綴，不必在這裡編號。
+                let name = ScreenBridge.localizedName(forUUID: display.uuid) ?? "螢幕 \(index + 1)"
                 Button {
                     coordinator.toggleVideo(for: display)
                 } label: {
-                    Label("螢幕 \(index + 1)（\(Int(display.canvas.width))×\(Int(display.canvas.height))）",
+                    Label("\(name)（\(Int(display.canvas.width))×\(Int(display.canvas.height))）",
                           systemImage: coordinator.isVideoScreen(display) ? "checkmark" : "")
                 }
             }

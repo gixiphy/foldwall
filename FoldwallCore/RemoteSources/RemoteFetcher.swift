@@ -11,6 +11,7 @@ public struct RemoteFetcher: Sendable {
     private let cacheDirectory: URL
     private let limitBytes: Int
     private let session: URLSession
+    private let credits: CreditStore
 
     public init(
         cacheDirectory: URL,
@@ -20,6 +21,7 @@ public struct RemoteFetcher: Sendable {
         self.cacheDirectory = cacheDirectory
         self.limitBytes = limitBytes
         self.session = session
+        self.credits = CreditStore(directory: cacheDirectory)
     }
 
     /// 抓清單、下載、回傳本機路徑。單張失敗只跳過那張，不中斷整批。
@@ -40,6 +42,9 @@ public struct RemoteFetcher: Sendable {
         }
 
         try? Materializer.evict(directory: cacheDirectory, limitBytes: limitBytes)
+        // 汰舊之後把出處表裡的孤兒一併清掉，不然它只會一直長
+        credits.prune(keeping: (try? FileManager.default.contentsOfDirectory(
+            at: cacheDirectory, includingPropertiesForKeys: nil)) ?? [])
         return local
     }
 
@@ -60,15 +65,40 @@ public struct RemoteFetcher: Sendable {
     }
 
     private func download(_ image: RemoteImage, from source: any RemotePhotoSource) async throws -> URL {
+        // 快取名用 image.id，而 id 在兩段式來源裡從清單頁就定了——
+        // 所以這個檢查在解析詳細頁**之前**做，已經有的就完全不必再進去那一層。
         let destination = cacheURL(for: image, kind: source.kind)
         if FileManager.default.fileExists(atPath: destination.path) {
             return destination
         }
 
+        let image = try await resolve(image, from: source)
         let (data, response) = try await session.data(for: source.downloadRequest(for: image))
         try Self.validate(response)
         try data.write(to: destination, options: .atomic)
+
+        // 授權要求標註作者，而現在是唯一知道作者是誰的時候——快取裡只剩檔案。
+        credits.record(image.attribution, for: destination)
+
+        // Unsplash 規範：實際用到照片時要回報一次。失敗不影響已經抓好的圖，
+        // 所以吞掉錯誤——但**不能不打**，那是拿 production 額度的硬性要求。
+        if let trigger = source.downloadTriggerRequest(for: image) {
+            _ = try? await session.data(for: trigger)
+        }
         return destination
+    }
+
+    /// 兩段式來源的第二段：進詳細頁把原圖網址挖出來。一段式來源直接原樣回傳。
+    private func resolve(
+        _ image: RemoteImage, from source: any RemotePhotoSource
+    ) async throws -> RemoteImage {
+        guard let request = source.detailRequest(for: image) else { return image }
+        let (data, response) = try await session.data(for: request)
+        try Self.validate(response)
+        guard let resolved = try source.parseDetail(data, for: image) else {
+            throw RemoteSourceError.malformedResponse(source.kind)
+        }
+        return resolved
     }
 
     private static func validate(_ response: URLResponse) throws {

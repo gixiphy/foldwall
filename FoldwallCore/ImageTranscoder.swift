@@ -14,7 +14,12 @@ import UniformTypeIdentifiers
 
 public enum ImageTranscoder {
 
-    public static let quality: Double = 0.9
+    /// **最高品質——這是「原圖」那一端。** 相簿匯出來的是合成用的素材，
+    /// 之後還要再縮放、再經過一次 JPEG 編碼。在這裡先掉一次畫質，
+    /// 最後那張就是兩次損失疊起來的。要省空間該省在合成輸出
+    /// （見 StillPipeline.jpegQuality），不是省在來源。
+    /// （本來就是 JPEG 的來源完全不重編碼，見下面。）
+    public static let quality: Double = 1.0
 
     /// - Returns: 可直接寫檔的 JPEG 資料；來源本來就是 JPEG 就原樣回傳（完全不重編碼）。
     ///   認不得的格式回 nil。

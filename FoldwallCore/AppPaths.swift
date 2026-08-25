@@ -48,9 +48,13 @@ public struct AppPaths: Sendable {
         URL.homeDirectory.appending(path: "Pictures/Foldwall")
     }
 
-    /// 從網址下載的影片。放 ~/Movies 而不是 Caches：那是使用者主動要的東西，
-    /// 不該被系統當快取清掉。
-    public var downloadedVideos: URL {
+    /// 從網址下載的影片。**跟網路來源的影片同一個目錄**——兩者最後都進同一個
+    /// 影片池，分兩個地方存只會讓同一支影片存兩份（實測 Pexels 的影片用網址
+    /// 抓一次就會出現兩個副本）。代價是它們一起受 2 GB 上限與自動汰舊管。
+    public var downloadedVideos: URL { remoteVideoCache }
+
+    /// 0.5.1 以前放下載影片的地方。只剩搬遷用，不再寫入。
+    public var legacyDownloadedVideos: URL {
         URL.homeDirectory.appending(path: "Movies/Foldwall")
     }
 
@@ -76,7 +80,11 @@ public struct AppPaths: Sendable {
                 isPurgeable: true),
             CacheLocation(
                 id: "videos", name: "影片",
-                purpose: "Pexels 下載的影片，以及這一輪輪替中、已拷進影片 extension 的那幾支。",
+                // 純文字：CacheLocation.purpose 是 Core 的資料，UI 用 Text(String) 顯示，
+                // 那條路不解析 Markdown（`**` 會原樣印出來）。
+                purpose: "網路來源抓的影片、你在「來源 → 網路」用網址下載的影片，"
+                    + "以及這一輪輪替中、已拷進影片 extension 的那幾支。"
+                    + "有 2 GB 上限，超過會從最舊的開始汰。",
                 url: remoteVideoCache,
                 members: [remoteVideoCache] + (videoContainer.map { [$0] } ?? []),
                 isPurgeable: true),

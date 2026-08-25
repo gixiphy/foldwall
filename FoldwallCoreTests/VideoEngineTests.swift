@@ -74,6 +74,58 @@ final class VideoPlaybackPlanTests: XCTestCase {
         XCTAssertEqual(forward, reversed, "順序不該影響播到哪一支")
     }
 
+    // MARK: - 黏著：影片不跟著蒙太奇換
+
+    /// 這條是回報的 bug：assign 的位置由池的**內容**決定，而池每輪都在變
+    /// （下載落地、快取淘汰、索引重掃、失敗冷卻），所以 cycle 沒動影片也會被換掉。
+    func testKeepingSurvivesPoolChanges() {
+        let a = video("a.mp4"), b = video("b.mp4"), c = video("c.mp4")
+        let current = ["S1": b]
+
+        // 池多了一支、少了一支、順序也變了——正在播的那支仍在池裡就該續播
+        let plan = VideoPlaybackPlan.keeping(
+            current: current, screens: ["S1"], videos: [c, b, a], cycle: 0)
+        XCTAssertEqual(plan["S1"], b, "還在池裡就繼續播，不要重新選")
+    }
+
+    func testKeepingReassignsWhenCurrentVideoIsGone() {
+        let a = video("a.mp4"), b = video("b.mp4")
+        let plan = VideoPlaybackPlan.keeping(
+            current: ["S1": video("deleted.mp4")], screens: ["S1"], videos: [a, b])
+        XCTAssertNotNil(plan["S1"])
+        XCTAssertTrue([a, b].contains(plan["S1"]!), "原本那支不見了才重新選")
+    }
+
+    func testKeepingFillsScreensThatArePlayingNothing() {
+        let a = video("a.mp4"), b = video("b.mp4")
+        let plan = VideoPlaybackPlan.keeping(
+            current: ["S1": a], screens: ["S1", "S2"], videos: [a, b])
+        XCTAssertEqual(plan["S1"], a, "S1 續播")
+        XCTAssertEqual(plan["S2"], b, "S2 拿沒被沿用的那支")
+    }
+
+    /// 兩台螢幕不該播到同一支——即使 current 裡兩台都記著同一支。
+    func testKeepingDoesNotLetTwoScreensShareOneVideo() {
+        let a = video("a.mp4"), b = video("b.mp4")
+        let plan = VideoPlaybackPlan.keeping(
+            current: ["S1": a, "S2": a], screens: ["S1", "S2"], videos: [a, b])
+        XCTAssertNotEqual(plan["S1"], plan["S2"])
+    }
+
+    /// 只有一支影片時只能重複，但不能留空螢幕。
+    func testKeepingReusesWhenThereIsOnlyOneVideo() {
+        let a = video("a.mp4")
+        let plan = VideoPlaybackPlan.keeping(
+            current: ["S1": a], screens: ["S1", "S2"], videos: [a])
+        XCTAssertEqual(plan["S1"], a)
+        XCTAssertEqual(plan["S2"], a)
+    }
+
+    func testKeepingWithEmptyInputsIsSafe() {
+        XCTAssertTrue(VideoPlaybackPlan.keeping(current: [:], screens: [], videos: [video("1.mp4")]).isEmpty)
+        XCTAssertTrue(VideoPlaybackPlan.keeping(current: [:], screens: ["A"], videos: []).isEmpty)
+    }
+
     func testEmptyInputsAreSafe() {
         XCTAssertTrue(VideoPlaybackPlan.assign(screens: [], videos: [video("1.mp4")]).isEmpty)
         XCTAssertTrue(VideoPlaybackPlan.assign(screens: ["A"], videos: []).isEmpty)

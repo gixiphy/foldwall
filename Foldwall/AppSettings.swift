@@ -24,6 +24,9 @@ final class AppSettings {
         static let folderUsage = "folderUsage"
         static let videoEngine = "videoEngine"
         static let desktopVideoLayer = "desktopVideoLayer"
+        static let montagePieceCount = "montagePieceCount"
+        static let iCloudSyncEnabled = "iCloudSyncEnabled"
+        static let playlistSources = "playlistSources"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -34,6 +37,12 @@ final class AppSettings {
 
     var effect: PostProcess {
         didSet { defaults.set(effect.rawValue, forKey: Key.effect) }
+    }
+
+    /// 每輪同時抽幾張。`nil`＝自動（依螢幕長邊，見 `StillPipeline.pieceCount`）。
+    /// 存 0 代表自動——UserDefaults 沒有 optional Int，缺 key 讀出來也是 0，兩種情況同義。
+    var montagePieceCount: Int? {
+        didSet { defaults.set(montagePieceCount ?? 0, forKey: Key.montagePieceCount) }
     }
 
     /// 每個來源資料夾要餵給哪條管線（蒙太奇／影片）。
@@ -102,11 +111,25 @@ final class AppSettings {
         didSet { applyLaunchAtLogin() }
     }
 
+    /// 自動與 iCloud 同步設定。**預設關**：開著代表另一台機器改的設定會自動
+    /// 蓋掉這台的，那該由使用者明確選擇，不是預設行為。
+    var iCloudSyncEnabled: Bool {
+        didSet { defaults.set(iCloudSyncEnabled, forKey: Key.iCloudSyncEnabled) }
+    }
+
     /// 免 OAuth 的網路來源。API key 不在這裡，在 Keychain（以 config.id 為帳號）。
     var remoteSources: [RemoteSourceConfig] {
         didSet {
             guard let data = try? JSONEncoder().encode(remoteSources) else { return }
             defaults.set(data, forKey: Key.remoteSources)
+        }
+    }
+
+    /// 片單網址。存的是網址，不是影片——抽到哪支才抓哪支（見 PlaylistService）。
+    var playlistSources: [PlaylistSource] {
+        didSet {
+            guard let data = try? JSONEncoder().encode(playlistSources) else { return }
+            defaults.set(data, forKey: Key.playlistSources)
         }
     }
 
@@ -129,8 +152,13 @@ final class AppSettings {
             : Scheduler.defaultIntervalMinutes
 
         self.effect = (defaults.string(forKey: Key.effect).flatMap(PostProcess.init(rawValue:))) ?? .none
+        let storedPieces = defaults.integer(forKey: Key.montagePieceCount)   // 缺 key = 0 = 自動
+        self.montagePieceCount = MontageComposer.pieceCountRange.contains(storedPieces)
+            ? storedPieces
+            : nil
         self.videoScreens = Set(defaults.stringArray(forKey: Key.videoScreens) ?? [])
         self.videoWallpaperEnabled = defaults.bool(forKey: Key.videoWallpaperEnabled)   // 缺 key = false
+        self.iCloudSyncEnabled = defaults.bool(forKey: Key.iCloudSyncEnabled)           // 缺 key = false
         self.videoEngine = (defaults.string(forKey: Key.videoEngine)
             .flatMap(VideoEngine.init(rawValue:))) ?? .desktopWindow
         self.desktopVideoLayer = (defaults.string(forKey: Key.desktopVideoLayer)
@@ -140,9 +168,12 @@ final class AppSettings {
         // 以系統實際狀態為準，不信 defaults：使用者可能在系統設定裡關掉
         self.launchAtLogin = SMAppService.mainApp.status == .enabled
 
-        self.remoteSources = (defaults.data(forKey: Key.remoteSources)
-            .flatMap { try? JSONDecoder().decode([RemoteSourceConfig].self, from: $0) }) ?? []
+        // 逐筆解、認不得的丟掉：整包解的話，一筆舊型別就會讓所有來源消失
+        self.remoteSources = defaults.data(forKey: Key.remoteSources)
+            .map(RemoteSourceConfig.decodeList) ?? []
         self.photoAlbums = Set(defaults.stringArray(forKey: Key.photoAlbums) ?? [])
+        self.playlistSources = (defaults.data(forKey: Key.playlistSources)
+            .flatMap { try? JSONDecoder().decode([PlaylistSource].self, from: $0) }) ?? []
         self.sourceRules = (defaults.data(forKey: Key.sourceRules)
             .flatMap { try? JSONDecoder().decode([SourceRule].self, from: $0) }) ?? []
         self.folderUsage = (defaults.data(forKey: Key.folderUsage)

@@ -7,7 +7,8 @@
 import Foundation
 
 public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
-    case unsplash, pexels, pixabay, wallhaven, flickr, immich, rss, pexelsVideo, rsshub
+    case unsplash, pexels, pixabay, wallhaven, flickr, immich, rss, pexelsVideo
+    case fourKWallpapers
 
     public var displayName: String {
         switch self {
@@ -19,7 +20,7 @@ public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
         case .immich: "Immich"
         case .rss: "RSS 相片來源"
         case .pexelsVideo: "Pexels 影片"
-        case .rsshub: "RSSHub（自架）"
+        case .fourKWallpapers: "4KWallpapers"
         }
     }
 
@@ -28,16 +29,15 @@ public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
         switch self {
         case .unsplash, .pexels, .pixabay, .flickr, .immich, .pexelsVideo: true
         // Wallhaven 公開內容免 key；RSS 完全免驗證；
-        // RSSHub 的 key 是自架者自己設的存取控制，沒設就不用
-        case .wallhaven, .rss, .rsshub: false
+        // 4kwallpapers 沒有 API，是抓公開網頁，本來就沒有 key 這回事
+        case .wallhaven, .rss, .fourKWallpapers: false
         }
     }
 
     /// 需要一個網址（Immich 伺服器、RSS feed）。
     public var requiresEndpoint: Bool {
         switch self {
-        // RSSHub 要的是**自架 instance 的網址**，不是完整 feed 網址
-        case .immich, .rss, .rsshub: true
+        case .immich, .rss: true
         default: false
         }
     }
@@ -51,16 +51,18 @@ public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
         case .flickr: URL(string: "https://www.flickr.com/services/apps/create/apply/")
         case .wallhaven: URL(string: "https://wallhaven.cc/settings/account")
         case .immich: URL(string: "https://immich.app/docs/features/command-line-interface/")
+        case .fourKWallpapers: URL(string: "https://4kwallpapers.com/")
         case .rss: nil
-        case .rsshub: URL(string: "https://docs.rsshub.app/deploy/")
         }
     }
 
     /// 搜尋關鍵字有意義嗎。
     public var supportsQuery: Bool {
         switch self {
-        // RSSHub 的「關鍵字」欄位放的是路由，例如 /pixiv/user/12345
-        case .unsplash, .pexels, .pixabay, .wallhaven, .flickr, .pexelsVideo, .rsshub: true
+        case .unsplash, .pexels, .pixabay, .wallhaven, .flickr, .pexelsVideo: true
+        // 4kwallpapers 的 robots.txt **明確 Disallow /search/**，所以不做關鍵字搜尋。
+        // 那個欄位在這個來源是「分類」（anime、cars、nature…），留白就取首頁混合。
+        case .fourKWallpapers: true
         case .immich, .rss: false
         }
     }
@@ -78,12 +80,18 @@ public struct RemoteImage: Sendable, Equatable, Identifiable {
     public var id: String
     public var url: URL
     /// 有些服務（Unsplash／Pexels／Flickr）的授權要求標註作者。
+    /// 會被燒進合成圖的角落，見 MontageComposer。
     public var attribution: String?
+    /// 作者頁。標註要「連得回去」，桌布上沒辦法點，但記著才能在別處用。
+    public var profileURL: URL?
+    /// 下載完要回報的端點（Unsplash 的 `links.download_location`）。
+    public var downloadTrigger: URL?
 
-    public init(id: String, url: URL, attribution: String? = nil) {
+    public init(id: String, url: URL, attribution: String? = nil, profileURL: URL? = nil) {
         self.id = id
         self.url = url
         self.attribution = attribution
+        self.profileURL = profileURL
     }
 }
 
@@ -108,6 +116,23 @@ public struct RemoteSourceConfig: Codable, Sendable, Equatable, Identifiable {
 }
 
 extension RemoteSourceConfig {
+
+    /// 逐筆解碼，認不得的 `kind` 直接丟掉。
+    ///
+    /// **不要直接 decode 整個陣列。** 那樣只要有一筆的 kind 不認得，整份設定就解不開，
+    /// 呼叫端的 `?? []` 會讓使用者**所有**網路來源一起消失。移除某個來源型別
+    /// （像 0.5.1 拿掉 RSSHub）不該有這種連坐。
+    public static func decodeList(_ data: Data) -> [RemoteSourceConfig] {
+        struct Lenient: Decodable {
+            let value: RemoteSourceConfig?
+            init(from decoder: any Decoder) throws {
+                value = try? RemoteSourceConfig(from: decoder)
+            }
+        }
+        let decoded = (try? JSONDecoder().decode([Lenient].self, from: data)) ?? []
+        return decoded.compactMap(\.value)
+    }
+
     /// 清單上要顯示的標題。
     ///
     /// **不能只用 kind.displayName**：同一個站可以加好幾條、各自不同關鍵字
@@ -141,12 +166,32 @@ public protocol RemotePhotoSource: Sendable {
     func parse(_ data: Data) throws -> [RemoteImage]
     /// 下載單張的請求。Immich 需要帶 api key header，所以開放覆寫。
     func downloadRequest(for image: RemoteImage) -> URLRequest
+
+    /// **第二段請求。** 清單頁只給得出詳細頁網址、原圖網址得再進去一層時用
+    /// （4kwallpapers 就是這種）。回 nil＝一段就夠，多數 API 走這條。
+    ///
+    /// 為什麼不直接在來源裡發網路請求：這個協定刻意「只建請求、只解回應」，
+    /// 測試才能餵 fixture 不碰網路。多一段也維持同樣的形狀。
+    func detailRequest(for image: RemoteImage) -> URLRequest?
+    /// 從詳細頁挖出真正的原圖網址。回 nil＝這張放棄。
+    func parseDetail(_ data: Data, for image: RemoteImage) throws -> RemoteImage?
+
+    /// 下載完之後要不要回報給來源。
+    ///
+    /// Unsplash 的 API 規範要求「應用程式實際用到某張照片時」打一次 download 端點
+    /// （`photo.links.download_location`）——那是他們統計作者被使用次數的方式，
+    /// 不做就拿不到 production 額度。回 nil＝這個來源沒有這種要求。
+    func downloadTriggerRequest(for image: RemoteImage) -> URLRequest?
 }
 
 extension RemotePhotoSource {
     public func downloadRequest(for image: RemoteImage) -> URLRequest {
         URLRequest(url: image.url)
     }
+
+    public func detailRequest(for image: RemoteImage) -> URLRequest? { nil }
+    public func parseDetail(_ data: Data, for image: RemoteImage) throws -> RemoteImage? { image }
+    public func downloadTriggerRequest(for image: RemoteImage) -> URLRequest? { nil }
 }
 
 public enum RemoteSourceFactory {
@@ -167,9 +212,8 @@ public enum RemoteSourceFactory {
         case .flickr: return FlickrSource(key: key ?? "", query: config.query)
         case .immich: return try ImmichSource(key: key ?? "", server: config.endpoint)
         case .rss: return try RSSPhotoSource(feed: config.endpoint)
-        case .rsshub:
-            return try RSSHubSource(instance: config.endpoint, route: config.query, key: key)
         case .pexelsVideo: return PexelsVideoSource(key: key ?? "", query: config.query)
+        case .fourKWallpapers: return FourKWallpapersSource(category: config.query)
         }
     }
 }

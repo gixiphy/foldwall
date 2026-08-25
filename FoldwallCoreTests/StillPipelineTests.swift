@@ -64,12 +64,28 @@ final class StillPipelineTests: XCTestCase {
         XCTAssertEqual(StillPipeline.pieceCount(longSide: 5120, tier: .reduced), 6, "降載封頂 6")
     }
 
+    func testPieceCountOverrideBeatsLongSide() {
+        XCTAssertEqual(StillPipeline.pieceCount(longSide: 2560, tier: .full, override: 12), 12)
+        XCTAssertEqual(StillPipeline.pieceCount(longSide: 5120, tier: .full, override: 4), 4)
+        XCTAssertEqual(StillPipeline.pieceCount(longSide: 2560, tier: .full, override: nil), 6,
+                       "nil＝自動，行為與沒有這個參數時相同")
+    }
+
+    func testPieceCountOverrideIsClampedAndStillCappedWhenReduced() {
+        XCTAssertEqual(StillPipeline.pieceCount(longSide: 2560, tier: .full, override: 99),
+                       MontageComposer.pieceCountRange.upperBound, "夾到合成端畫得出來的上限")
+        XCTAssertEqual(StillPipeline.pieceCount(longSide: 2560, tier: .full, override: 0),
+                       MontageComposer.pieceCountRange.lowerBound)
+        XCTAssertEqual(StillPipeline.pieceCount(longSide: 2560, tier: .reduced, override: 12), 6,
+                       "降載封頂 6 不因使用者指定而失效")
+    }
+
     // MARK: - 共存與空池
 
     func testSkippedDisplayIsNeverWritten() async throws {
         let outcome = try await makePipeline().refresh(
             displays: [displayA, displayB], skipIDs: [displayA.id],
-            pool: pool, effect: .none, tier: .full, cycleNonce: 1
+            pool: SourcePool(pool), effect: .none, tier: .full, cycleNonce: 1
         )
         XCTAssertEqual(desktop.calls.map(\.id), [displayB.id], "播影片的螢幕一次都不能寫")
         XCTAssertEqual(outcome.written, [displayB.id])
@@ -79,7 +95,7 @@ final class StillPipelineTests: XCTestCase {
     func testEmptyPoolWritesNothing() async throws {
         let outcome = try await makePipeline().refresh(
             displays: [displayA, displayB], skipIDs: [],
-            pool: [], effect: .none, tier: .full, cycleNonce: 1
+            pool: SourcePool([]), effect: .none, tier: .full, cycleNonce: 1
         )
         XCTAssertTrue(desktop.calls.isEmpty, "空池必須保留現桌布，不可寫黑圖")
         XCTAssertTrue(outcome.poolWasEmpty)
@@ -90,7 +106,7 @@ final class StillPipelineTests: XCTestCase {
         let broken = root.appending(path: "broken.jpg")
         try Data("garbage".utf8).write(to: broken)
         let outcome = try await makePipeline().refresh(
-            displays: [displayA], skipIDs: [], pool: [broken],
+            displays: [displayA], skipIDs: [], pool: SourcePool([broken]),
             effect: .none, tier: .full, cycleNonce: 1
         )
         XCTAssertTrue(desktop.calls.isEmpty, "全是壞檔等同空池")
@@ -101,9 +117,9 @@ final class StillPipelineTests: XCTestCase {
 
     func testEachCycleUsesFreshFilename() async throws {
         let pipeline = makePipeline()
-        try await pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
+        try await pipeline.refresh(displays: [displayA], skipIDs: [], pool: SourcePool(pool),
                              effect: .none, tier: .full, cycleNonce: 1)
-        try await pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
+        try await pipeline.refresh(displays: [displayA], skipIDs: [], pool: SourcePool(pool),
                              effect: .none, tier: .full, cycleNonce: 2)
 
         let urls = desktop.calls.map(\.url)
@@ -115,7 +131,7 @@ final class StillPipelineTests: XCTestCase {
     func testKeepsOnlyTwoGenerations() async throws {
         let pipeline = makePipeline()
         for nonce in UInt64(1)...4 {
-            try await pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
+            try await pipeline.refresh(displays: [displayA], skipIDs: [], pool: SourcePool(pool),
                                  effect: .none, tier: .full, cycleNonce: nonce)
         }
         let remaining = try FileManager.default
@@ -143,7 +159,7 @@ final class StillPipelineTests: XCTestCase {
         }
 
         let outcome = try await makePipeline().refresh(
-            displays: [displayA], skipIDs: [], pool: tiny,
+            displays: [displayA], skipIDs: [], pool: SourcePool(tiny),
             effect: .none, tier: .full, cycleNonce: 1
         )
         XCTAssertTrue(desktop.calls.isEmpty, "短邊 <256 的圖不該被拿去合成")
@@ -164,7 +180,7 @@ final class StillPipelineTests: XCTestCase {
         mixed.append(contentsOf: pool)   // pool 是 300px 的合格圖
 
         let outcome = try await makePipeline().refresh(
-            displays: [displayA], skipIDs: [], pool: mixed,
+            displays: [displayA], skipIDs: [], pool: SourcePool(mixed),
             effect: .none, tier: .full, cycleNonce: 2
         )
         XCTAssertEqual(outcome.written, [displayA.id], "有合格圖就該出圖")
@@ -175,7 +191,7 @@ final class StillPipelineTests: XCTestCase {
 
     func testDisplaysGetDifferentComposition() async throws {
         try await makePipeline().refresh(displays: [displayA, displayB], skipIDs: [],
-                                   pool: pool, effect: .none, tier: .full, cycleNonce: 7)
+                                   pool: SourcePool(pool), effect: .none, tier: .full, cycleNonce: 7)
         let files = desktop.calls.map { try! Data(contentsOf: $0.url) }
         XCTAssertEqual(files.count, 2)
         XCTAssertNotEqual(files[0], files[1], "每螢各自合成，構圖不該相同")

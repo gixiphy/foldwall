@@ -11,3 +11,6 @@ dist/
 build-release/
 DerivedData/
 *.xcworkspace/xcuserdata/
+
+# 對內的開發筆記，不進倉庫
+docs/DEVELOPMENT.md

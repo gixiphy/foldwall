@@ -57,6 +57,27 @@ final class BookmarkStore: FolderBookmarking {
         return panel.urls
     }
 
+    /// 從路徑加入，不開面板。設定還原用：備份檔存的是路徑不是 bookmark。
+    ///
+    /// 不需要面板是因為 v1 不沙盒、bookmark 也沒有 security scope（見 BookmarkCodec），
+    /// 能不能讀由 TCC 決定，跟使用者有沒有在面板上點過那個資料夾無關。
+    /// 路徑不存在的就跳過——另一台機器可能根本沒掛那顆磁碟。
+    @discardableResult
+    func addFolders(paths: [String]) -> [URL] {
+        var added: [URL] = []
+        for path in paths {
+            let url = URL(filePath: path, directoryHint: .isDirectory)
+            guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else {
+                Log.sources.notice("還原時跳過不存在的來源：\(path, privacy: .public)")
+                continue
+            }
+            guard (try? store.add(url)) != nil else { continue }
+            added.append(url)
+        }
+        if !added.isEmpty { notifyChanged() }
+        return added
+    }
+
     func removeFolder(_ url: URL) throws {
         guard try store.remove(url) else { return }
         notifyChanged()
@@ -65,6 +86,18 @@ final class BookmarkStore: FolderBookmarking {
 
     func resolvedFolders() -> [URL] {
         let resolution = store.resolve()
+        offlineCount = resolution.offlineCount
+        return resolution.readable
+    }
+
+    /// 同上，但解析跑在背景執行緒。
+    ///
+    /// `resolve()` 對每個根做「列得出第一層嗎」的可讀性檢查——來源是 SMB 的話
+    /// 那是一次網路往返，而這件事每輪 refresh 都要做一次。留在主執行緒上，
+    /// 網路一慢整個介面就跟著頓。
+    func resolvedFoldersInBackground() async -> [URL] {
+        let store = self.store
+        let resolution = await Task.detached(priority: .userInitiated) { store.resolve() }.value
         offlineCount = resolution.offlineCount
         return resolution.readable
     }

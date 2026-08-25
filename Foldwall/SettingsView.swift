@@ -32,6 +32,9 @@ struct SettingsView: View {
             CacheSettings(coordinator: coordinator)
                 .tabItem { Label("快取位置", systemImage: "externaldrive") }
 
+            BackupSettings(coordinator: coordinator, settings: settings)
+                .tabItem { Label("備份", systemImage: "icloud") }
+
             AboutSettings()
                 .tabItem { Label("版本", systemImage: "info.circle") }
         }
@@ -73,7 +76,9 @@ private struct SourceSettings: View {
             switch kind {
             case .folders: FolderSourceSettings(coordinator: coordinator, settings: settings)
             case .albums: PhotosAlbumSettings(settings: settings, onChange: onChange)
-            case .remote: RemoteSourceSettings(settings: settings, onChange: onChange)
+            case .remote:
+                RemoteSourceSettings(coordinator: coordinator, settings: settings,
+                                     onChange: onChange)
             }
         }
     }
@@ -302,154 +307,224 @@ private struct VideoSettings: View {
     @State private var libraryPath = VideoLibrary.documentsURL
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Toggle("啟用影片桌布", isOn: $settings.videoWallpaperEnabled)
-                            .onChange(of: settings.videoWallpaperEnabled) { _, _ in
-                                onVideoToggle()
-                                refresh()
-                            }
-                        Text(.init(Self.budgetExplainer))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("影片在**螢幕睡著時**（螢保啟動、鎖定、休眠）預先換好下一批，"
-                             + "最少間隔 30 分鐘，不跟著桌布輪換——拷貝一次可能是好幾百 MB，"
-                             + "放在你剛回到電腦前那一刻做會卡。關掉開關會把已拷進去的影片清乾淨。")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(4)
+        HStack(alignment: .top, spacing: 0) {
+            sourceColumn
+                .frame(width: 232)
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    enableBox
+                    statusBox
+                    playbackBox
+                    Divider()
+                    howToStart
+                    Divider()
+                    troubleshooting
                 }
-
-                GroupBox {
-                    HStack {
-                        Image(systemName: deployedCount > 0 ? "checkmark.circle.fill" : "info.circle")
-                            .foregroundStyle(deployedCount > 0 ? .green : .secondary)
-                        if deployedCount > 0 {
-                            Text("已備妥 **\(deployedCount)** 支影片")
-                        } else if settings.videoWallpaperEnabled {
-                            Text("目前沒有影片。加入含 mp4／mov／m4v 的來源資料夾即可。"
-                                 + "大型來源要等背景掃描與拷貝跑完。")
-                        } else {
-                            Text("影片桌布未啟用。打開上面的開關才會把來源資料夾裡的影片送進系統桌布清單。")
-                        }
-                        Spacer()
-                    }
-                    .padding(4)
-                }
-
-                Text("影片和照片用**同一批來源資料夾**——資料夾裡的影片會自動送進系統的桌布清單，不必另外設定路徑。")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-
-                GroupBox("播放方式") {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Picker("引擎", selection: $settings.videoEngine) {
-                            ForEach(VideoEngine.allCases, id: \.self) { engine in
-                                Text(engine.displayName).tag(engine)
-                            }
-                        }
-                        .onChange(of: settings.videoEngine) { _, _ in onEngineChange() }
-
-                        Text(.init(settings.videoEngine.summary))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if settings.videoEngine == .desktopWindow {
-                            Picker("圖層", selection: $settings.desktopVideoLayer) {
-                                ForEach(DesktopVideoLayer.allCases, id: \.self) { layer in
-                                    Text(layer.displayName).tag(layer)
-                                }
-                            }
-                            .onChange(of: settings.desktopVideoLayer) { _, _ in onEngineChange() }
-                        }
-                    }
-                    .padding(4)
-                }
-                .disabled(!settings.videoWallpaperEnabled)
-
-                GroupBox("要用哪些來源") {
-                    VStack(alignment: .leading, spacing: 6) {
-                        if coordinator.folders.isEmpty && videoSources.isEmpty {
-                            Text("還沒有任何來源。到「來源」分頁加入。")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        ForEach(coordinator.folders, id: \.self) { folder in
-                            Toggle(isOn: folderBinding(folder)) {
-                                Label(folder.lastPathComponent, systemImage: "folder")
-                            }
-                            .toggleStyle(.checkbox)
-                        }
-                        ForEach(videoSources) { config in
-                            Toggle(isOn: remoteBinding(config.id)) {
-                                Label(config.displayTitle, systemImage: "globe")
-                            }
-                            .toggleStyle(.checkbox)
-                        }
-                    }
-                    .font(.callout)
-                    .padding(4)
-                }
-                .disabled(!settings.videoWallpaperEnabled)
-
-                GroupBox("從網址下載") {
-                    VideoDownloadBox(service: coordinator.downloadService)
-                }
-                .disabled(!settings.videoWallpaperEnabled)
-
-                Divider()
-
-                Text("怎麼開始播").font(.headline)
-
-                if settings.videoEngine == .desktopWindow {
-                    step(1, "打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，"
-                            + "並在上面勾選要用的來源。")
-                    step(2, "回選單列勾 **此螢幕改用影片**。就這樣——不必開系統設定、"
-                            + "不會拷貝任何檔案。")
-                    Text("桌面視窗**不會出現在鎖屏**。要鎖屏請改用系統桌布 extension。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    step(1, "打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，"
-                            + "並在上面勾選要用的來源。")
-                step(2, "打開 系統設定 → 桌布，往下找到 **Foldwall** 區塊。")
-                step(3, "選 **Shuffle All** 就會隨機輪播全部影片；想固定一支就直接點那支。"
-                        + "隨機的切換頻率（喚醒時／5 分鐘／每天…）也在同一個畫面選。")
-                    step(4, "回到選單列，勾 **此螢幕改用影片**。"
-                            + "漏掉這步，下一輪靜態蒙太奇會把影片蓋掉。")
-                }
-
-                Button {
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.Wallpaper-Settings.extension") {
-                        NSWorkspace.shared.open(url)
-                    }
-                } label: {
-                    Label("打開 系統設定 → 桌布", systemImage: "arrow.up.right.square")
-                }
-
-                Divider()
-
-                Text("疑難排解").font(.headline)
-                Text("桌布清單裡沒有 Foldwall？先把 app 從 /Applications 啟動一次，系統才會登錄它的 extension。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Button("在 Finder 顯示影片庫") {
-                    NSWorkspace.shared.open(libraryPath)
-                }
-                .font(.caption)
+                .padding()
             }
-            .padding()
+            .frame(maxWidth: .infinity)
         }
         .onAppear(perform: refresh)
     }
+
+    // MARK: - 左欄：來源
+
+    /// 跟蒙太奇分頁同一個結構：來源固定在左欄自己捲，右欄放開關與說明。
+    /// 視窗高度是寫死的 520，來源多起來塞在同一根 VStack 裡會捲不到。
+    private var sourceColumn: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("要用哪些來源")
+                .font(.headline)
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
+
+            Text("和蒙太奇共用同一批來源資料夾，這裡只決定哪些拿來放影片。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 12)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 6) {
+                    if coordinator.folders.isEmpty && videoSources.isEmpty {
+                        Text("還沒有任何來源。到「來源」分頁加入。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(coordinator.folders, id: \.self) { folder in
+                        Toggle(isOn: folderBinding(folder)) {
+                            Label(folder.lastPathComponent, systemImage: "folder")
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    ForEach(videoSources) { config in
+                        Toggle(isOn: remoteBinding(config.id)) {
+                            Label(config.displayTitle, systemImage: "globe")
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                }
+                .font(.callout)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+            }
+            .disabled(!settings.videoWallpaperEnabled)
+        }
+    }
+
+    // MARK: - 右欄
+
+    private var enableBox: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 6) {
+                Toggle("啟用影片桌布", isOn: $settings.videoWallpaperEnabled)
+                    .onChange(of: settings.videoWallpaperEnabled) { _, _ in
+                        onVideoToggle()
+                        refresh()
+                    }
+                Text(Self.markdown(Self.budgetExplainer))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(Self.sleepExplainer)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(4)
+        }
+    }
+
+    private var statusBox: some View {
+        GroupBox {
+            HStack(alignment: .top) {
+                Image(systemName: deployedCount > 0 ? "checkmark.circle.fill" : "info.circle")
+                    .foregroundStyle(deployedCount > 0 ? .green : .secondary)
+                if deployedCount > 0 {
+                    Text("已備妥 **\(deployedCount)** 支影片")
+                } else if settings.videoWallpaperEnabled {
+                    Text("目前沒有影片。加入含 mp4／mov／m4v 的來源資料夾即可。"
+                         + "大型來源要等背景掃描與拷貝跑完。")
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("影片桌布未啟用。打開上面的開關才會把來源資料夾裡的影片送進系統桌布清單。")
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(4)
+        }
+    }
+
+    /// 與蒙太奇分頁的控制格同構：標籤靠左、控制項靠右。
+    private var playbackBox: some View {
+        GroupBox("播放方式") {
+            VStack(alignment: .leading, spacing: 10) {
+                controlRow("引擎") {
+                    Picker("", selection: $settings.videoEngine) {
+                        ForEach(VideoEngine.allCases, id: \.self) { engine in
+                            Text(engine.displayName).tag(engine)
+                        }
+                    }
+                    .onChange(of: settings.videoEngine) { _, _ in onEngineChange() }
+                }
+
+                if settings.videoEngine == .desktopWindow {
+                    controlRow("圖層") {
+                        Picker("", selection: $settings.desktopVideoLayer) {
+                            ForEach(DesktopVideoLayer.allCases, id: \.self) { layer in
+                                Text(layer.displayName).tag(layer)
+                            }
+                        }
+                        .onChange(of: settings.desktopVideoLayer) { _, _ in onEngineChange() }
+                    }
+                }
+
+                Text(Self.markdown(settings.videoEngine.summary))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(4)
+        }
+        .disabled(!settings.videoWallpaperEnabled)
+    }
+
+    /// 標籤靠左、控制項靠右——與蒙太奇分頁同一條右緣。
+    private func controlRow<Control: View>(
+        _ label: String, @ViewBuilder control: () -> Control
+    ) -> some View {
+        HStack(spacing: 10) {
+            Text(label)
+            Spacer(minLength: 8)
+            control()
+                .labelsHidden()
+                .fixedSize()
+        }
+    }
+
+    @ViewBuilder
+    private var howToStart: some View {
+        Text("怎麼開始播").font(.headline)
+
+        if settings.videoEngine == .desktopWindow {
+            step(1, "打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，"
+                    + "並在左欄勾選要用的來源。")
+            step(2, "回選單列勾 **此螢幕改用影片**。就這樣——不必開系統設定、"
+                    + "不會拷貝任何檔案。")
+            Text("桌面視窗**不會出現在鎖屏**。要鎖屏請改用系統桌布 extension。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            step(1, "打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，"
+                    + "並在左欄勾選要用的來源。")
+            step(2, "打開 系統設定 → 桌布，往下找到 **Foldwall** 區塊。")
+            step(3, "選 **Shuffle All** 就會隨機輪播全部影片；想固定一支就直接點那支。"
+                    + "隨機的切換頻率（喚醒時／5 分鐘／每天…）也在同一個畫面選。")
+            step(4, "回到選單列，勾 **此螢幕改用影片**。"
+                    + "漏掉這步，下一輪靜態蒙太奇會把影片蓋掉。")
+        }
+
+        Button {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.Wallpaper-Settings.extension") {
+                NSWorkspace.shared.open(url)
+            }
+        } label: {
+            Label("打開 系統設定 → 桌布", systemImage: "arrow.up.right.square")
+        }
+    }
+
+    @ViewBuilder
+    private var troubleshooting: some View {
+        Text("疑難排解").font(.headline)
+        Text("桌布清單裡沒有 Foldwall？先把 app 從 /Applications 啟動一次，系統才會登錄它的 extension。")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        Button("在 Finder 顯示影片庫") {
+            NSWorkspace.shared.open(libraryPath)
+        }
+        .font(.caption)
+    }
+
+    /// Markdown 得先解析成 AttributedString 再交給 Text。
+    /// `Text(.init(someString))` 只會把 `**` 吃掉不上粗體——那條路是查本地化鍵，
+    /// 非字面量的 key 查不到、退回原字串時屬性就掉了。
+    private static func markdown(_ source: String) -> AttributedString {
+        (try? AttributedString(markdown: source)) ?? AttributedString(source)
+    }
+
+    private static let sleepExplainer = markdown(
+        "影片在**螢幕睡著時**（螢保啟動、鎖定、休眠）預先換好下一批，"
+        + "最少間隔 30 分鐘，不跟著桌布輪換——拷貝一次可能是好幾百 MB，"
+        + "放在你剛回到電腦前那一刻做會卡。關掉開關會把已拷進去的影片清乾淨。"
+    )
 
     /// 拆成常數：直接串在 View builder 裡會讓型別檢查器超時。
     private static let budgetExplainer: String = {
@@ -484,10 +559,11 @@ private struct VideoSettings: View {
 // MARK: - 網路來源
 
 private struct RemoteSourceSettings: View {
+    @Bindable var coordinator: WallpaperCoordinator
     @Bindable var settings: AppSettings
     var onChange: () -> Void
 
-    @State private var selection: RemoteSourceConfig.ID?
+    @State private var selection: UUID?
 
     var body: some View {
         HSplitView {
@@ -504,6 +580,18 @@ private struct RemoteSourceSettings: View {
                         }
                         .tag(config.id)
                     }
+                    ForEach(settings.playlistSources) { source in
+                        HStack {
+                            Image(systemName: source.isEnabled ? "circle.fill" : "circle")
+                                .font(.system(size: 7))
+                                .foregroundStyle(source.isEnabled ? .green : .secondary)
+                            Label("片單：\(source.displayTitle)", systemImage: "list.and.film")
+                                .labelStyle(.titleOnly)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        .tag(source.id)
+                    }
                 }
 
                 Divider()
@@ -513,6 +601,8 @@ private struct RemoteSourceSettings: View {
                         ForEach(RemoteSourceKind.allCases, id: \.self) { kind in
                             Button(kind.displayName) { add(kind) }
                         }
+                        Divider()
+                        Button("片單網址") { addPlaylist() }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -541,6 +631,14 @@ private struct RemoteSourceSettings: View {
                         onChange: onChange
                     )
                     .id(settings.remoteSources[index].id)
+                } else if let index = settings.playlistSources
+                    .firstIndex(where: { $0.id == selection }) {
+                    PlaylistSourceDetail(
+                        source: $settings.playlistSources[index],
+                        service: coordinator.playlistService,
+                        onChange: { coordinator.sourcesDidChange() }
+                    )
+                    .id(settings.playlistSources[index].id)
                 } else {
                     ContentUnavailableView("選一個來源", systemImage: "globe",
                                            description: Text("或用左下角 + 新增。"))
@@ -548,6 +646,12 @@ private struct RemoteSourceSettings: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+    }
+
+    private func addPlaylist() {
+        let source = PlaylistSource(urlString: "")
+        settings.playlistSources.append(source)
+        selection = source.id
     }
 
     private func add(_ kind: RemoteSourceKind) {
@@ -558,14 +662,137 @@ private struct RemoteSourceSettings: View {
     }
 
     private func remove() {
-        guard let selection,
-              let index = settings.remoteSources.firstIndex(where: { $0.id == selection })
+        guard let selection else { return }
+
+        if let index = settings.playlistSources.firstIndex(where: { $0.id == selection }) {
+            settings.playlistSources.remove(at: index)
+            self.selection = nil
+            coordinator.sourcesDidChange()
+            return
+        }
+
+        guard let index = settings.remoteSources.firstIndex(where: { $0.id == selection })
         else { return }
         // key 跟著設定一起刪，不要留在 Keychain
         try? KeychainStore.set(nil, for: AppSettings.keychainAccount(for: settings.remoteSources[index]))
         settings.remoteSources.remove(at: index)
         self.selection = nil
         onChange()
+    }
+}
+
+/// 片單網址的詳細頁。
+///
+/// 重點在「**存的是網址，不是影片**」：解析只讀清單的 metadata，
+/// 真正的下載等輪替抽到那一支才發生（見 PlaylistService）。
+private struct PlaylistSourceDetail: View {
+
+    @Binding var source: PlaylistSource
+    @Bindable var service: PlaylistService
+    var onChange: () -> Void
+
+    private static let note: AttributedString = {
+        let text = "**存網址，不是存影片。** 加進來只會去問「這個片單裡有哪些影片」，"
+            + "不下載任何東西。等輪替真的抽到某一支，才去抓那一支。\n"
+            + "所以磁碟用量跟**你真的播過幾支**成正比，而不是整個片單的大小——"
+            + "幾百支的片單也不會一次塞爆磁碟。\n"
+            + "抓下來的影片存進**影片快取**，跟網路來源的影片同一個地方，"
+            + "受同一份 2 GB 上限與汰舊管。"
+        return (try? AttributedString(markdown: text)) ?? AttributedString(text)
+    }()
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("啟用", isOn: $source.isEnabled)
+                    .onChange(of: source.isEnabled) { _, _ in onChange() }
+                TextField("片單網址", text: $source.urlString,
+                          prompt: Text("https://…"))
+                    .onSubmit(reload)
+                TextField("名稱（選填）", text: $source.title,
+                          prompt: Text(source.resolvedTitle.isEmpty
+                                       ? "留白就用片單自己的標題" : source.resolvedTitle))
+                    .onSubmit(onChange)
+            } header: {
+                Text("片單網址")
+            }
+
+            Section {
+                HStack {
+                    if service.isRefreshing(source) {
+                        ProgressView().controlSize(.small)
+                        Text("解析中…").font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        Text(status).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("重新解析", action: reload)
+                        .disabled(source.url == nil || service.isRefreshing(source))
+                }
+                if let error = service.lastError {
+                    Label(error, systemImage: "exclamationmark.circle")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } header: {
+                Text("內容")
+            }
+
+            Section {
+                Text(Self.note)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                YtDlpNotice()
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear { if service.entryCount(for: source) == 0 { reload() } }
+    }
+
+    private var status: String {
+        guard source.url != nil else { return "還沒填網址。" }
+        let total = service.entryCount(for: source)
+        guard total > 0 else { return "還沒解析過。" }
+        return "\(total) 支，其中 \(service.downloadedCount(for: source)) 支已在本機。"
+    }
+
+    private func reload() {
+        guard source.url != nil else { return }
+        service.forceRefresh(source)
+        onChange()
+    }
+}
+
+/// yt-dlp 的安裝提示。片單解析與下載都靠它，所以放在會用到它的地方；
+/// 「版本」分頁另有一段講**為什麼**是外部工具（那是專案的界線，不是操作說明）。
+private struct YtDlpNotice: View {
+
+    private var isInstalled: Bool { VideoDownloadTool.locate() != nil }
+
+    var body: some View {
+        if isInstalled {
+            Label("已偵測到 yt-dlp", systemImage: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.green)
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                Label("需要 yt-dlp", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                Text("片單解析與下載都靠它。安裝後回來按「重新解析」：")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("brew install yt-dlp")
+                    .font(.caption.monospaced())
+                    .textSelection(.enabled)
+                    .padding(.vertical, 2)
+                    .padding(.horizontal, 6)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
@@ -598,6 +825,15 @@ private struct RemoteSourceDetail: View {
     @State private var keyLoaded = false
     @State private var test: SourceTestResult = .untested
 
+    private static let fourKNote: AttributedString = {
+        let source = "這個站**沒有 API**，Foldwall 是抓它的公開網頁。"
+            + "它的 robots.txt 明確禁止 `/search/`，所以**不做關鍵字搜尋**——"
+            + "上面的欄位在這裡是**分類**，留白就取首頁的混合內容。\n"
+            + "抓圖要兩段（清單頁→詳細頁→原圖），所以比有 API 的來源慢，"
+            + "而且站方改版就會失效。取每張的最大解析度。"
+        return (try? AttributedString(markdown: source)) ?? AttributedString(source)
+    }()
+
     var body: some View {
         Form {
             Section {
@@ -627,26 +863,6 @@ private struct RemoteSourceDetail: View {
                     keyHelp
                 } header: {
                     Text("驗證")
-                }
-            }
-
-            if config.kind == .rsshub {
-                Section {
-                    Text("需要**自架的 RSSHub**。官方 rsshub.app 已限制存取"
-                         + "（自己標明僅供測試），實測匿名請求直接被擋。")
-                        .font(.caption)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("網址填你的 instance（例：`http://localhost:1200`），"
-                         + "關鍵字填路由。三種寫法都吃：\n"
-                         + "・`rsshub://pixiv/ranking/day`（Radar 複製來的）\n"
-                         + "・`/pixiv/ranking/day`（文件複製來的）\n"
-                         + "・完整網址（瀏覽器複製來的，只取路由）\n"
-                         + "路由後面可以帶參數，例如 `?limit=10`。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } header: {
-                    Text("RSSHub")
                 }
             }
 
@@ -1072,40 +1288,27 @@ private struct MontageSettings: View {
     @Bindable var settings: AppSettings
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            GroupBox {
-                HStack {
-                    Image(systemName: "photo.on.rectangle.angled")
-                        .foregroundStyle(.secondary)
-                    Text(poolSummary)
-                    Spacer()
-                    Button("下一張") { coordinator.next() }
-                }
-                .padding(4)
-            }
+        HStack(alignment: .top, spacing: 0) {
+            sourceColumn
+                .frame(width: 232)
+            Divider()
+            controlColumn
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
 
-            Form {
-                Picker("切換間隔", selection: Binding(
-                    get: { settings.intervalMinutes },
-                    set: { coordinator.setInterval($0) }
-                )) {
-                    ForEach(Scheduler.intervalOptions, id: \.self) { minutes in
-                        Text(Scheduler.intervalLabel(minutes)).tag(minutes)
-                    }
-                }
+    // MARK: - 左欄：來源
 
-                Picker("後製", selection: Binding(
-                    get: { settings.effect },
-                    set: { coordinator.setEffect($0) }
-                )) {
-                    ForEach(PostProcess.allCases, id: \.self) { effect in
-                        Text(effect.displayName).tag(effect)
-                    }
-                }
-            }
-            .formStyle(.grouped)
+    /// 來源可以有幾十個（照片相簿一台機器就十幾個），視窗高度是固定的 520——
+    /// 沒有 ScrollView 的話後面幾個會被切掉而且捲不到，看起來就像卡住了。
+    private var sourceColumn: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("要用哪些來源")
+                .font(.headline)
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
 
-            GroupBox("要用哪些來源") {
+            ScrollView {
                 VStack(alignment: .leading, spacing: 6) {
                     if coordinator.folders.isEmpty && imageSources.isEmpty
                         && coordinator.albums.isEmpty {
@@ -1133,24 +1336,96 @@ private struct MontageSettings: View {
                     }
                 }
                 .font(.callout)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+            }
+        }
+    }
+
+    // MARK: - 右欄：這一輪怎麼抽
+
+    private var controlColumn: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            GroupBox {
+                HStack {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .foregroundStyle(.secondary)
+                    Text(poolSummary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    Button("下一張") { coordinator.next() }
+                }
                 .padding(4)
             }
 
-            GroupBox("每輪抽幾張") {
+            // 不用 Form(.grouped)：那是 List，會把右欄剩下的高度全吃光，
+            // 底下的張數表就被推到視窗最下面、中間空一大塊。GroupBox 才貼著內容長。
+            // 標籤靠左、控制項推到尾端，右緣就跟上面那格的「下一張」對齊。
+            GroupBox {
+                VStack(spacing: 10) {
+                    controlRow("切換間隔") {
+                        Picker("", selection: Binding(
+                            get: { settings.intervalMinutes },
+                            set: { coordinator.setInterval($0) }
+                        )) {
+                            ForEach(Scheduler.intervalOptions, id: \.self) { minutes in
+                                Text(Scheduler.intervalLabel(minutes)).tag(minutes)
+                            }
+                        }
+                    }
+
+                    controlRow("後製") {
+                        Picker("", selection: Binding(
+                            get: { settings.effect },
+                            set: { coordinator.setEffect($0) }
+                        )) {
+                            ForEach(PostProcess.allCases, id: \.self) { effect in
+                                Text(effect.displayName).tag(effect)
+                            }
+                        }
+                    }
+
+                    controlRow("同時抽取張數") {
+                        Picker("", selection: Binding(
+                            get: { settings.montagePieceCount },
+                            set: { coordinator.setPieceCount($0) }
+                        )) {
+                            Text("自動").tag(Int?.none)
+                            Divider()
+                            ForEach(Array(MontageComposer.pieceCountRange), id: \.self) { count in
+                                Text("\(count) 張").tag(Int?.some(count))
+                            }
+                        }
+                    }
+                }
+                .padding(4)
+            }
+
+            GroupBox("每台螢幕實際張數") {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(coordinator.displays, id: \.uuid) { display in
                         let longSide = max(display.canvas.width, display.canvas.height)
-                        HStack {
+                        let count = StillPipeline.pieceCount(
+                            longSide: longSide, tier: .full,
+                            override: settings.montagePieceCount
+                        )
+                        HStack(spacing: 6) {
+                            Text(ScreenBridge.localizedName(forUUID: display.uuid) ?? "未知螢幕")
+                                .lineLimit(1)
                             Text("\(Int(display.canvas.width))×\(Int(display.canvas.height))")
-                                .monospacedDigit()
-                            Spacer()
-                            Text("\(StillPipeline.pieceCount(longSide: longSide, tier: .full)) 張")
                                 .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                            Spacer(minLength: 8)
+                            Text("\(count) 張")
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
                         }
                         .font(.caption)
                     }
-                    Text("依螢幕長邊決定，每台螢幕各自抽圖、各自合成——同一時間兩台不會是同一張。"
-                         + "降載時封頂 6 張。")
+                    Text(pieceCountNote)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1162,6 +1437,27 @@ private struct MontageSettings: View {
             Spacer()
         }
         .padding()
+    }
+
+    /// 標籤靠左、控制項靠右：右緣與上面那格的「下一張」在同一條線上。
+    private func controlRow<Control: View>(
+        _ label: String, @ViewBuilder control: () -> Control
+    ) -> some View {
+        HStack(spacing: 10) {
+            Text(label)
+            Spacer(minLength: 8)
+            control()
+                .labelsHidden()
+                .fixedSize()
+        }
+    }
+
+    private var pieceCountNote: String {
+        if settings.montagePieceCount == nil {
+            return "自動：依螢幕長邊決定，每台螢幕各自抽圖、各自合成——同一時間兩台不會是同一張。"
+                + "降載時封頂 6 張。"
+        }
+        return "指定張數對所有螢幕一體適用；每台仍各自抽圖、各自合成。降載時一樣封頂 6 張。"
     }
 
     /// 只列會產出圖的網路來源；Pexels 影片那種歸影片分頁。
@@ -1216,9 +1512,153 @@ private struct MontageSettings: View {
 
 }
 
+// MARK: - 備份
+
+/// 設定備份與 iCloud 同步。手動兩顆按鈕是主角，自動同步是可選的開關——
+/// 「另一台機器改的設定會自動蓋掉這台」該由使用者明確選，不是預設行為。
+private struct BackupSettings: View {
+
+    @Bindable var coordinator: WallpaperCoordinator
+    @Bindable var settings: AppSettings
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                if !coordinator.backup.isAvailable {
+                    GroupBox {
+                        Label("這台沒有啟用 iCloud Drive，備份功能停用。",
+                              systemImage: "exclamationmark.triangle")
+                            .padding(4)
+                    }
+                }
+
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Button {
+                                coordinator.backupSettingsToICloud()
+                            } label: {
+                                Label("備份到 iCloud", systemImage: "icloud.and.arrow.up")
+                            }
+                            Button {
+                                coordinator.restoreSettingsFromICloud()
+                            } label: {
+                                Label("從 iCloud 匯入", systemImage: "icloud.and.arrow.down")
+                            }
+                            Spacer()
+                            Button("在 Finder 顯示") { coordinator.backup.revealInFinder() }
+                        }
+
+                        if let summary = coordinator.backup.remoteSummary {
+                            Label("iCloud 上的備份：\(summary)", systemImage: "checkmark.icloud")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("iCloud 上還沒有備份。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        switch coordinator.backup.status {
+                        case .idle:
+                            EmptyView()
+                        case .ok(let message):
+                            Label(message, systemImage: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        case .failed(let message):
+                            Label(message, systemImage: "exclamationmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+
+                        Text(coordinator.backup.displayPath)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(4)
+                }
+                .disabled(!coordinator.backup.isAvailable)
+
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("自動與 iCloud 同步", isOn: $settings.iCloudSyncEnabled)
+                            .onChange(of: settings.iCloudSyncEnabled) { _, _ in
+                                coordinator.iCloudSyncDidChange()
+                            }
+                        Text(Self.autoSyncNote)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(4)
+                }
+                .disabled(!coordinator.backup.isAvailable)
+
+                GroupBox("備份裡有什麼") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        row("來源資料夾", "存**路徑**不是書籤——書籤綁著建立它的那台機器。"
+                            + "另一台沒掛那顆磁碟的路徑會被跳過。")
+                        row("照片相簿", "連**名稱**一起存。相簿的 localIdentifier 每台機器都不同，"
+                            + "就算兩台是同一個 iCloud 圖庫也對不上，所以跨機時靠名稱比對。")
+                        row("網路來源", "來源設定會備份，**API key 不會**——"
+                            + "備份檔是明文 JSON，放在 iCloud Drive 裡會被 Spotlight 索引。"
+                            + "換機器時到「來源」分頁重輸一次。")
+                        row("其他", "切換間隔、後製、同時抽取張數、狀態規則、"
+                            + "影片引擎與圖層、登入時啟動。")
+                        row("不含", "「輪到第幾支影片了」這種執行狀態。"
+                            + "兩台同步它只會互相打斷輪替。")
+                    }
+                    .padding(4)
+                }
+            }
+            .padding()
+        }
+        .onAppear { coordinator.backup.refreshRemoteSummary() }
+    }
+
+    /// `Text(.init(字串))` 只會把 `**` 吃掉不上粗體——那條路是查本地化鍵，
+    /// 非字面量的 key 查不到、退回原字串時屬性就掉了。要先解析成 AttributedString。
+    private static func markdown(_ source: String) -> AttributedString {
+        (try? AttributedString(markdown: source)) ?? AttributedString(source)
+    }
+
+    private static let autoSyncNote = markdown(
+        "開著的話，這台的設定一改就寫上去，另一台也會自動套用。"
+        + "同一輪裡兩邊都改過就**以 iCloud 上那份為準**——沒有合併，後寫的贏。"
+        + "只想要單向搬家的話，用上面兩顆按鈕就好。"
+    )
+
+    private func row(_ title: String, _ detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(title).font(.caption.bold())
+            Text(Self.markdown(detail))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 // MARK: - 版本
 
 private struct AboutSettings: View {
+
+    /// 為什麼靠外部工具，而不是自己解析。這是專案的**界線**，屬於「關於」；
+    /// 「這台裝了沒、怎麼裝」那種操作提示放在會用到它的地方（片單網址）。
+    private static let ytdlpRationale: AttributedString = {
+        let text = "片單解析與影片下載都是呼叫**你自己安裝的 yt-dlp**，"
+            + "Foldwall 不實作任何串流解析或簽章繞過——那是規避技術保護措施。"
+            + "這裡只負責找到工具、組出參數、把結果收進影片來源；"
+            + "要對哪個站用由你決定。\n"
+            + "順帶的好處是 yt-dlp 支援上千個站，不必為每一個寫解析器；"
+            + "代價是**沒裝就用不了**這兩個功能，其他來源不受影響。"
+        return (try? AttributedString(markdown: text)) ?? AttributedString(text)
+    }()
 
     private var version: String {
         let info = Bundle.main.infoDictionary
@@ -1249,6 +1689,31 @@ private struct AboutSettings: View {
                  + "並支援影片桌布（桌面＋鎖屏）。")
                 .font(.callout)
                 .fixedSize(horizontal: false, vertical: true)
+
+            GroupBox("外部工具") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(Self.ytdlpRationale)
+                        .font(.caption)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 6) {
+                        if let tool = VideoDownloadTool.locate() {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                            Text(tool.path)
+                                .font(.caption.monospaced())
+                                .textSelection(.enabled)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        } else {
+                            Image(systemName: "circle.dashed").foregroundStyle(.secondary)
+                            Text("未安裝——`brew install yt-dlp`")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+                .padding(4)
+            }
 
             GroupBox("授權") {
                 VStack(alignment: .leading, spacing: 6) {
@@ -1282,57 +1747,3 @@ private struct AboutSettings: View {
 
 // MARK: - 從網址下載
 
-/// Foldwall **不做**串流解析。這裡呼叫的是使用者自己安裝的 yt-dlp，
-/// 抽取那一段由那個工具負責，也由使用者自己決定要對哪個站用。
-private struct VideoDownloadBox: View {
-
-    @Bindable var service: VideoDownloadService
-    @State private var url = ""
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if service.toolURL == nil {
-                Label("需要 yt-dlp", systemImage: "exclamationmark.triangle")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                Text("Foldwall 不自己解析串流。安裝後即可使用：`brew install yt-dlp`\n"
-                     + "（同時裝 ffmpeg 可以支援更多格式）")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                HStack {
-                    TextField("影片網址", text: $url)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit { service.download(url) }
-                    Button("下載") { service.download(url) }
-                        .disabled(url.isEmpty || service.state == .running)
-                    if service.state == .running {
-                        ProgressView().controlSize(.small)
-                    }
-                }
-                if !service.state.summary.isEmpty {
-                    Text(service.state.summary)
-                        .font(.caption)
-                        .foregroundStyle(color)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Text("存到 `~/Movies/Foldwall`，自動成為影片來源。"
-                     + "最高 \(VideoDownloadTool.maximumHeight)p——桌布不需要 4K，"
-                     + "檔案大好幾倍又更吃電。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(4)
-    }
-
-    private var color: Color {
-        switch service.state {
-        case .finished: .green
-        case .failed: .red
-        default: .secondary
-        }
-    }
-}

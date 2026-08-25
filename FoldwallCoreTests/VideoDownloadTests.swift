@@ -68,10 +68,24 @@ final class VideoDownloadTests: XCTestCase {
         }
     }
 
-    func testDownloadedVideosLiveOutsideCaches() {
-        let path = AppPaths.standard().downloadedVideos.path
-        XCTAssertTrue(path.contains("/Movies/"), "使用者主動要的東西不該被當快取清掉")
-        XCTAssertFalse(path.contains("/Caches/"))
+    /// 網址下載的影片跟網路來源的影片存**同一個目錄**。
+    ///
+    /// 原本刻意分開（下載的放 ~/Movies，理由是「使用者主動要的東西不該被當快取清掉」），
+    /// 但兩邊最後都進同一個影片池，分開存的結果是同一支影片存兩份——
+    /// 實測用網址抓一支 Pexels 的影片，就會跟該來源已經快取的那份並存。
+    ///
+    /// **代價是它們一起受 2 GB 上限與汰舊管**，這是明確選擇的取捨，不是疏忽。
+    func testDownloadedVideosShareTheRemoteVideoCache() {
+        let paths = AppPaths.standard()
+        XCTAssertEqual(paths.downloadedVideos, paths.remoteVideoCache)
+        XCTAssertTrue(paths.downloadedVideos.path.contains("/Caches/"))
+    }
+
+    /// 舊路徑保留著，但只給搬遷用——不再寫入。
+    func testLegacyLocationIsStillAddressableForMigration() {
+        XCTAssertTrue(AppPaths.standard().legacyDownloadedVideos.path.contains("/Movies/"))
+        XCTAssertNotEqual(AppPaths.standard().legacyDownloadedVideos,
+                          AppPaths.standard().downloadedVideos)
     }
 
     func testStatesDescribeThemselves() {
