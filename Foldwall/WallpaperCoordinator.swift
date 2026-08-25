@@ -56,6 +56,7 @@ final class WallpaperCoordinator {
     @ObservationIgnored private let photosPool = PhotosPool()
     @ObservationIgnored private let focus = FocusModeMonitor()
     @ObservationIgnored private let aggregate = AggregateFolder()
+    @ObservationIgnored private let desktopVideo = DesktopVideoEngine()
     @ObservationIgnored private var aggregateTask: Task<Void, Never>?
 
     @ObservationIgnored private var scheduler: Scheduler
@@ -107,7 +108,9 @@ final class WallpaperCoordinator {
 
         // 開關關著＝container 應該是空的。這裡順手把上次跑到一半留下的孤兒清掉，
         // 否則沒人會呼叫 sync，那些目錄會永遠佔著磁碟（實測留過 17GB）。
-        if !settings.videoWallpaperEnabled {
+        // 桌面視窗引擎不需要 container 裡的拷貝；關著開關也不需要。
+        // 兩種情況都清掉，否則舊版留下的幾百 MB 會一直佔著磁碟。
+        if !settings.videoWallpaperEnabled || !settings.videoEngine.needsDeployment {
             runVideoSync(videos: [])
         } else {
             // 啟動也算一次「螢幕亮起」：否則 container 會一直停在上次那批，
@@ -180,6 +183,7 @@ final class WallpaperCoordinator {
     /// 螢幕睡著 → 趁沒人用，把下一批影片拷好。節流仍在（最少 30 分鐘），
     /// 否則螢保停停開開一小時就重拷十輪，走 SMB 會很痛。
     private func screenDidSleep() {
+        desktopVideo.setPaused(true)   // 沒人看的時候不必解碼
         guard settings.videoWallpaperEnabled else { return }
         rotateVideosOnNextRefresh = true
         refreshNow()
@@ -189,7 +193,9 @@ final class WallpaperCoordinator {
     /// **不在這時候拷影片**：那是使用者剛回到電腦前的那一刻，470MB 的 SMB 拷貝
     /// 會直接卡在他臉上。唯一例外是手上一支都沒有——那時不拷就什麼都播不了。
     private func screenDidWake() {
-        if settings.videoWallpaperEnabled, videoLibrary.deployedCount == 0 {
+        desktopVideo.setPaused(false)
+        if settings.videoEngine.needsDeployment,
+           settings.videoWallpaperEnabled, videoLibrary.deployedCount == 0 {
             rotateVideosOnNextRefresh = true
         }
         refreshNow()
@@ -333,8 +339,12 @@ final class WallpaperCoordinator {
         forVideo.videos = SourceUsageMap.filter(
             index.videos, roots: folders, usage: settings.folderUsage, needing: .video)
         status.videoCount = forVideo.videos.count
-        if !effects.contains(.pauseVideo) {
-            syncVideosInBackground(forVideo)
+
+        if settings.videoEngine.needsDeployment {
+            if !effects.contains(.pauseVideo) { syncVideosInBackground(forVideo) }
+        } else {
+            // 桌面視窗：**不拷貝**，AVPlayer 直接吃來源 URL
+            await applyDesktopVideo(candidates: forVideo, effects: effects)
         }
 
         let displays = ScreenBridge.currentDisplays()
@@ -346,7 +356,9 @@ final class WallpaperCoordinator {
         // 判斷條件跟畫面上實際有什麼綁在一起，就沒有中間狀態。
         let videoReady = settings.videoWallpaperEnabled
             && !effects.contains(.pauseVideo)
-            && videoLibrary.deployedCount > 0
+            && (settings.videoEngine.needsDeployment
+                ? videoLibrary.deployedCount > 0
+                : desktopVideo.activeCount > 0)
         let skipIDs = videoReady
             ? Set(displays.filter { settings.videoScreens.contains($0.uuid) }.map(\.id))
             : Set<CGDirectDisplayID>()
@@ -479,6 +491,47 @@ final class WallpaperCoordinator {
             // 清空 container 之後，那些螢幕要立刻由蒙太奇接管，不能留白
             self.refreshNow()
         }
+    }
+
+    /// 桌面視窗引擎：算出哪台螢幕播哪一支，然後讓畫面符合它。
+    private func applyDesktopVideo(candidates index: FolderIndex.Snapshot, effects: RuleEffect) async {
+        guard settings.videoWallpaperEnabled, !effects.contains(.pauseVideo) else {
+            desktopVideo.stopAll()
+            return
+        }
+
+        let displays = ScreenBridge.currentDisplays()
+        let marked = displays.filter { settings.videoScreens.contains($0.uuid) }
+        guard !marked.isEmpty else {
+            desktopVideo.stopAll()
+            return
+        }
+
+        // 網路影片一併納入：AVPlayer 播得動本機檔，也播得動已下載的快取
+        let remote = await remoteVideoPool.videos(configs: settings.remoteSources)
+        let pool = index.videos + remote
+        guard !pool.isEmpty else {
+            desktopVideo.stopAll()
+            return
+        }
+
+        let plan = VideoPlaybackPlan.assign(
+            screens: marked.map(\.uuid), videos: pool, cycle: settings.videoRotationCursor)
+        desktopVideo.apply(plan: plan, layer: settings.desktopVideoLayer, screens: displays)
+        desktopVideo.setPaused(currentTier() == .paused)
+    }
+
+    /// 切換引擎：把另一條路留下的東西收乾淨，不要兩套同時在畫面上。
+    func videoEngineDidChange() {
+        desktopVideo.stopAll()
+        if settings.videoEngine.needsDeployment {
+            forceVideoSync = true
+            rotateVideosOnNextRefresh = true
+        } else {
+            // 換到桌面視窗就不需要 container 裡那幾份拷貝了
+            runVideoSync(videos: [])
+        }
+        refreshNow()
     }
 
     /// 把三個快取的圖彙整成一個實體資料夾，讓系統的螢幕保護程式指得到。

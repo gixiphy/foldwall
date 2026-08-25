@@ -21,7 +21,9 @@ struct SettingsView: View {
             MontageSettings(coordinator: coordinator, settings: settings)
                 .tabItem { Label("蒙太奇桌布", systemImage: "square.grid.2x2") }
 
-            VideoSettings(coordinator: coordinator, settings: settings, onVideoToggle: onVideoToggle)
+            VideoSettings(coordinator: coordinator, settings: settings,
+                          onVideoToggle: onVideoToggle,
+                          onEngineChange: { coordinator.videoEngineDidChange() })
                 .tabItem { Label("影片桌布", systemImage: "play.rectangle") }
 
             RuleSettings(coordinator: coordinator, settings: settings, onChange: onRulesChange)
@@ -265,6 +267,7 @@ private struct VideoSettings: View {
     @Bindable var coordinator: WallpaperCoordinator
     @Bindable var settings: AppSettings
     var onVideoToggle: () -> Void
+    var onEngineChange: () -> Void
 
     /// 只列會產出影片的網路來源。
     private var videoSources: [RemoteSourceConfig] {
@@ -344,6 +347,33 @@ private struct VideoSettings: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
+                GroupBox("播放方式") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Picker("引擎", selection: $settings.videoEngine) {
+                            ForEach(VideoEngine.allCases, id: \.self) { engine in
+                                Text(engine.displayName).tag(engine)
+                            }
+                        }
+                        .onChange(of: settings.videoEngine) { _, _ in onEngineChange() }
+
+                        Text(.init(settings.videoEngine.summary))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if settings.videoEngine == .desktopWindow {
+                            Picker("圖層", selection: $settings.desktopVideoLayer) {
+                                ForEach(DesktopVideoLayer.allCases, id: \.self) { layer in
+                                    Text(layer.displayName).tag(layer)
+                                }
+                            }
+                            .onChange(of: settings.desktopVideoLayer) { _, _ in onEngineChange() }
+                        }
+                    }
+                    .padding(4)
+                }
+                .disabled(!settings.videoWallpaperEnabled)
+
                 GroupBox("要用哪些來源") {
                     VStack(alignment: .leading, spacing: 6) {
                         if coordinator.folders.isEmpty && videoSources.isEmpty {
@@ -373,13 +403,24 @@ private struct VideoSettings: View {
 
                 Text("怎麼開始播").font(.headline)
 
-                step(1, "打開上面的**啟用影片桌布**開關，並在選單列 → 來源資料夾加入一個"
-                        + "**裡面有影片**的資料夾。")
+                if settings.videoEngine == .desktopWindow {
+                    step(1, "打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，"
+                            + "並在上面勾選要用的來源。")
+                    step(2, "回選單列勾 **此螢幕改用影片**。就這樣——不必開系統設定、"
+                            + "不會拷貝任何檔案。")
+                    Text("桌面視窗**不會出現在鎖屏**。要鎖屏請改用系統桌布 extension。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    step(1, "打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，"
+                            + "並在上面勾選要用的來源。")
                 step(2, "打開 系統設定 → 桌布，往下找到 **Foldwall** 區塊。")
                 step(3, "選 **Shuffle All** 就會隨機輪播全部影片；想固定一支就直接點那支。"
                         + "隨機的切換頻率（喚醒時／5 分鐘／每天…）也在同一個畫面選。")
-                step(4, "回到選單列，勾 **此螢幕改用影片**。"
-                        + "漏掉這步，下一輪靜態蒙太奇會把影片蓋掉。")
+                    step(4, "回到選單列，勾 **此螢幕改用影片**。"
+                            + "漏掉這步，下一輪靜態蒙太奇會把影片蓋掉。")
+                }
 
                 Button {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.Wallpaper-Settings.extension") {

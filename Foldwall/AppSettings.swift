@@ -22,6 +22,8 @@ final class AppSettings {
         static let photoAlbums = "photoAlbums"
         static let sourceRules = "sourceRules"
         static let folderUsage = "folderUsage"
+        static let videoEngine = "videoEngine"
+        static let desktopVideoLayer = "desktopVideoLayer"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -66,6 +68,17 @@ final class AppSettings {
     /// 預設開的話，只想要靜態蒙太奇的人會平白被塞爆磁碟。
     var videoWallpaperEnabled: Bool {
         didSet { defaults.set(videoWallpaperEnabled, forKey: Key.videoWallpaperEnabled) }
+    }
+
+    /// 影片桌布用哪條管線。預設桌面視窗：零拷貝、公開 API。
+    /// 要鎖屏才切到系統 extension。
+    var videoEngine: VideoEngine {
+        didSet { defaults.set(videoEngine.rawValue, forKey: Key.videoEngine) }
+    }
+
+    /// 桌面視窗壓在圖示上面還是下面。
+    var desktopVideoLayer: DesktopVideoLayer {
+        didSet { defaults.set(desktopVideoLayer.rawValue, forKey: Key.desktopVideoLayer) }
     }
 
     /// 影片輪替走到哪了。存起來才能跨重啟繼續輪，不會每次都從頭那幾支開始。
@@ -118,6 +131,10 @@ final class AppSettings {
         self.effect = (defaults.string(forKey: Key.effect).flatMap(PostProcess.init(rawValue:))) ?? .none
         self.videoScreens = Set(defaults.stringArray(forKey: Key.videoScreens) ?? [])
         self.videoWallpaperEnabled = defaults.bool(forKey: Key.videoWallpaperEnabled)   // 缺 key = false
+        self.videoEngine = (defaults.string(forKey: Key.videoEngine)
+            .flatMap(VideoEngine.init(rawValue:))) ?? .desktopWindow
+        self.desktopVideoLayer = (defaults.string(forKey: Key.desktopVideoLayer)
+            .flatMap(DesktopVideoLayer.init(rawValue:))) ?? .belowIcons
         self.videoRotationCursor = defaults.integer(forKey: Key.videoRotationCursor)   // 缺 key = 0
         self.videoRemoteCursor = defaults.integer(forKey: Key.videoRemoteCursor)
         // 以系統實際狀態為準，不信 defaults：使用者可能在系統設定裡關掉

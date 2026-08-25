@@ -7,7 +7,7 @@
 
 | # | 項目 | 結果 |
 | --- | --- | --- |
-| 8 | `xcodebuild -scheme Foldwall -destination 'platform=macOS' test` | **綠**，215 測試（1 個視覺樣張預設跳過） |
+| 8 | `xcodebuild -scheme Foldwall -destination 'platform=macOS' test` | **綠**，224 測試（1 個視覺樣張預設跳過） |
 | — | 只編 arm64、無 x86／universal | `lipo -archs` 全部只有 `arm64` |
 | — | 不沙盒（app） | entitlements 無 `com.apple.security.app-sandbox` |
 | — | 選單列 app，啟動不跳空視窗 | `LSUIElement = true`，無 `WindowGroup` |
@@ -18,7 +18,7 @@
 
 ## 待人工（需要真實資料夾、雙螢、鎖屏）
 
-安裝檔：`dist/Foldwall-0.4.2-arm64.dmg`（拖進 Applications 後從那裡啟動）
+安裝檔：`dist/Foldwall-0.5.0-arm64.dmg`（拖進 Applications 後從那裡啟動）
 
 | # | 項目 | 步驟 |
 | --- | --- | --- |
@@ -40,6 +40,8 @@
 | 20 | 快取位置與清除 | **待人工**：設定 → 快取位置 → 只有「照片」「影片」兩列，可複製路徑、Finder 顯示、清除。**清除後數字要維持在 0，不能幾秒後又跳回去**（清完不自動補貨）。清除影片後影片螢幕改由蒙太奇接管 |
 | 15 | 來源都在設定頁 | **待人工**：設定視窗「來源」分頁用分段切換資料夾／照片相簿／網路；選單列已無資料夾子選單 |
 | 22 | 資料夾用途勾選 | **待人工**：某個含影片的資料夾取消勾「影片」→ 那些影片應從 container 消失；取消勾「蒙太奇」→ 該資料夾的圖不再進池（看選單的池數） |
+| 26 | 桌面視窗影片引擎 | **已於 2026-08-25 實測通過**：切到桌面視窗後 container 清空為 0，log 出現 `桌面視窗開始播`，`lsof` 顯示直接讀來源檔（零拷貝），靜態管線 `跳過 1 螢`。**待人工**：肉眼確認影片真的在動、點擊會穿透到桌面圖示、`.resizeAspectFill` 在 49" 超寬屏上的裁切可接受 |
+| 27 | 兩條引擎切換 | **待人工**：切到系統 extension → 影片重新拷進 container；切回桌面視窗 → container 清空。鎖屏只有 extension 那條會播 |
 | 24 | 來源／消費端分離 | **待人工**：「來源」分頁只有設定與「測試連線」，沒有啟用開關；勾選在「蒙太奇桌布」「影片桌布」兩頁。測試按鈕對填錯 key 的來源要回「缺少 API key」或 HTTP 401 說明 |
 | 25 | RSSHub（自架） | **待人工**：需自架 instance（`docker run -p 1200:1200 diygod/rsshub`）。填 instance 網址與路由後按測試。**官方 rsshub.app 不可用**：實測回 403「僅供測試」，換 UA 撞 Cloudflare |
 | 23 | 六個分頁 | **待人工**：來源／蒙太奇桌布／影片桌布／狀態規則／快取位置／版本。蒙太奇分頁可改間隔與後製，並顯示每螢抽幾張 |
