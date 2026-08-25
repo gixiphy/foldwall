@@ -36,9 +36,13 @@ struct FoldwallApp: App {
         }
 
         SwiftUI.Settings {
-            SettingsView(settings: settings) {
-                coordinator.sourcesDidChange()
-            }
+            SettingsView(
+                coordinator: coordinator,
+                settings: settings,
+                onChange: { coordinator.sourcesDidChange() },
+                onVideoToggle: { coordinator.videoWallpaperEnabledDidChange() },
+                onRulesChange: { coordinator.sourceRulesDidChange() }
+            )
         }
     }
 }

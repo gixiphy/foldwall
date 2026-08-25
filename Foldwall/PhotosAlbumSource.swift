@@ -24,13 +24,31 @@ final class PhotosAlbumSource {
 
     // MARK: - 授權
 
+    /// PhotoKit 只有 `.addOnly` 與 `.readWrite` 兩級，**沒有唯讀**。
+    /// Foldwall 只讀不寫，但要列相簿就只能要 `.readWrite`。
+    static let accessLevel = PHAccessLevel.readWrite
+
     static var authorizationStatus: PHAuthorizationStatus {
-        PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        PHPhotoLibrary.authorizationStatus(for: accessLevel)
     }
 
     @discardableResult
     static func requestAuthorization() async -> PHAuthorizationStatus {
-        await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+        let before = authorizationStatus
+        let after = await PHPhotoLibrary.requestAuthorization(for: accessLevel)
+        Log.sources.info("照片授權：\(describe(before), privacy: .public) → \(describe(after), privacy: .public)")
+        return after
+    }
+
+    static func describe(_ status: PHAuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined: "尚未詢問"
+        case .restricted: "受限"
+        case .denied: "已拒絕"
+        case .authorized: "已允許"
+        case .limited: "部分允許"
+        @unknown default: "未知(\(status.rawValue))"
+        }
     }
 
     // MARK: - 相簿清單

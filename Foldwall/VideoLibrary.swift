@@ -49,28 +49,58 @@ final class VideoLibrary {
         documentsURL.appending(path: "videos")
     }
 
-    /// 差異同步：來源新增的拷進去，來源已刪或資料夾被移除的一併清掉。
-    /// 每輪重掃後呼叫。
+    /// 同步 container，讓它**剛好等於** `videos`：沒在清單裡的移除，缺的拷進來。
+    ///
+    /// 選哪幾支不在這裡決定（見 VideoBudget.rotate）——這支只負責把磁碟弄成指定的樣子。
+    /// 拷貝走 SMB／雲端時一支要好幾分鐘，**呼叫端務必放背景**，別擋著靜態管線。
+    /// container 裡實際備妥幾支。靜態管線靠它判斷「這螢幕真的有影片可播嗎」。
+    var deployedCount: Int { loadLedger().count }
+
     func sync(videos: [URL]) async {
         var ledger = loadLedger()
+        sweepOrphans(ledger: ledger)
+
         let wanted = Set(videos.map(\.standardizedFileURL.path))
 
-        // 移除：來源已不在清單內（檔案刪了，或使用者移除了整個資料夾）
+        // 移除：不在這輪清單裡的（來源刪了、資料夾被移除，或這輪輪到別支）
         for deployment in ledger where !wanted.contains(deployment.sourcePath) {
             remove(entryID: deployment.entryID)
         }
         ledger.removeAll { !wanted.contains($0.sourcePath) }
+        saveLedger(ledger)
 
-        // 新增
+        // 新增。**每拷完一支就寫帳本**——中途被砍（或當機）時，
+        // 已經拷進去的才不會變成帳本外的孤兒永遠佔著磁碟。
         let deployed = Set(ledger.map(\.sourcePath))
         for url in videos where !deployed.contains(url.standardizedFileURL.path) {
+            if Task.isCancelled { break }
             if let id = await deploy(url) {
                 ledger.append(Deployment(sourcePath: url.standardizedFileURL.path, entryID: id))
+                saveLedger(ledger)
             }
         }
 
-        saveLedger(ledger)
         notifyExtension()
+    }
+
+    /// 把 container 裡帳本沒記到的目錄清掉。
+    /// 同步跑到一半被中斷就會留下這種孤兒，不掃的話它們永遠不會被回收。
+    private func sweepOrphans(ledger: [Deployment]) {
+        let known = Set(ledger.map(\.entryID))
+        let contents = (try? FileManager.default.contentsOfDirectory(
+            at: Self.videosURL, includingPropertiesForKeys: nil
+        )) ?? []
+
+        for dir in contents where !known.contains(dir.lastPathComponent) {
+            remove(entryID: dir.lastPathComponent)
+        }
+    }
+
+    private static func fileSize(_ url: URL) -> Int64? {
+        guard let values = try? url.resourceValues(forKeys: [.fileSizeKey]),
+              let size = values.fileSize
+        else { return nil }
+        return Int64(size)
     }
 
     // MARK: - 單支影片

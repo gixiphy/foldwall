@@ -7,21 +7,102 @@ import SwiftUI
 import FoldwallCore
 
 struct SettingsView: View {
+    @Bindable var coordinator: WallpaperCoordinator
     @Bindable var settings: AppSettings
     var onChange: () -> Void
+    var onVideoToggle: () -> Void
+    var onRulesChange: () -> Void
 
     var body: some View {
         TabView {
+            FolderSourceSettings(coordinator: coordinator)
+                .tabItem { Label("來源資料夾", systemImage: "folder") }
+
             PhotosAlbumSettings(settings: settings, onChange: onChange)
                 .tabItem { Label("照片相簿", systemImage: "photo.stack") }
 
             RemoteSourceSettings(settings: settings, onChange: onChange)
                 .tabItem { Label("網路來源", systemImage: "globe") }
 
-            VideoSettings()
+            VideoSettings(settings: settings, onVideoToggle: onVideoToggle)
                 .tabItem { Label("影片桌布", systemImage: "play.rectangle") }
+
+            RuleSettings(coordinator: coordinator, settings: settings, onChange: onRulesChange)
+                .tabItem { Label("狀態規則", systemImage: "slider.horizontal.3") }
         }
-        .frame(width: 560, height: 460)
+        .frame(width: 620, height: 500)
+    }
+}
+
+// MARK: - 來源資料夾
+
+/// 資料夾來源本來散在選單列的子選單裡，跟照片相簿／網路來源不在同一個地方。
+/// 三種來源既然是同一件事，就放同一頁。
+private struct FolderSourceSettings: View {
+
+    @Bindable var coordinator: WallpaperCoordinator
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("本機、SMB，以及 Box／pCloud／Dropbox／OneDrive／Google Drive 等雲端硬碟的"
+                 + "掛載點——裝了桌面版就是一般資料夾，不需要 OAuth。")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if coordinator.folders.isEmpty {
+                ContentUnavailableView(
+                    "尚未加入資料夾",
+                    systemImage: "folder.badge.plus",
+                    description: Text("加入一個有照片的資料夾就會開始輪播。")
+                )
+                .frame(maxHeight: 200)
+            } else {
+                List {
+                    ForEach(coordinator.folders, id: \.self) { folder in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(folder.lastPathComponent)
+                                Text(folder.path)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.head)
+                            }
+                            Spacer()
+                            Button("顯示") { coordinator.revealInFinder(folder) }
+                                .buttonStyle(.borderless)
+                            Button("移除") { coordinator.removeFolder(folder) }
+                                .buttonStyle(.borderless)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+                .listStyle(.inset)
+            }
+
+            HStack {
+                Button("加入資料夾…") { Task { await coordinator.addFolders() } }
+                Spacer()
+                if coordinator.status.isIndexing {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.small)
+                        Text("掃描中…").font(.caption).foregroundStyle(.secondary)
+                    }
+                } else if coordinator.status.poolCount > 0 {
+                    Text("池 \(coordinator.status.poolCount) 張")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+
+            if coordinator.status.offlineCount > 0 {
+                Label("有 \(coordinator.status.offlineCount) 個來源離線或無權限",
+                      systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
+        .padding()
     }
 }
 
@@ -69,10 +150,20 @@ private struct PhotosAlbumSettings: View {
                 }
             default:
                 ContentUnavailableView {
-                    Label("「照片」存取被拒", systemImage: "exclamationmark.triangle")
+                    Label("「照片」目前無法存取", systemImage: "exclamationmark.triangle")
                 } description: {
-                    Text("到 系統設定 → 隱私權與安全性 → 照片 開啟 Foldwall。")
+                    // Foldwall 沒出現在系統設定清單裡是常見情況：app 要**送出過請求**
+                    // 才會被登錄進去。所以這裡先給「再次請求」，不是只叫人去系統設定。
+                    Text("狀態：\(PhotosAlbumSource.describe(status))\n\n"
+                         + "如果系統設定的「照片」清單裡找不到 Foldwall，代表授權請求還沒送出過——"
+                         + "先按下面的「請求授權」。")
                 } actions: {
+                    Button("請求授權…") {
+                        Task {
+                            status = await PhotosAlbumSource.requestAuthorization()
+                            reload()
+                        }
+                    }
                     Button("開啟系統設定") {
                         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Photos") {
                             NSWorkspace.shared.open(url)
@@ -98,6 +189,7 @@ private struct PhotosAlbumSettings: View {
 
     private func reload() {
         status = PhotosAlbumSource.authorizationStatus
+        Log.sources.info("照片相簿分頁：\(PhotosAlbumSource.describe(status), privacy: .public)")
         guard status == .authorized || status == .limited else { return }
         albums = PhotosAlbumSource.albums()
     }
@@ -109,6 +201,9 @@ private struct PhotosAlbumSettings: View {
 /// 不講清楚沒人知道怎麼用。這一頁就是把流程攤開。
 private struct VideoSettings: View {
 
+    @Bindable var settings: AppSettings
+    var onVideoToggle: () -> Void
+
     @State private var deployedCount = 0
     @State private var libraryPath = VideoLibrary.documentsURL
 
@@ -117,13 +212,36 @@ private struct VideoSettings: View {
             VStack(alignment: .leading, spacing: 16) {
 
                 GroupBox {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Toggle("啟用影片桌布", isOn: $settings.videoWallpaperEnabled)
+                            .onChange(of: settings.videoWallpaperEnabled) { _, _ in
+                                onVideoToggle()
+                                refresh()
+                            }
+                        Text(.init(Self.budgetExplainer))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("影片**只在螢幕重新亮起時**（睡醒、螢保結束、解鎖）換一批，"
+                             + "最少間隔 30 分鐘，不跟著桌布輪換。關掉開關會把已拷進去的影片清乾淨。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(4)
+                }
+
+                GroupBox {
                     HStack {
                         Image(systemName: deployedCount > 0 ? "checkmark.circle.fill" : "info.circle")
                             .foregroundStyle(deployedCount > 0 ? .green : .secondary)
                         if deployedCount > 0 {
                             Text("已備妥 **\(deployedCount)** 支影片")
+                        } else if settings.videoWallpaperEnabled {
+                            Text("目前沒有影片。加入含 mp4／mov／m4v 的來源資料夾即可。"
+                                 + "大型來源要等背景掃描與拷貝跑完。")
                         } else {
-                            Text("目前沒有影片。加入含 mp4／mov／m4v 的來源資料夾即可。")
+                            Text("影片桌布未啟用。打開上面的開關才會把來源資料夾裡的影片送進系統桌布清單。")
                         }
                         Spacer()
                     }
@@ -138,7 +256,8 @@ private struct VideoSettings: View {
 
                 Text("怎麼開始播").font(.headline)
 
-                step(1, "在選單列 → 來源資料夾 → 加入資料夾，選一個**裡面有影片**的資料夾。")
+                step(1, "打開上面的**啟用影片桌布**開關，並在選單列 → 來源資料夾加入一個"
+                        + "**裡面有影片**的資料夾。")
                 step(2, "打開 系統設定 → 桌布，往下找到 **Foldwall** 區塊。")
                 step(3, "選 **Shuffle All** 就會隨機輪播全部影片；想固定一支就直接點那支。"
                         + "隨機的切換頻率（喚醒時／5 分鐘／每天…）也在同一個畫面選。")
@@ -168,6 +287,17 @@ private struct VideoSettings: View {
         }
         .onAppear(perform: refresh)
     }
+
+    /// 拆成常數：直接串在 View builder 裡會讓型別檢查器超時。
+    private static let budgetExplainer: String = {
+        let perFileMB = VideoBudget.maxFileBytes / (1024 * 1024)
+        let rotationMB = VideoBudget.rotationBytes / (1024 * 1024)
+        return "沙盒 extension 讀不到 app 的來源資料夾，影片必須**實體拷貝**一份進去。"
+            + "來源若是 NAS，那會是幾十 GB——所以預設關閉，而且採**輪替**而非囤積："
+            + "一次只帶 1–3 支（視大小，單輪上限 \(rotationMB) MB），下次螢幕亮起再換一批，"
+            + "整個片庫照樣輪得到。單檔超過 \(perFileMB) MB 一律不收——"
+            + "那是片庫內容，不是桌布循環素材。"
+    }()
 
     private func step(_ number: Int, _ text: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
@@ -205,7 +335,9 @@ private struct RemoteSourceSettings: View {
                             Image(systemName: config.isEnabled ? "circle.fill" : "circle")
                                 .font(.system(size: 7))
                                 .foregroundStyle(config.isEnabled ? .green : .secondary)
-                            Text(config.kind.displayName)
+                            Text(config.displayTitle)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
                         }
                         .tag(config.id)
                     }
@@ -388,5 +520,136 @@ private struct RemoteSourceDetail: View {
 
     private func saveKey() {
         try? KeychainStore.set(key, for: AppSettings.keychainAccount(for: config))
+    }
+}
+
+// MARK: - 狀態規則
+
+/// 依系統狀態調整來源。條件成立時把效果聯集起來——「任一條說要停，就停」。
+private struct RuleSettings: View {
+
+    @Bindable var coordinator: WallpaperCoordinator
+    @Bindable var settings: AppSettings
+    var onChange: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            statusHeader
+
+            if settings.sourceRules.isEmpty {
+                ContentUnavailableView(
+                    "沒有規則",
+                    systemImage: "slider.horizontal.3",
+                    description: Text("例如：靠電池時停用網路來源；工作模式時暫停影片桌布。")
+                )
+                .frame(maxHeight: 180)
+            } else {
+                List {
+                    ForEach($settings.sourceRules) { $rule in
+                        RuleRow(rule: $rule, modes: coordinator.focusModes, onChange: onChange)
+                    }
+                    .onDelete { offsets in
+                        settings.sourceRules.remove(atOffsets: offsets)
+                        onChange()
+                    }
+                }
+                .listStyle(.inset)
+            }
+
+            HStack {
+                Menu("新增規則") {
+                    Button("靠電池時…") { add(.onBattery) }
+                    Divider()
+                    Button("任何專注模式時…") { add(.anyFocus) }
+                    ForEach(coordinator.focusModes) { mode in
+                        Button("\(mode.name) 模式時…") { add(.focusMode(mode.id)) }
+                    }
+                }
+                .fixedSize()
+                Spacer()
+                Text("多條同時成立時，效果會疊加")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if coordinator.focusModes.isEmpty {
+                Text("讀不到系統的專注模式清單。macOS 沒有公開 API 可查詢目前是哪個模式，"
+                     + "Foldwall 讀的是 ~/Library/DoNotDisturb/DB/——格式若隨系統更新改變，"
+                     + "專注模式的規則會靜默失效，其他功能不受影響。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding()
+    }
+
+    private var statusHeader: some View {
+        GroupBox {
+            HStack(spacing: 8) {
+                Image(systemName: coordinator.status.activeEffects.isEmpty
+                      ? "circle" : "checkmark.circle.fill")
+                    .foregroundStyle(coordinator.status.activeEffects.isEmpty
+                                     ? Color.secondary : Color.green)
+                if let reason = coordinator.status.activeRuleReason {
+                    Text("目前生效：\(reason)")
+                } else {
+                    Text("目前沒有規則生效"
+                         + (coordinator.activeFocusModeName.map { "（專注：\($0)）" } ?? ""))
+                }
+                Spacer()
+            }
+            .padding(4)
+        }
+    }
+
+    private func add(_ condition: RuleCondition) {
+        settings.sourceRules.append(SourceRule(condition: condition))
+        onChange()
+    }
+}
+
+private struct RuleRow: View {
+
+    @Binding var rule: SourceRule
+    var modes: [FocusMode]
+    var onChange: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Toggle(isOn: $rule.isEnabled) {
+                Text(title).font(.body)
+            }
+            .onChange(of: rule.isEnabled) { _, _ in onChange() }
+
+            HStack(spacing: 12) {
+                ForEach(RuleEffect.allCases, id: \.effect.rawValue) { item in
+                    Toggle(item.label, isOn: binding(for: item.effect))
+                        .toggleStyle(.checkbox)
+                        .font(.caption)
+                }
+            }
+            .padding(.leading, 20)
+            .disabled(!rule.isEnabled)
+        }
+        .padding(.vertical, 2)
+    }
+
+    private var title: String {
+        switch rule.condition {
+        case .onBattery: "靠電池時"
+        case .focusMode(let id) where id.isEmpty: "任何專注模式時"
+        case .focusMode(let id): "\(modes.first { $0.id == id }?.name ?? id) 模式時"
+        }
+    }
+
+    private func binding(for effect: RuleEffect) -> Binding<Bool> {
+        Binding(
+            get: { rule.effects.contains(effect) },
+            set: { isOn in
+                if isOn { rule.effects.insert(effect) } else { rule.effects.remove(effect) }
+                onChange()
+            }
+        )
     }
 }

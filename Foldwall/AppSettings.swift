@@ -14,9 +14,13 @@ final class AppSettings {
         static let intervalMinutes = "intervalMinutes"
         static let effect = "effect"
         static let videoScreens = "videoScreens"
+        static let videoWallpaperEnabled = "videoWallpaperEnabled"
+        static let videoRotationCursor = "videoRotationCursor"
+        static let videoRemoteCursor = "videoRemoteCursor"
         static let launchAtLogin = "launchAtLogin"
         static let remoteSources = "remoteSources"
         static let photoAlbums = "photoAlbums"
+        static let sourceRules = "sourceRules"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -27,6 +31,34 @@ final class AppSettings {
 
     var effect: PostProcess {
         didSet { defaults.set(effect.rawValue, forKey: Key.effect) }
+    }
+
+    /// 依系統狀態調整來源的規則（電池／專注模式）。預設空＝行為與以前完全相同。
+    var sourceRules: [SourceRule] {
+        didSet {
+            guard let data = try? JSONEncoder().encode(sourceRules) else { return }
+            defaults.set(data, forKey: Key.sourceRules)
+        }
+    }
+
+    /// 影片桌布總開關，**預設關**。
+    ///
+    /// 關著就一支影片都不拷。開了才把來源資料夾裡的影片送進 extension container——
+    /// 那是實體拷貝（沙盒 extension 讀不到 app 的 bookmark），一座 NAS 可以是幾百 GB。
+    /// 預設開的話，只想要靜態蒙太奇的人會平白被塞爆磁碟。
+    var videoWallpaperEnabled: Bool {
+        didSet { defaults.set(videoWallpaperEnabled, forKey: Key.videoWallpaperEnabled) }
+    }
+
+    /// 影片輪替走到哪了。存起來才能跨重啟繼續輪，不會每次都從頭那幾支開始。
+    var videoRotationCursor: Int {
+        didSet { defaults.set(videoRotationCursor, forKey: Key.videoRotationCursor) }
+    }
+
+    /// 網路影片各自一個游標：兩邊數量差很多（實測 4596 對 6），
+    /// 共用游標會讓網路那幾支永遠輪不到。
+    var videoRemoteCursor: Int {
+        didSet { defaults.set(videoRemoteCursor, forKey: Key.videoRemoteCursor) }
     }
 
     /// 使用者標記「這台改用影片」的螢幕，存 display UUID。
@@ -67,12 +99,17 @@ final class AppSettings {
 
         self.effect = (defaults.string(forKey: Key.effect).flatMap(PostProcess.init(rawValue:))) ?? .none
         self.videoScreens = Set(defaults.stringArray(forKey: Key.videoScreens) ?? [])
+        self.videoWallpaperEnabled = defaults.bool(forKey: Key.videoWallpaperEnabled)   // 缺 key = false
+        self.videoRotationCursor = defaults.integer(forKey: Key.videoRotationCursor)   // 缺 key = 0
+        self.videoRemoteCursor = defaults.integer(forKey: Key.videoRemoteCursor)
         // 以系統實際狀態為準，不信 defaults：使用者可能在系統設定裡關掉
         self.launchAtLogin = SMAppService.mainApp.status == .enabled
 
         self.remoteSources = (defaults.data(forKey: Key.remoteSources)
             .flatMap { try? JSONDecoder().decode([RemoteSourceConfig].self, from: $0) }) ?? []
         self.photoAlbums = Set(defaults.stringArray(forKey: Key.photoAlbums) ?? [])
+        self.sourceRules = (defaults.data(forKey: Key.sourceRules)
+            .flatMap { try? JSONDecoder().decode([SourceRule].self, from: $0) }) ?? []
     }
 
     private func applyLaunchAtLogin() {

@@ -14,8 +14,8 @@ struct MenuBarView: View {
             statusLine
 
             if coordinator.status.hasNoSources {
-                Button("尚未加入資料夾…") { Task { await coordinator.addFolders() } }
-                SettingsLink { Text("…或加入照片相簿／網路來源") }
+                Button("加入資料夾…") { Task { await coordinator.addFolders() } }
+                SettingsLink { Text("…或在設定裡加照片相簿／網路來源") }
             }
 
             Divider()
@@ -30,9 +30,13 @@ struct MenuBarView: View {
             Divider()
 
             displayMenu
-            sourcesMenu
-            SettingsLink { Text("設定（照片相簿・網路來源）…") }
+            SettingsLink { Text("設定（來源・影片・規則）…") }
                 .keyboardShortcut(",")
+
+            if let reason = coordinator.status.activeRuleReason {
+                Text("狀態規則生效中：\(reason)")
+                    .font(.caption)
+            }
 
             if let error = coordinator.status.sourceError {
                 Text("網路來源異常：\(error)")
@@ -49,7 +53,6 @@ struct MenuBarView: View {
 
             Toggle("登入時啟動", isOn: $settings.launchAtLogin)
             Button("在 Finder 顯示快取") { revealCache() }
-            Button("系統設定 → 桌布…") { openWallpaperSettings() }
 
             Divider()
 
@@ -71,15 +74,20 @@ struct MenuBarView: View {
         if status.offlineCount > 0 && status.sourceCount == 0 {
             return "來源離線 \(status.offlineCount) 個"
         }
+        if status.activeEffects.contains(.pauseRotation) {
+            return "已依狀態規則暫停" + (status.activeRuleReason.map { "（\($0)）" } ?? "")
+        }
         if status.poolWasEmpty || status.poolCount == 0 {
-            return "來源無可用影像"
+            // 掃描還在跑就別誤報「沒圖」——大型資料夾要幾分鐘才走得完
+            return status.isIndexing ? "正在掃描資料夾…" : "來源無可用影像"
         }
 
         var parts = ["池 \(status.poolCount)"]
         if status.sourceCount > 0 { parts.insert("資料夾 \(status.sourceCount)", at: 0) }
         if status.photosCount > 0 { parts.append("相簿 \(status.photosCount)") }
         if status.remoteCount > 0 { parts.append("網路 \(status.remoteCount)") }
-        let base = parts.joined(separator: "・")
+        var base = parts.joined(separator: "・")
+        if status.isIndexing { base += "・掃描中" }
         if status.isPaused { return base + "・已暫停" }
         guard let due = status.nextDue else { return base }
         return base + "・下次 " + due.formatted(date: .omitted, time: .shortened)
@@ -145,22 +153,13 @@ struct MenuBarView: View {
             Divider()
             Text("影片需在「系統設定 → 桌布」選片，再回來勾這裡")
                 .font(.caption)
-        }
-    }
-
-    private var sourcesMenu: some View {
-        Menu("來源資料夾") {
-            if coordinator.folders.isEmpty {
-                Text("（沒有可讀的來源）")
+            // 入口就放在說明旁邊——它只在這條流程裡用得到，擺在主選單底部
+            // 離使用它的情境太遠。
+            Button("打開 系統設定 → 桌布…") { openWallpaperSettings() }
+            if !coordinator.status.videoReady && !settings.videoScreens.isEmpty {
+                Text("影片尚未備妥，這些螢幕暫由蒙太奇接管")
+                    .font(.caption)
             }
-            ForEach(coordinator.folders, id: \.self) { folder in
-                Menu(folder.lastPathComponent) {
-                    Button("在 Finder 顯示") { coordinator.revealInFinder(folder) }
-                    Button("移除此來源") { coordinator.removeFolder(folder) }
-                }
-            }
-            Divider()
-            Button("加入資料夾…") { Task { await coordinator.addFolders() } }
         }
     }
 
