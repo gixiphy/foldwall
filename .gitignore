@@ -1,0 +1,13 @@
+.DS_Store
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+build-release/
+dist/
+
+# iCloud：這些絕對不能放在專案裡（會被同步）
+build-release/
+DerivedData/
+*.xcworkspace/xcuserdata/

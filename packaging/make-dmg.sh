@@ -32,7 +32,7 @@ fi
 echo "==> 產生專案"
 xcodegen generate >/dev/null
 
-echo "==> Release 建置（$IDENTITY）"
+echo "==> Release 建置（${IDENTITY}）"   # 一定要加大括號：zh_TW.UTF-8 下 bash 會把全形「）」吃進變數名
 echo "    建置目錄：$BUILD"
 rm -rf "$BUILD"
 xcodebuild -scheme Foldwall -configuration Release -destination 'platform=macOS' \
