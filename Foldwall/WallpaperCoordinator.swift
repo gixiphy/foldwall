@@ -126,7 +126,24 @@ final class WallpaperCoordinator {
             Task { @MainActor in self?.dispatch(.wake(now: .now)) }
         }
 
-        // 影片**只在螢幕重新亮起時**輪替。三種都要接：整機睡醒、只有螢幕睡醒、螢保結束。
+        // 影片在**螢幕睡著時**預先換好下一批，亮起時只負責顯示。
+        // 拷貝走 SMB 一次可能是好幾百 MB（實測 470MB），放在「使用者剛回到電腦前」
+        // 那一刻做就是明顯卡頓；改在沒人用的時候做，看到的結果一樣是「回來就換了一批」。
+        for name in [NSWorkspace.screensDidSleepNotification, NSWorkspace.willSleepNotification] {
+            NSWorkspace.shared.notificationCenter.addObserver(
+                forName: name, object: nil, queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in self?.screenDidSleep() }
+            }
+        }
+        for name in ["com.apple.screensaver.didstart", "com.apple.screenIsLocked"] {
+            DistributedNotificationCenter.default().addObserver(
+                forName: Notification.Name(name), object: nil, queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in self?.screenDidSleep() }
+            }
+        }
+        // 亮起只重跑靜態；影片除非手上一支都沒有，否則不在這時候拷。
         for name in [NSWorkspace.screensDidWakeNotification, NSWorkspace.didWakeNotification] {
             NSWorkspace.shared.notificationCenter.addObserver(
                 forName: name, object: nil, queue: .main
@@ -134,7 +151,6 @@ final class WallpaperCoordinator {
                 Task { @MainActor in self?.screenDidWake() }
             }
         }
-        // 螢保結束與解鎖走 distributed center，不在 NSWorkspace 那條
         for name in ["com.apple.screensaver.didstop", "com.apple.screenIsUnlocked"] {
             DistributedNotificationCenter.default().addObserver(
                 forName: Notification.Name(name), object: nil, queue: .main
@@ -156,11 +172,21 @@ final class WallpaperCoordinator {
         }
     }
 
-    /// 螢幕重新亮起 → 換一批影片。節流仍在（最少 30 分鐘），
-    /// 否則滑個滑鼠讓螢保停一次就重拷一輪，走 SMB 會很痛。
-    private func screenDidWake() {
+    /// 螢幕睡著 → 趁沒人用，把下一批影片拷好。節流仍在（最少 30 分鐘），
+    /// 否則螢保停停開開一小時就重拷十輪，走 SMB 會很痛。
+    private func screenDidSleep() {
         guard settings.videoWallpaperEnabled else { return }
         rotateVideosOnNextRefresh = true
+        refreshNow()
+    }
+
+    /// 螢幕亮起 → 只重跑靜態。
+    /// **不在這時候拷影片**：那是使用者剛回到電腦前的那一刻，470MB 的 SMB 拷貝
+    /// 會直接卡在他臉上。唯一例外是手上一支都沒有——那時不拷就什麼都播不了。
+    private func screenDidWake() {
+        if settings.videoWallpaperEnabled, videoLibrary.deployedCount == 0 {
+            rotateVideosOnNextRefresh = true
+        }
         refreshNow()
     }
 
@@ -462,15 +488,29 @@ final class WallpaperCoordinator {
     ///   所以刪完立刻重合成一張。
     /// - **影片 container** 要連帳本一起清，否則下次同步會把它們當成孤兒——
     ///   雖然啟動時的 sweepOrphans 會收拾，但沒必要製造那個中間狀態。
+    /// **清完不會立刻重新下載。** 使用者按「清除」的意思是「現在把它清空」，
+    /// 若馬上補貨，數字幾秒後就跳回去，看起來像沒清掉——而且會突然打一輪 API
+    /// 與 SMB 拷貝。等下一個排程輪次自然補回來就好，桌面上現有的桌布不受影響。
     func clearCache(_ location: CacheLocation) throws {
-        if location.id == "videos" {
-            // container 要連帳本一起清，否則下次同步會把它們當成孤兒
-            runVideoSync(videos: [])
-            try location.clearContents()   // 下載快取照樣清
+        guard location.id == "videos" else {
+            try location.clearContents()
             return
         }
-        try location.clearContents()
-        refreshNow()   // 池空了，立刻補一輪，不要讓桌面停在舊圖等下一個間隔
+        // container 要連帳本一起清，否則下次同步會把它們當成孤兒。
+        // 下載快取則等 sync 收手後再清，免得兩邊同時動同一批檔案。
+        let previous = videoSyncTask
+        previous?.cancel()
+        videoSyncID += 1
+        let generation = videoSyncID
+        videoSyncTask = Task { @MainActor [weak self] in
+            await previous?.value
+            guard let self, self.videoSyncID == generation else { return }
+            await self.videoLibrary.sync(videos: [])
+            try? location.clearContents()
+            self.status.videosOverBudget = 0
+            self.videoSyncTask = nil
+            self.refreshNow()   // 影片沒了 → 那些螢幕改由蒙太奇接管
+        }
     }
 
     /// 設定視窗改了規則就立刻重評一次。

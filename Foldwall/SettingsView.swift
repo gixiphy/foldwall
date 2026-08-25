@@ -225,8 +225,9 @@ private struct VideoSettings: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
-                        Text("影片**只在螢幕重新亮起時**（睡醒、螢保結束、解鎖）換一批，"
-                             + "最少間隔 30 分鐘，不跟著桌布輪換。關掉開關會把已拷進去的影片清乾淨。")
+                        Text("影片在**螢幕睡著時**（螢保啟動、鎖定、休眠）預先換好下一批，"
+                             + "最少間隔 30 分鐘，不跟著桌布輪換——拷貝一次可能是好幾百 MB，"
+                             + "放在你剛回到電腦前那一刻做會卡。關掉開關會把已拷進去的影片清乾淨。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -773,9 +774,9 @@ private struct CacheSettings: View {
     private func consequence(_ location: CacheLocation) -> String {
         switch location.id {
         case "videos":
-            "輪替中的影片會被移除，影片螢幕暫由蒙太奇接管，下次螢幕亮起時再換一批。"
+            "輪替中的影片會被移除，影片螢幕暫由蒙太奇接管，下次螢幕睡著時再預先拷一批。"
         default:
-            "下次輪到這些來源時會重新下載；SMB 的副本也會重拷，第一輪會慢一點。"
+            "清完**不會立刻重新下載**，等下一個排程輪次自然補回來。"
                 + "目前掛在桌面上的桌布不受影響。"
         }
     }
@@ -794,9 +795,16 @@ private struct CacheSettings: View {
     }
 
     private func reload() {
-        rows = locations.map { location in
-            let measured = location.measure()
-            return (location, measured.count, measured.bytes)
+        // 掃目錄要 20–30ms（實測 373 項）。放在主執行緒上就是開這頁時掉兩格畫面。
+        let locations = self.locations
+        Task {
+            let measured = await Task.detached(priority: .utility) {
+                locations.map { location -> (CacheLocation, Int, Int64) in
+                    let one = location.measure()
+                    return (location, one.count, one.bytes)
+                }
+            }.value
+            rows = measured
         }
     }
 
