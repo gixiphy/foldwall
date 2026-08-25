@@ -1,0 +1,139 @@
+import XCTest
+import CoreGraphics
+@testable import FoldwallCore
+
+/// 記錄被寫了哪些螢幕，供斷言「該跳過的一次都沒寫」。
+private final class RecordingDesktop: DesktopSetting, @unchecked Sendable {
+    private let lock = NSLock()
+    private(set) var calls: [(id: CGDirectDisplayID, url: URL)] = []
+
+    func setDesktopImageURL(_ url: URL, for screenID: CGDirectDisplayID) throws {
+        lock.lock(); defer { lock.unlock() }
+        calls.append((screenID, url))
+    }
+}
+
+final class StillPipelineTests: XCTestCase {
+
+    private var root: URL!
+    private var paths: AppPaths!
+    private var desktop: RecordingDesktop!
+    private var pool: [URL] = []
+
+    private let displayA = DisplayTarget(id: 1, uuid: "AAAA", canvas: CGSize(width: 400, height: 300))
+    private let displayB = DisplayTarget(id: 2, uuid: "BBBB", canvas: CGSize(width: 400, height: 300))
+
+    override func setUpWithError() throws {
+        root = URL.temporaryDirectory.appending(path: "foldwall-still-\(UUID().uuidString)")
+        paths = AppPaths(applicationSupport: root.appending(path: "Support"),
+                         caches: root.appending(path: "Caches"))
+        desktop = RecordingDesktop()
+
+        let sourceDir = root.appending(path: "photos")
+        try FileManager.default.createDirectory(at: sourceDir, withIntermediateDirectories: true)
+        pool = try (0..<3).map { index in
+            let url = sourceDir.appending(path: "p\(index).png")
+            try TestImage.writePNG(TestImage.solid(Double(index) / 3, 0.5, 0.5, size: 300), to: url)
+            return url
+        }
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: root)
+    }
+
+    private func makePipeline() -> StillPipeline {
+        StillPipeline(desktop: desktop, paths: paths)
+    }
+
+    // MARK: - 尺寸與片數
+
+    func testCanvasSizeUsesBackingScale() {
+        let canvas = DisplayTarget.canvasSize(frame: CGSize(width: 100, height: 100), scale: 2)
+        XCTAssertEqual(canvas, CGSize(width: 200, height: 200))
+    }
+
+    func testPieceCountFollowsLongSide() {
+        XCTAssertEqual(StillPipeline.pieceCount(longSide: 5120, tier: .full), 10)
+        XCTAssertEqual(StillPipeline.pieceCount(longSide: 6016, tier: .full), 10)
+        XCTAssertEqual(StillPipeline.pieceCount(longSide: 3456, tier: .full), 8)
+        XCTAssertEqual(StillPipeline.pieceCount(longSide: 2560, tier: .full), 6)
+        XCTAssertEqual(StillPipeline.pieceCount(longSide: 5120, tier: .reduced), 6, "降載封頂 6")
+    }
+
+    // MARK: - 共存與空池
+
+    func testSkippedDisplayIsNeverWritten() throws {
+        let outcome = try makePipeline().refresh(
+            displays: [displayA, displayB], skipIDs: [displayA.id],
+            pool: pool, effect: .none, tier: .full, cycleNonce: 1
+        )
+        XCTAssertEqual(desktop.calls.map(\.id), [displayB.id], "播影片的螢幕一次都不能寫")
+        XCTAssertEqual(outcome.written, [displayB.id])
+        XCTAssertEqual(outcome.skipped, [displayA.id])
+    }
+
+    func testEmptyPoolWritesNothing() throws {
+        let outcome = try makePipeline().refresh(
+            displays: [displayA, displayB], skipIDs: [],
+            pool: [], effect: .none, tier: .full, cycleNonce: 1
+        )
+        XCTAssertTrue(desktop.calls.isEmpty, "空池必須保留現桌布，不可寫黑圖")
+        XCTAssertTrue(outcome.poolWasEmpty)
+        XCTAssertTrue(outcome.written.isEmpty)
+    }
+
+    func testAllUndecodablePoolWritesNothing() throws {
+        let broken = root.appending(path: "broken.jpg")
+        try Data("garbage".utf8).write(to: broken)
+        let outcome = try makePipeline().refresh(
+            displays: [displayA], skipIDs: [], pool: [broken],
+            effect: .none, tier: .full, cycleNonce: 1
+        )
+        XCTAssertTrue(desktop.calls.isEmpty, "全是壞檔等同空池")
+        XCTAssertTrue(outcome.poolWasEmpty)
+    }
+
+    // MARK: - 檔名與保留策略
+
+    func testEachCycleUsesFreshFilename() throws {
+        let pipeline = makePipeline()
+        try pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
+                             effect: .none, tier: .full, cycleNonce: 1)
+        try pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
+                             effect: .none, tier: .full, cycleNonce: 2)
+
+        let urls = desktop.calls.map(\.url)
+        XCTAssertEqual(urls.count, 2)
+        XCTAssertNotEqual(urls[0], urls[1],
+                          "同 URL 重設是 no-op，每輪必須換檔名")
+    }
+
+    func testKeepsOnlyTwoGenerations() throws {
+        let pipeline = makePipeline()
+        for nonce in UInt64(1)...4 {
+            try pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
+                                 effect: .none, tier: .full, cycleNonce: nonce)
+        }
+        let remaining = try FileManager.default
+            .contentsOfDirectory(atPath: paths.wallpapers.path)
+            .filter { $0.hasSuffix(".jpg") }
+        XCTAssertEqual(remaining.count, 2, "只留當前輪＋上一輪")
+    }
+
+    func testWallpapersLiveOutsideCaches() {
+        XCTAssertFalse(paths.wallpapers.path.contains("/Caches/"),
+                       "桌布檔放 Caches 會被系統清掉＝重登入黑屏")
+        XCTAssertTrue(paths.smbCache.path.contains("Caches"))
+    }
+
+    // MARK: - 每螢不同
+
+    func testDisplaysGetDifferentComposition() throws {
+        try makePipeline().refresh(displays: [displayA, displayB], skipIDs: [],
+                                   pool: pool, effect: .none, tier: .full, cycleNonce: 7)
+        let files = desktop.calls.map { try! Data(contentsOf: $0.url) }
+        XCTAssertEqual(files.count, 2)
+        XCTAssertNotEqual(files[0], files[1], "每螢各自合成，構圖不該相同")
+    }
+}

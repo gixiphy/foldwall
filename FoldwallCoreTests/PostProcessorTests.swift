@@ -1,5 +1,6 @@
 import XCTest
 import CoreGraphics
+import ImageIO
 @testable import FoldwallCore
 
 /// 測試用工具：純色圖與像素取樣。
@@ -80,5 +81,15 @@ final class PostProcessorTests: XCTestCase {
         let same = (0..<8).map { _ in PostProcess.random.resolved(using: &b) }
         XCTAssertEqual(picks, same, "同 seed 的 random 序列必須可重現")
         XCTAssertFalse(picks.contains(.random), "random 必須解析成具體效果")
+    }
+}
+
+extension TestImage {
+    static func writePNG(_ image: CGImage, to url: URL) throws {
+        let dest = CGImageDestinationCreateWithURL(url as CFURL, "public.png" as CFString, 1, nil)!
+        CGImageDestinationAddImage(dest, image, nil)
+        guard CGImageDestinationFinalize(dest) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
     }
 }
