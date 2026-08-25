@@ -550,11 +550,12 @@ private struct RuleSettings: View {
             } else {
                 List {
                     ForEach($settings.sourceRules) { $rule in
-                        RuleRow(rule: $rule, modes: coordinator.focusModes, onChange: onChange)
-                    }
-                    .onDelete { offsets in
-                        settings.sourceRules.remove(atOffsets: offsets)
-                        onChange()
+                        RuleRow(
+                            rule: $rule,
+                            modes: coordinator.focusModes,
+                            onChange: onChange,
+                            onRemove: { remove(rule.id) }
+                        )
                     }
                 }
                 .listStyle(.inset)
@@ -611,6 +612,11 @@ private struct RuleSettings: View {
         settings.sourceRules.append(SourceRule(condition: condition))
         onChange()
     }
+
+    private func remove(_ id: UUID) {
+        settings.sourceRules.removeAll { $0.id == id }
+        onChange()
+    }
 }
 
 private struct RuleRow: View {
@@ -618,13 +624,22 @@ private struct RuleRow: View {
     @Binding var rule: SourceRule
     var modes: [FocusMode]
     var onChange: () -> Void
+    var onRemove: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Toggle(isOn: $rule.isEnabled) {
-                Text(title).font(.body)
+            HStack {
+                Toggle(isOn: $rule.isEnabled) {
+                    Text(title).font(.body)
+                }
+                .onChange(of: rule.isEnabled) { _, _ in onChange() }
+                Spacer()
+                Button(role: .destructive, action: onRemove) {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+                .help("移除這條規則")
             }
-            .onChange(of: rule.isEnabled) { _, _ in onChange() }
 
             HStack(spacing: 12) {
                 ForEach(RuleEffect.allCases, id: \.effect.rawValue) { item in

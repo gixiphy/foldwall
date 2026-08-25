@@ -104,8 +104,10 @@ final class PhotosAlbumSource {
         let assets = PHAsset.fetchAssets(in: album, options: Self.imageFetchOptions())
         guard assets.count > 0 else { return [] }
 
+        // **不要**用 Array(0..<count).shuffled()：使用者的相簿實測有 101,046 張，
+        // 那等於為了抽幾張而配置並洗牌十萬個 Int，每次補貨都來一次。
         var picked: [PHAsset] = []
-        for index in Array(0..<assets.count).shuffled().prefix(limit) {
+        for index in RandomSample.indices(count: limit, total: assets.count) {
             picked.append(assets.object(at: index))
         }
 
@@ -148,12 +150,13 @@ final class PhotosAlbumSource {
             return nil
         }
 
-        // 統一寫成 JPEG：HEIC 也能被後續管線讀，但副檔名要對得上內容
-        guard let image = NSImage(data: data),
-              let tiff = image.tiffRepresentation,
-              let rep = NSBitmapImageRep(data: tiff),
-              let jpeg = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.9])
-        else { return nil }
+        // 統一寫成 JPEG：HEIC 也能被後續管線讀，但副檔名要對得上內容。
+        // 轉碼與寫檔都丟到背景：這個型別是 @MainActor，留在原地就是在主執行緒上
+        // 解一張 4000×3000 的照片，一輪 20 張，畫面一定卡。
+        let converted = await Task.detached(priority: .utility) {
+            ImageTranscoder.jpegData(from: data)
+        }.value
+        guard let jpeg = converted else { return nil }
 
         do {
             try jpeg.write(to: destination, options: .atomic)

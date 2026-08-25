@@ -12,9 +12,11 @@
 		035322FEF2D167B23F71EC42 /* RuntimeHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 009C3F8619E6EDA0D03BF7F1 /* RuntimeHelpers.swift */; };
 		03BA9BEA2BF491CF477FD52E /* FocusModeMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AFF43D352D793039D1DFB5 /* FocusModeMonitor.swift */; };
 		0502D6F6285C04274F8EA64A /* FoldwallExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = CBF4F8F8720739430A6B2304 /* FoldwallExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		062EF61455955CA83307B44E /* ImageTranscoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5831C1668E48D26134A92A5 /* ImageTranscoder.swift */; };
 		07160475125EA5E345D6C83E /* PowerPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2252B86A0D6C04019F08E8F /* PowerPolicy.swift */; };
 		091134F43F3E9697E215BD56 /* FoldwallCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0A328497EF2B9FB5F10FB13A /* BookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C5AB7864D8B64E462BEBFC /* BookmarkStore.swift */; };
+		0E46815116B38AAB9F78D37A /* RandomSampleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB5F1603DF36CBF865C08A20 /* RandomSampleTests.swift */; };
 		0E86B6FE55056D80DB31D676 /* StillPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0365A5BE6AFEC79B9F9DF1A /* StillPipeline.swift */; };
 		1126B7609AAAFB433500AFE5 /* ImmichSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C53395606A1DA4E05C57349 /* ImmichSource.swift */; };
 		151782763573134BF1A2DB6F /* CacheLocationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E01CE88CBBB810189D8DA9F /* CacheLocationTests.swift */; };
@@ -37,6 +39,7 @@
 		3DBC7A44F0A669CF5AC6090E /* RemoteSourceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82D67A68B60193D7474651E2 /* RemoteSourceTests.swift */; };
 		3E57E6D2B78746BB87456FE4 /* BMPCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD192E373AC2E51D47E0D53 /* BMPCache.swift */; };
 		40E7998011B4545649176ABF /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB8D3B7FAF0FF86FEB4C4B3 /* ImageLoader.swift */; };
+		44D09EBA28FA329203E3AFA6 /* ImageTranscoderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEDD0B93BBDE07B3885CA805 /* ImageTranscoderTests.swift */; };
 		495C27A4ACA263CB4FEBBCBE /* MaterializerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 370E7E214D59EA0EA71EA2AE /* MaterializerTests.swift */; };
 		54E39334AB011B4CBB2A9F56 /* MontageComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D1BC76F17F313123DC82D1E /* MontageComposerTests.swift */; };
 		5707C1DACFB8266C3AB76221 /* SettingsProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B50A679DBCF07FED1D81F6 /* SettingsProvider.swift */; };
@@ -56,6 +59,7 @@
 		8F165965AF7C999A7B627A59 /* FoldwallCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		94E651F73BBE0E46A883C2D7 /* StillBisect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF36A574783B3A5CF124D0B /* StillBisect.swift */; };
 		95B31AFB47B596304F871036 /* MontageComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2216BA67DC766360D922163E /* MontageComposer.swift */; };
+		9F1572A5F6F89065A9F916DC /* RandomSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = C09714ECDF41A9D5DD9AF8D2 /* RandomSample.swift */; };
 		A01F51BB128D11E0938E7C96 /* AppPaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F48E153F0F5100E70855B71 /* AppPaths.swift */; };
 		A0A9099A6D996FB5B3536C8A /* FoldwallCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; };
 		AACF133C242AB3AAC1A1CCBC /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB691C4A6FDC0397BEE42712 /* MenuBarView.swift */; };
@@ -210,8 +214,11 @@
 		9F4CC304EBB9F0D5D0E651C7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoldwallCore.swift; sourceTree = "<group>"; };
 		A1F33540AF00E0706871101C /* MediaIndexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaIndexer.swift; sourceTree = "<group>"; };
+		A5831C1668E48D26134A92A5 /* ImageTranscoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTranscoder.swift; sourceTree = "<group>"; };
 		A5E2643B0C660DA235688E63 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
 		A9DBB3AC09D4C639CC4D6F16 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
+		AB5F1603DF36CBF865C08A20 /* RandomSampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomSampleTests.swift; sourceTree = "<group>"; };
+		AEDD0B93BBDE07B3885CA805 /* ImageTranscoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageTranscoderTests.swift; sourceTree = "<group>"; };
 		B0C5AB7864D8B64E462BEBFC /* BookmarkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkStore.swift; sourceTree = "<group>"; };
 		B1ABA945B65F90652072F5EB /* PowerMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerMonitor.swift; sourceTree = "<group>"; };
 		B343126CD55D783EC5E00EE5 /* SettingsPush.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPush.swift; sourceTree = "<group>"; };
@@ -221,6 +228,7 @@
 		BB691C4A6FDC0397BEE42712 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		BC1D4C56749604071D777F79 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
 		BE46C077CBAA4384DAC0ACD7 /* BookmarkCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkCodecTests.swift; sourceTree = "<group>"; };
+		C09714ECDF41A9D5DD9AF8D2 /* RandomSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RandomSample.swift; sourceTree = "<group>"; };
 		C3FB60BFEE248C8E6DD972BE /* ShuffleController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuffleController.swift; sourceTree = "<group>"; };
 		C6B08E9E36E9B7A93860DEB2 /* CallerValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallerValidation.swift; sourceTree = "<group>"; };
 		C8275ADFFEE34F26A3E5F290 /* VideoSyncPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSyncPolicyTests.swift; sourceTree = "<group>"; };
@@ -356,11 +364,13 @@
 				4E01CE88CBBB810189D8DA9F /* CacheLocationTests.swift */,
 				C92B9B55B320A65ABD988F12 /* FolderIndexTests.swift */,
 				80EB9ED77FE384AFBBD4E399 /* ImageLoaderTests.swift */,
+				AEDD0B93BBDE07B3885CA805 /* ImageTranscoderTests.swift */,
 				370E7E214D59EA0EA71EA2AE /* MaterializerTests.swift */,
 				F38B76ED23633AAB64E77B82 /* MediaIndexerTests.swift */,
 				7D1BC76F17F313123DC82D1E /* MontageComposerTests.swift */,
 				730E77457041D8F787E9CB3B /* PostProcessorTests.swift */,
 				F4747EF7E9295E3904BECE54 /* PowerPolicyTests.swift */,
+				AB5F1603DF36CBF865C08A20 /* RandomSampleTests.swift */,
 				82D67A68B60193D7474651E2 /* RemoteSourceTests.swift */,
 				DBAC7B5EAFB0B7AD84CC89FA /* SchedulerTests.swift */,
 				564344F73AFB43461C1C5C6F /* SmokeTests.swift */,
@@ -383,12 +393,14 @@
 				21CCF36F676D3CBC0E595622 /* FolderStore.swift */,
 				A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */,
 				DBB8D3B7FAF0FF86FEB4C4B3 /* ImageLoader.swift */,
+				A5831C1668E48D26134A92A5 /* ImageTranscoder.swift */,
 				4A1ABB98FFC2C01CC91F13C7 /* Materializer.swift */,
 				A1F33540AF00E0706871101C /* MediaIndexer.swift */,
 				0536332713CD383113F12207 /* MediaTypes.swift */,
 				2216BA67DC766360D922163E /* MontageComposer.swift */,
 				50AC50656034A8E70E15745A /* PostProcessor.swift */,
 				F2252B86A0D6C04019F08E8F /* PowerPolicy.swift */,
+				C09714ECDF41A9D5DD9AF8D2 /* RandomSample.swift */,
 				B368BF402B996913638214B0 /* Scheduler.swift */,
 				6F0090E8FE99370E3B33F4C3 /* SeededGenerator.swift */,
 				1C09F091FE57E0C6E576D4DB /* SourceRule.swift */,
@@ -583,6 +595,7 @@
 				BBAB65431B2DFD61F0889A4B /* FolderStore.swift in Sources */,
 				23BBDD3C9164C1F85EA7160A /* FoldwallCore.swift in Sources */,
 				40E7998011B4545649176ABF /* ImageLoader.swift in Sources */,
+				062EF61455955CA83307B44E /* ImageTranscoder.swift in Sources */,
 				1126B7609AAAFB433500AFE5 /* ImmichSource.swift in Sources */,
 				C24D15F995832C471CB6A068 /* Materializer.swift in Sources */,
 				D9C3D378F0BD590722071BEC /* MediaIndexer.swift in Sources */,
@@ -592,6 +605,7 @@
 				AF6179D5C589BC4CC699D4F6 /* PostProcessor.swift in Sources */,
 				07160475125EA5E345D6C83E /* PowerPolicy.swift in Sources */,
 				B58B5B92EBFE84E3DBA8DADE /* RSSPhotoSource.swift in Sources */,
+				9F1572A5F6F89065A9F916DC /* RandomSample.swift in Sources */,
 				00267D42D69CDB47852E766E /* RemoteFetcher.swift in Sources */,
 				1FA6078766AAFBEDB228813B /* RemoteSource.swift in Sources */,
 				16BBB7C72290AA8AADD24261 /* Scheduler.swift in Sources */,
@@ -612,11 +626,13 @@
 				151782763573134BF1A2DB6F /* CacheLocationTests.swift in Sources */,
 				375747239E8D23673EDA3BE0 /* FolderIndexTests.swift in Sources */,
 				D78F40C2C2CB739C8376EC74 /* ImageLoaderTests.swift in Sources */,
+				44D09EBA28FA329203E3AFA6 /* ImageTranscoderTests.swift in Sources */,
 				495C27A4ACA263CB4FEBBCBE /* MaterializerTests.swift in Sources */,
 				C2158F12A42DF513374AD5B9 /* MediaIndexerTests.swift in Sources */,
 				54E39334AB011B4CBB2A9F56 /* MontageComposerTests.swift in Sources */,
 				66343747EF40A8EB3BBA6D68 /* PostProcessorTests.swift in Sources */,
 				16D8CC1A177A963F1E2A9D40 /* PowerPolicyTests.swift in Sources */,
+				0E46815116B38AAB9F78D37A /* RandomSampleTests.swift in Sources */,
 				3DBC7A44F0A669CF5AC6090E /* RemoteSourceTests.swift in Sources */,
 				DBC5BD6539C32AFCEA679DCD /* SchedulerTests.swift in Sources */,
 				16649CB4399A84CEE2CC4B86 /* SmokeTests.swift in Sources */,
@@ -712,7 +728,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -724,7 +740,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.7;
+				MARKETING_VERSION = 0.3.8;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall;
 				PRODUCT_NAME = Foldwall;
 				SDKROOT = macosx;
@@ -761,7 +777,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -771,7 +787,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.7;
+				MARKETING_VERSION = 0.3.8;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.extension;
 				PRODUCT_NAME = FoldwallExtension;
 				SDKROOT = macosx;
@@ -934,7 +950,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -944,7 +960,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.7;
+				MARKETING_VERSION = 0.3.8;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.extension;
 				PRODUCT_NAME = FoldwallExtension;
 				SDKROOT = macosx;
@@ -979,7 +995,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 23;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -991,7 +1007,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.7;
+				MARKETING_VERSION = 0.3.8;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall;
 				PRODUCT_NAME = Foldwall;
 				SDKROOT = macosx;

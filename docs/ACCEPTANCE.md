@@ -7,7 +7,7 @@
 
 | # | 項目 | 結果 |
 | --- | --- | --- |
-| 8 | `xcodebuild -scheme Foldwall -destination 'platform=macOS' test` | **綠**，159 測試（1 個視覺樣張預設跳過） |
+| 8 | `xcodebuild -scheme Foldwall -destination 'platform=macOS' test` | **綠**，172 測試（1 個視覺樣張預設跳過） |
 | — | 只編 arm64、無 x86／universal | `lipo -archs` 全部只有 `arm64` |
 | — | 不沙盒（app） | entitlements 無 `com.apple.security.app-sandbox` |
 | — | 選單列 app，啟動不跳空視窗 | `LSUIElement = true`，無 `WindowGroup` |
@@ -18,7 +18,7 @@
 
 ## 待人工（需要真實資料夾、雙螢、鎖屏）
 
-安裝檔：`dist/Foldwall-0.3.7-arm64.dmg`（拖進 Applications 後從那裡啟動）
+安裝檔：`dist/Foldwall-0.3.8-arm64.dmg`（拖進 Applications 後從那裡啟動）
 
 | # | 項目 | 步驟 |
 | --- | --- | --- |
