@@ -37,6 +37,19 @@ public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
         }
     }
 
+    /// 去哪裡申請 key。設定視窗直接做成可點的連結，不要只寫網址叫人自己打。
+    public var keyRequestURL: URL? {
+        switch self {
+        case .unsplash: URL(string: "https://unsplash.com/oauth/applications")
+        case .pexels: URL(string: "https://www.pexels.com/api/new/")
+        case .pixabay: URL(string: "https://pixabay.com/api/docs/")
+        case .flickr: URL(string: "https://www.flickr.com/services/apps/create/apply/")
+        case .wallhaven: URL(string: "https://wallhaven.cc/settings/account")
+        case .immich: URL(string: "https://immich.app/docs/features/command-line-interface/")
+        case .rss: nil
+        }
+    }
+
     /// 搜尋關鍵字有意義嗎。
     public var supportsQuery: Bool {
         switch self {
