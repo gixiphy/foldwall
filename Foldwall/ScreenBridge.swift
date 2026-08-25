@@ -42,8 +42,8 @@ enum ScreenBridge {
 
 /// 公開 API，不碰私有 framework：私有 API 掛了蒙太奇還能用。
 struct WorkspaceDesktopSetting: DesktopSetting {
-    func setDesktopImageURL(_ url: URL, for screenID: CGDirectDisplayID) throws {
-        try MainActor.assumeIsolated {
+    func setDesktopImageURL(_ url: URL, for screenID: CGDirectDisplayID) async throws {
+        try await MainActor.run {
             guard let screen = NSScreen.screens.first(where: { $0.foldwallDisplayID == screenID })
             else { return }   // 螢幕在合成期間被拔掉：靜靜跳過，下輪重讀清單
             try NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:])

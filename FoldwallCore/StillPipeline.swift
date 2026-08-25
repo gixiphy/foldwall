@@ -7,7 +7,8 @@ import ImageIO
 import UniformTypeIdentifiers
 
 public protocol DesktopSetting: Sendable {
-    func setDesktopImageURL(_ url: URL, for screenID: CGDirectDisplayID) throws
+    /// async：合成在背景執行緒，寫桌布的實作自己跳回 main actor。
+    func setDesktopImageURL(_ url: URL, for screenID: CGDirectDisplayID) async throws
 }
 
 public struct DisplayTarget: Sendable, Equatable {
@@ -75,7 +76,7 @@ public struct StillPipeline: Sendable {
         effect: PostProcess,
         tier: PowerTier,
         cycleNonce: UInt64
-    ) throws -> Outcome {
+    ) async throws -> Outcome {
         var outcome = Outcome()
         guard tier != .paused else { return outcome }
 
@@ -109,7 +110,7 @@ public struct StillPipeline: Sendable {
                 effect: effect
             )
             let url = try write(composite, uuid: display.uuid, nonce: cycleNonce)
-            try desktop.setDesktopImageURL(url, for: display.id)
+            try await desktop.setDesktopImageURL(url, for: display.id)
             outcome.written.append(display.id)
         }
 

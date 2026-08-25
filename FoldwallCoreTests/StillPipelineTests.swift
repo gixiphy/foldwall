@@ -5,11 +5,14 @@ import CoreGraphics
 /// 記錄被寫了哪些螢幕，供斷言「該跳過的一次都沒寫」。
 private final class RecordingDesktop: DesktopSetting, @unchecked Sendable {
     private let lock = NSLock()
-    private(set) var calls: [(id: CGDirectDisplayID, url: URL)] = []
+    private var storage: [(id: CGDirectDisplayID, url: URL)] = []
 
-    func setDesktopImageURL(_ url: URL, for screenID: CGDirectDisplayID) throws {
-        lock.lock(); defer { lock.unlock() }
-        calls.append((screenID, url))
+    var calls: [(id: CGDirectDisplayID, url: URL)] {
+        lock.withLock { storage }
+    }
+
+    func setDesktopImageURL(_ url: URL, for screenID: CGDirectDisplayID) async throws {
+        lock.withLock { storage.append((screenID, url)) }
     }
 }
 
@@ -63,8 +66,8 @@ final class StillPipelineTests: XCTestCase {
 
     // MARK: - 共存與空池
 
-    func testSkippedDisplayIsNeverWritten() throws {
-        let outcome = try makePipeline().refresh(
+    func testSkippedDisplayIsNeverWritten() async throws {
+        let outcome = try await makePipeline().refresh(
             displays: [displayA, displayB], skipIDs: [displayA.id],
             pool: pool, effect: .none, tier: .full, cycleNonce: 1
         )
@@ -73,8 +76,8 @@ final class StillPipelineTests: XCTestCase {
         XCTAssertEqual(outcome.skipped, [displayA.id])
     }
 
-    func testEmptyPoolWritesNothing() throws {
-        let outcome = try makePipeline().refresh(
+    func testEmptyPoolWritesNothing() async throws {
+        let outcome = try await makePipeline().refresh(
             displays: [displayA, displayB], skipIDs: [],
             pool: [], effect: .none, tier: .full, cycleNonce: 1
         )
@@ -83,10 +86,10 @@ final class StillPipelineTests: XCTestCase {
         XCTAssertTrue(outcome.written.isEmpty)
     }
 
-    func testAllUndecodablePoolWritesNothing() throws {
+    func testAllUndecodablePoolWritesNothing() async throws {
         let broken = root.appending(path: "broken.jpg")
         try Data("garbage".utf8).write(to: broken)
-        let outcome = try makePipeline().refresh(
+        let outcome = try await makePipeline().refresh(
             displays: [displayA], skipIDs: [], pool: [broken],
             effect: .none, tier: .full, cycleNonce: 1
         )
@@ -96,11 +99,11 @@ final class StillPipelineTests: XCTestCase {
 
     // MARK: - 檔名與保留策略
 
-    func testEachCycleUsesFreshFilename() throws {
+    func testEachCycleUsesFreshFilename() async throws {
         let pipeline = makePipeline()
-        try pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
+        try await pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
                              effect: .none, tier: .full, cycleNonce: 1)
-        try pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
+        try await pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
                              effect: .none, tier: .full, cycleNonce: 2)
 
         let urls = desktop.calls.map(\.url)
@@ -109,10 +112,10 @@ final class StillPipelineTests: XCTestCase {
                           "同 URL 重設是 no-op，每輪必須換檔名")
     }
 
-    func testKeepsOnlyTwoGenerations() throws {
+    func testKeepsOnlyTwoGenerations() async throws {
         let pipeline = makePipeline()
         for nonce in UInt64(1)...4 {
-            try pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
+            try await pipeline.refresh(displays: [displayA], skipIDs: [], pool: pool,
                                  effect: .none, tier: .full, cycleNonce: nonce)
         }
         let remaining = try FileManager.default
@@ -129,8 +132,8 @@ final class StillPipelineTests: XCTestCase {
 
     // MARK: - 每螢不同
 
-    func testDisplaysGetDifferentComposition() throws {
-        try makePipeline().refresh(displays: [displayA, displayB], skipIDs: [],
+    func testDisplaysGetDifferentComposition() async throws {
+        try await makePipeline().refresh(displays: [displayA, displayB], skipIDs: [],
                                    pool: pool, effect: .none, tier: .full, cycleNonce: 7)
         let files = desktop.calls.map { try! Data(contentsOf: $0.url) }
         XCTAssertEqual(files.count, 2)
