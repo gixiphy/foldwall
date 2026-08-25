@@ -7,7 +7,7 @@
 
 | # | 項目 | 結果 |
 | --- | --- | --- |
-| 8 | `xcodebuild -scheme Foldwall -destination 'platform=macOS' test` | **綠**，143 測試（1 個視覺樣張預設跳過） |
+| 8 | `xcodebuild -scheme Foldwall -destination 'platform=macOS' test` | **綠**，154 測試（1 個視覺樣張預設跳過） |
 | — | 只編 arm64、無 x86／universal | `lipo -archs` 全部只有 `arm64` |
 | — | 不沙盒（app） | entitlements 無 `com.apple.security.app-sandbox` |
 | — | 選單列 app，啟動不跳空視窗 | `LSUIElement = true`，無 `WindowGroup` |
@@ -18,7 +18,7 @@
 
 ## 待人工（需要真實資料夾、雙螢、鎖屏）
 
-安裝檔：`dist/Foldwall-0.3.4-arm64.dmg`（拖進 Applications 後從那裡啟動）
+安裝檔：`dist/Foldwall-0.3.5-arm64.dmg`（拖進 Applications 後從那裡啟動）
 
 | # | 項目 | 步驟 |
 | --- | --- | --- |
@@ -36,6 +36,7 @@
 | 17 | 照片授權 | **待人工**：設定 → 照片相簿 → 請求授權 → 應跳出系統授權框（0.3.2 前因缺 entitlement 完全不會跳）。允許後應列出相簿 |
 | 18 | 影片開關來回切換 | **已於 2026-08-25 實測通過**：關閉 → container 清空且 `已更新 2 螢，跳過 0 螢`（蒙太奇接管，不留無人管的螢幕）；重新開啟 → 影片備妥後回到 `跳過 1 螢` |
 | 19 | 同站多來源可辨識 | **待人工**：加兩條 Wallhaven、一條填關鍵字一條留空，確認清單顯示為「Wallhaven：Hololive」與「Wallhaven：隨機」 |
+| 20 | 快取位置與清除 | **待人工**：設定 → 快取位置 → 每列可複製路徑、在 Finder 顯示、清除（含後果說明）。清除「合成輸出」後應立刻重新合成；清除「影片 container」後影片螢幕改由蒙太奇接管 |
 | 15 | 來源都在設定頁 | **待人工**：設定視窗第一頁「來源資料夾」可加入／移除／Finder 顯示；選單列已無資料夾子選單 |
 | 16 | 狀態規則 | **待人工**：新增「工作模式時暫停影片桌布」，切到工作專注模式後確認影片螢幕被蒙太奇蓋掉、選單顯示「狀態規則生效中：專注：工作」；關掉模式後恢復。拔電源測「靠電池時停用網路來源」 |
 | 13 | 輪替涵蓋全庫 | **待人工**：反覆喚醒數次，確認游標持續前進並會繞回開頭，container 始終維持 1–3 支、512MB 以內 |

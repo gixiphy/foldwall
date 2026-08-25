@@ -17,6 +17,7 @@
 		0A328497EF2B9FB5F10FB13A /* BookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C5AB7864D8B64E462BEBFC /* BookmarkStore.swift */; };
 		0E86B6FE55056D80DB31D676 /* StillPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0365A5BE6AFEC79B9F9DF1A /* StillPipeline.swift */; };
 		1126B7609AAAFB433500AFE5 /* ImmichSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C53395606A1DA4E05C57349 /* ImmichSource.swift */; };
+		151782763573134BF1A2DB6F /* CacheLocationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E01CE88CBBB810189D8DA9F /* CacheLocationTests.swift */; };
 		16649CB4399A84CEE2CC4B86 /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 564344F73AFB43461C1C5C6F /* SmokeTests.swift */; };
 		16770D2395B645C46580F34F /* PhotosAlbumSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F2C91E4115654025078FA7 /* PhotosAlbumSource.swift */; };
 		16BBB7C72290AA8AADD24261 /* Scheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B368BF402B996913638214B0 /* Scheduler.swift */; };
@@ -62,6 +63,7 @@
 		AD934039EE7025AA2DCEF959 /* PathSafety.swift in Sources */ = {isa = PBXBuildFile; fileRef = 795D5C0D79855DB63BB50C04 /* PathSafety.swift */; };
 		AF6179D5C589BC4CC699D4F6 /* PostProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50AC50656034A8E70E15745A /* PostProcessor.swift */; };
 		B2EB06A05DE4694840CE0EA8 /* MediaTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0536332713CD383113F12207 /* MediaTypes.swift */; };
+		B3C57A19BAB25B7EBCFCBDCB /* CacheLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82AF9FEF27C90104972F2A43 /* CacheLocation.swift */; };
 		B58B5B92EBFE84E3DBA8DADE /* RSSPhotoSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C106A8CD899E27A4D09DB6 /* RSSPhotoSource.swift */; };
 		B5E53840ED965C03C2758641 /* SourcePools.swift in Sources */ = {isa = PBXBuildFile; fileRef = D39B229838E571534ADF21BC /* SourcePools.swift */; };
 		BBAB65431B2DFD61F0889A4B /* FolderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21CCF36F676D3CBC0E595622 /* FolderStore.swift */; };
@@ -178,6 +180,7 @@
 		48735D5E9C401F36A5445D3E /* VideoBudgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBudgetTests.swift; sourceTree = "<group>"; };
 		4A1ABB98FFC2C01CC91F13C7 /* Materializer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Materializer.swift; sourceTree = "<group>"; };
 		4BD192E373AC2E51D47E0D53 /* BMPCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BMPCache.swift; sourceTree = "<group>"; };
+		4E01CE88CBBB810189D8DA9F /* CacheLocationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheLocationTests.swift; sourceTree = "<group>"; };
 		4F48E153F0F5100E70855B71 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		50AC50656034A8E70E15745A /* PostProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostProcessor.swift; sourceTree = "<group>"; };
 		518D0031795CF649B310C408 /* SpiralRecovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiralRecovery.swift; sourceTree = "<group>"; };
@@ -198,6 +201,7 @@
 		7ECD9007D4C222C7C75876A4 /* PhospheneExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhospheneExtension.swift; sourceTree = "<group>"; };
 		80EB9ED77FE384AFBBD4E399 /* ImageLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoaderTests.swift; sourceTree = "<group>"; };
 		80F91579F24C55ADDFD99008 /* PexelsVideoSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PexelsVideoSource.swift; sourceTree = "<group>"; };
+		82AF9FEF27C90104972F2A43 /* CacheLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheLocation.swift; sourceTree = "<group>"; };
 		82D67A68B60193D7474651E2 /* RemoteSourceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteSourceTests.swift; sourceTree = "<group>"; };
 		84B50A679DBCF07FED1D81F6 /* SettingsProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsProvider.swift; sourceTree = "<group>"; };
 		8D180418083ACDF14855DAA6 /* StillPipelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StillPipelineTests.swift; sourceTree = "<group>"; };
@@ -349,6 +353,7 @@
 			isa = PBXGroup;
 			children = (
 				BE46C077CBAA4384DAC0ACD7 /* BookmarkCodecTests.swift */,
+				4E01CE88CBBB810189D8DA9F /* CacheLocationTests.swift */,
 				C92B9B55B320A65ABD988F12 /* FolderIndexTests.swift */,
 				80EB9ED77FE384AFBBD4E399 /* ImageLoaderTests.swift */,
 				370E7E214D59EA0EA71EA2AE /* MaterializerTests.swift */,
@@ -372,6 +377,7 @@
 			children = (
 				4F48E153F0F5100E70855B71 /* AppPaths.swift */,
 				CDCF3EE91465CE5238202918 /* BookmarkCodec.swift */,
+				82AF9FEF27C90104972F2A43 /* CacheLocation.swift */,
 				3B012BB744EF3731DFE4932C /* FocusMode.swift */,
 				323DC509BC0D0DC3F24DF2B0 /* FolderIndex.swift */,
 				21CCF36F676D3CBC0E595622 /* FolderStore.swift */,
@@ -571,6 +577,7 @@
 			files = (
 				A01F51BB128D11E0938E7C96 /* AppPaths.swift in Sources */,
 				27166EDA9AF7EBCAC515D4D5 /* BookmarkCodec.swift in Sources */,
+				B3C57A19BAB25B7EBCFCBDCB /* CacheLocation.swift in Sources */,
 				D74A7F0CFB9EC1027461EEC5 /* FocusMode.swift in Sources */,
 				1ADDE794B590B6AF3765C839 /* FolderIndex.swift in Sources */,
 				BBAB65431B2DFD61F0889A4B /* FolderStore.swift in Sources */,
@@ -602,6 +609,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FA6BD13E5C5D78CF617584B6 /* BookmarkCodecTests.swift in Sources */,
+				151782763573134BF1A2DB6F /* CacheLocationTests.swift in Sources */,
 				375747239E8D23673EDA3BE0 /* FolderIndexTests.swift in Sources */,
 				D78F40C2C2CB739C8376EC74 /* ImageLoaderTests.swift in Sources */,
 				495C27A4ACA263CB4FEBBCBE /* MaterializerTests.swift in Sources */,
@@ -704,7 +712,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -716,7 +724,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.4;
+				MARKETING_VERSION = 0.3.5;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall;
 				PRODUCT_NAME = Foldwall;
 				SDKROOT = macosx;
@@ -753,7 +761,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -763,7 +771,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.4;
+				MARKETING_VERSION = 0.3.5;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.extension;
 				PRODUCT_NAME = FoldwallExtension;
 				SDKROOT = macosx;
@@ -926,7 +934,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -936,7 +944,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.4;
+				MARKETING_VERSION = 0.3.5;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.extension;
 				PRODUCT_NAME = FoldwallExtension;
 				SDKROOT = macosx;
@@ -971,7 +979,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 19;
+				CURRENT_PROJECT_VERSION = 20;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -983,7 +991,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.4;
+				MARKETING_VERSION = 0.3.5;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall;
 				PRODUCT_NAME = Foldwall;
 				SDKROOT = macosx;

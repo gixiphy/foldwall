@@ -455,6 +455,24 @@ final class WallpaperCoordinator {
         return causes.isEmpty ? nil : causes.joined(separator: "・")
     }
 
+    /// 清除某個快取目錄。
+    ///
+    /// 兩個目錄不能直接砍：
+    /// - **合成輸出**砍掉等於把目前掛在桌面上的檔案刪了，畫面會停在舊圖或變空，
+    ///   所以刪完立刻重合成一張。
+    /// - **影片 container** 要連帳本一起清，否則下次同步會把它們當成孤兒——
+    ///   雖然啟動時的 sweepOrphans 會收拾，但沒必要製造那個中間狀態。
+    func clearCache(_ location: CacheLocation) throws {
+        if location.id == "extension" {
+            runVideoSync(videos: [])   // 走正規路徑：清 container 並更新帳本
+            return
+        }
+        try location.clearContents()
+        if location.id == "wallpapers" {
+            refreshNow()
+        }
+    }
+
     /// 設定視窗改了規則就立刻重評一次。
     func sourceRulesDidChange() {
         forceVideoSync = true

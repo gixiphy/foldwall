@@ -29,6 +29,9 @@ struct SettingsView: View {
 
             RuleSettings(coordinator: coordinator, settings: settings, onChange: onRulesChange)
                 .tabItem { Label("狀態規則", systemImage: "slider.horizontal.3") }
+
+            CacheSettings(coordinator: coordinator)
+                .tabItem { Label("快取位置", systemImage: "externaldrive") }
         }
         .frame(width: 620, height: 500)
     }
@@ -651,5 +654,176 @@ private struct RuleRow: View {
                 onChange()
             }
         )
+    }
+}
+
+// MARK: - 快取位置
+
+/// 「東西到底放在哪」。使用者要把系統的螢幕保護程式來源指過去時，
+/// 不該被迫自己去 ~/Library 底下翻——這裡直接給路徑，可顯示可複製。
+private struct CacheSettings: View {
+
+    @Bindable var coordinator: WallpaperCoordinator
+
+    @State private var rows: [(location: CacheLocation, count: Int, bytes: Int64)] = []
+    @State private var copied: String?
+    @State private var pendingClear: CacheLocation?
+    @State private var clearError: String?
+
+    /// extension 的 container 不歸 AppPaths 管，另外補上。
+    private var locations: [CacheLocation] {
+        AppPaths.standard().locations + [
+            CacheLocation(
+                id: "extension", name: "影片桌布 container",
+                purpose: "這一輪輪替中的影片。沙盒 extension 讀不到來源資料夾，只能拷貝進去。",
+                url: VideoLibrary.documentsURL.appending(path: "videos"),
+                isPurgeable: false)
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            GroupBox {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("想讓**螢幕保護程式**播 Foldwall 抓下來的圖？")
+                        .font(.callout)
+                    Text("系統設定 → 螢幕保護程式 → 選「照片」類的樣式 → 選項 → 來源，"
+                         + "把來源指到下面的**網路來源原圖**。Foldwall 沒辦法把自己註冊進那個選單，"
+                         + "所以要手動指一次。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(4)
+            }
+
+            List(rows, id: \.location.id) { row in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(row.location.name)
+                        if row.location.isPurgeable {
+                            Text("可被系統清除")
+                                .font(.caption2)
+                                .padding(.horizontal, 5).padding(.vertical, 1)
+                                .background(Capsule().fill(.orange.opacity(0.18)))
+                        }
+                        Spacer()
+                        Text("\(row.count) 個・\(format(row.bytes))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Text(row.location.purpose)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 8) {
+                        Text(row.location.displayPath)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                        Spacer()
+                        Button(copied == row.location.id ? "已複製" : "複製路徑") {
+                            copy(row.location)
+                        }
+                        .buttonStyle(.borderless)
+                        .font(.caption)
+                        Button("顯示") { reveal(row.location) }
+                            .buttonStyle(.borderless)
+                            .font(.caption)
+                        Button("清除") { pendingClear = row.location }
+                            .buttonStyle(.borderless)
+                            .font(.caption)
+                            .disabled(row.count == 0)
+                    }
+                }
+                .padding(.vertical, 3)
+            }
+            .listStyle(.inset)
+
+            Text("標「可被系統清除」的在 ~/Library/Caches 底下，磁碟空間不足時 macOS 會自己刪。"
+                 + "Foldwall 會重新下載，但螢幕保護程式那邊會暫時沒圖可播。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding()
+        .onAppear(perform: reload)
+        .confirmationDialog(
+            pendingClear.map { "清除「\($0.name)」？" } ?? "",
+            isPresented: Binding(get: { pendingClear != nil },
+                                 set: { if !$0 { pendingClear = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("清除", role: .destructive) {
+                if let location = pendingClear { clear(location) }
+                pendingClear = nil
+            }
+            Button("取消", role: .cancel) { pendingClear = nil }
+        } message: {
+            Text(pendingClear.map(consequence) ?? "")
+        }
+        .alert("清除失敗", isPresented: Binding(get: { clearError != nil },
+                                            set: { if !$0 { clearError = nil } })) {
+            Button("好") { clearError = nil }
+        } message: {
+            Text(clearError ?? "")
+        }
+    }
+
+    /// 講清楚刪了會怎樣，而不是只問「確定嗎」。
+    private func consequence(_ location: CacheLocation) -> String {
+        switch location.id {
+        case "wallpapers":
+            "目前掛在桌面上的檔案也在裡面，清除後會立刻重新合成一張。"
+        case "extension":
+            "這一輪輪替中的影片會被移除，影片螢幕暫由蒙太奇接管，下次螢幕亮起時再換一批。"
+        case "smb":
+            "下次合成時會重新從網路磁碟拷貝，第一輪會慢一點。"
+        default:
+            "下次輪到這個來源時會重新下載。"
+        }
+    }
+
+    private func clear(_ location: CacheLocation) {
+        do {
+            try coordinator.clearCache(location)
+        } catch {
+            clearError = (error as NSError).localizedDescription
+        }
+        // container 是背景非同步清的，稍等一下再重新量
+        Task {
+            try? await Task.sleep(for: .milliseconds(400))
+            reload()
+        }
+    }
+
+    private func reload() {
+        rows = locations.map { location in
+            let measured = location.measure()
+            return (location, measured.count, measured.bytes)
+        }
+    }
+
+    private func copy(_ location: CacheLocation) {
+        // 貼進 Finder 的「前往檔案夾」或終端機都要能用 → 給展開後的絕對路徑
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(location.url.path, forType: .string)
+        copied = location.id
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            if copied == location.id { copied = nil }
+        }
+    }
+
+    private func reveal(_ location: CacheLocation) {
+        try? FileManager.default.createDirectory(at: location.url, withIntermediateDirectories: true)
+        NSWorkspace.shared.open(location.url)
+    }
+
+    private func format(_ bytes: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 }
