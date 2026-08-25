@@ -11,7 +11,14 @@ v1 程式碼完成（Task 0–11），56 個單元測試綠。待人工驗收項
 ## 怎麼用
 
 1. 啟動後圖示在選單列（不進 Dock）。
-2. **來源資料夾 → 加入資料夾…** 選一個有照片的資料夾。之後每 5 分鐘換一次構圖。
+2. 三種來源可混用，加好就會進同一個蒙太奇池：
+   - **資料夾**：選單 → 來源資料夾 → 加入資料夾…（本機、SMB、以及 Box／pCloud／
+     Dropbox／OneDrive／Google Drive 等 File Provider 掛載點都算資料夾）
+   - **照片相簿**：選單 → 設定 → 照片相簿（走 PhotoKit，首次會跳系統授權）
+   - **網路來源**：選單 → 設定 → 網路來源（Unsplash／Pexels／Pixabay／Wallhaven／
+     Flickr 公開搜尋／Immich／RSS。API key 存 Keychain）
+
+   之後每 5 分鐘換一次構圖。
 3. 影片要**兩步**：先在 系統設定 → 桌布 → **Foldwall** 選片，再回選單勾 **此螢幕改用影片**。
    只做第一步的話，下一輪靜態桌布會把影片蓋掉。
 4. 雙螢時每台各自合成；勾了影片的那台不寫靜態。
@@ -44,7 +51,9 @@ Foldwall.app（選單列，不沙盒）
 | **僅 macOS 26+ / Apple Silicon** | 只編 `arm64`，不做 universal、不編 x86。 |
 | **TCC 授權** | 非沙盒 app 靠 TCC：桌面／文件／下載、網路磁碟區、`~/Library/CloudStorage/*` 首次背景存取會跳系統授權框。重灌或改 bundle id 會重跳。嫌煩可自行給 Full Disk Access。 |
 | **多 Space** | 靜態只寫每螢**當前 Space**；其他 Space 停留舊圖（全 Space 需私有 CGSSpace API，v1 刻意不碰）。 |
-| **來源要先掛載** | 不實作 Box／pCloud OAuth。來源必須是 Finder 已掛載的路徑。斷線＝標離線、換下一張，**不黑屏**。 |
+| **來源要先掛載** | 不實作雲端硬碟的 OAuth。這類來源必須是 Finder 已掛載的路徑。斷線＝標離線、換下一張，**不黑屏**。 |
+| **網路來源有速率上限** | 免費 API 額度有限（例如 Unsplash 每小時 50 次）。Foldwall 以磁碟快取當池，池太薄或距上次逾 30 分才補貨，不會每 5 分鐘打一次 API。 |
+| **不做 OAuth** | SmugMug 與 Flickr 私人相簿需要 OAuth，刻意不做。Flickr 只支援公開搜尋。 |
 | **影片佔磁碟** | 影片需拷進 extension container（沙盒 extension 讀不了 app 的 bookmark），磁碟用量會翻倍。 |
 | **影片要兩步** | 系統設定選片 **＋** 選單勾「此螢幕改用影片」。漏勾第二步會被下一輪靜態桌布蓋掉。 |
 
