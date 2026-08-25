@@ -103,3 +103,26 @@ final class SchedulerTests: XCTestCase {
         XCTAssertEqual(Scheduler.intervalOptions, [5, 15, 30, 60, 1440])
     }
 }
+
+extension SchedulerTests {
+
+    /// 選單與設定視窗共用同一份標籤，兩邊不會講不一樣的話。
+    func testIntervalLabelsAreHumanReadable() {
+        XCTAssertEqual(Scheduler.intervalLabel(5), "5 分鐘")
+        XCTAssertEqual(Scheduler.intervalLabel(60), "1 小時")
+        XCTAssertEqual(Scheduler.intervalLabel(1440), "每天")
+    }
+
+    func testEveryIntervalOptionHasALabel() {
+        for minutes in Scheduler.intervalOptions {
+            XCTAssertFalse(Scheduler.intervalLabel(minutes).isEmpty)
+        }
+    }
+
+    func testEveryEffectHasADisplayName() {
+        for effect in PostProcess.allCases {
+            XCTAssertFalse(effect.displayName.isEmpty, "\(effect) 沒有可顯示的名稱")
+        }
+        XCTAssertEqual(PostProcess.grayscale.displayName, "灰階")
+    }
+}

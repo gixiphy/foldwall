@@ -51,8 +51,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.foldwall
         PRODUCT_NAME: Foldwall
-        MARKETING_VERSION: "0.3.9"
-        CURRENT_PROJECT_VERSION: "24"
+        MARKETING_VERSION: "0.4.0"
+        CURRENT_PROJECT_VERSION: "25"
         GENERATE_INFOPLIST_FILE: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # 選單列 app：不進 Dock、不開主視窗
@@ -82,8 +82,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.foldwall.extension
         PRODUCT_NAME: FoldwallExtension
-        MARKETING_VERSION: "0.3.9"
-        CURRENT_PROJECT_VERSION: "24"
+        MARKETING_VERSION: "0.4.0"
+        CURRENT_PROJECT_VERSION: "25"
         INFOPLIST_FILE: FoldwallExtension/Info.plist
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Foldwall

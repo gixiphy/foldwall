@@ -21,6 +21,7 @@ final class AppSettings {
         static let remoteSources = "remoteSources"
         static let photoAlbums = "photoAlbums"
         static let sourceRules = "sourceRules"
+        static let folderUsage = "folderUsage"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -31,6 +32,23 @@ final class AppSettings {
 
     var effect: PostProcess {
         didSet { defaults.set(effect.rawValue, forKey: Key.effect) }
+    }
+
+    /// 每個來源資料夾要餵給哪條管線（蒙太奇／影片）。
+    /// 鍵是資料夾路徑；沒設定過的一律 `.both`，與加入資料夾當下的直覺一致。
+    var folderUsage: [String: SourceUsage] {
+        didSet {
+            guard let data = try? JSONEncoder().encode(folderUsage) else { return }
+            defaults.set(data, forKey: Key.folderUsage)
+        }
+    }
+
+    func usage(for folder: URL) -> SourceUsage {
+        folderUsage[folder.standardizedFileURL.path] ?? .both
+    }
+
+    func setUsage(_ usage: SourceUsage, for folder: URL) {
+        folderUsage[folder.standardizedFileURL.path] = usage
     }
 
     /// 依系統狀態調整來源的規則（電池／專注模式）。預設空＝行為與以前完全相同。
@@ -110,6 +128,8 @@ final class AppSettings {
         self.photoAlbums = Set(defaults.stringArray(forKey: Key.photoAlbums) ?? [])
         self.sourceRules = (defaults.data(forKey: Key.sourceRules)
             .flatMap { try? JSONDecoder().decode([SourceRule].self, from: $0) }) ?? []
+        self.folderUsage = (defaults.data(forKey: Key.folderUsage)
+            .flatMap { try? JSONDecoder().decode([String: SourceUsage].self, from: $0) }) ?? [:]
     }
 
     private func applyLaunchAtLogin() {

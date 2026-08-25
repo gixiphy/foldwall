@@ -101,20 +101,13 @@ struct MenuBarView: View {
                 Button {
                     coordinator.setInterval(minutes)
                 } label: {
-                    Label(Self.intervalLabel(minutes),
+                    Label(Scheduler.intervalLabel(minutes),
                           systemImage: settings.intervalMinutes == minutes ? "checkmark" : "")
                 }
             }
         }
     }
 
-    private static func intervalLabel(_ minutes: Int) -> String {
-        switch minutes {
-        case 1440: return "每天"
-        case 60: return "1 小時"
-        default: return "\(minutes) 分鐘"
-        }
-    }
 
     private var effectMenu: some View {
         Menu("後製") {
@@ -122,22 +115,13 @@ struct MenuBarView: View {
                 Button {
                     coordinator.setEffect(effect)
                 } label: {
-                    Label(Self.effectLabel(effect),
+                    Label(effect.displayName,
                           systemImage: settings.effect == effect ? "checkmark" : "")
                 }
             }
         }
     }
 
-    private static func effectLabel(_ effect: PostProcess) -> String {
-        switch effect {
-        case .none: return "無"
-        case .grayscale: return "灰階"
-        case .sepia: return "棕褐"
-        case .desaturate: return "去飽和"
-        case .random: return "隨機"
-        }
-    }
 
     /// 每螢一項：勾起來代表那台改播影片，靜態管線跳過。
     private var displayMenu: some View {

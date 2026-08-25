@@ -15,14 +15,11 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
-            FolderSourceSettings(coordinator: coordinator)
-                .tabItem { Label("來源資料夾", systemImage: "folder") }
+            SourceSettings(coordinator: coordinator, settings: settings, onChange: onChange)
+                .tabItem { Label("來源", systemImage: "tray.full") }
 
-            PhotosAlbumSettings(settings: settings, onChange: onChange)
-                .tabItem { Label("照片相簿", systemImage: "photo.stack") }
-
-            RemoteSourceSettings(settings: settings, onChange: onChange)
-                .tabItem { Label("網路來源", systemImage: "globe") }
+            MontageSettings(coordinator: coordinator, settings: settings)
+                .tabItem { Label("蒙太奇桌布", systemImage: "square.grid.2x2") }
 
             VideoSettings(settings: settings, onVideoToggle: onVideoToggle)
                 .tabItem { Label("影片桌布", systemImage: "play.rectangle") }
@@ -32,8 +29,51 @@ struct SettingsView: View {
 
             CacheSettings(coordinator: coordinator)
                 .tabItem { Label("快取位置", systemImage: "externaldrive") }
+
+            AboutSettings()
+                .tabItem { Label("版本", systemImage: "info.circle") }
         }
-        .frame(width: 620, height: 500)
+        .frame(width: 640, height: 520)
+    }
+}
+
+// MARK: - 來源
+
+/// 三種來源放同一個分頁。用分段控制切換而不是全部塞在一頁——
+/// 網路來源本身是主從式介面，硬擠進同一個捲動區會兩邊都變窄。
+private struct SourceSettings: View {
+
+    @Bindable var coordinator: WallpaperCoordinator
+    @Bindable var settings: AppSettings
+    var onChange: () -> Void
+
+    private enum Kind: String, CaseIterable, Identifiable {
+        case folders = "資料夾"
+        case albums = "照片相簿"
+        case remote = "網路"
+        var id: String { rawValue }
+    }
+
+    @State private var kind: Kind = .folders
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Picker("", selection: $kind) {
+                ForEach(Kind.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding([.horizontal, .top])
+            .padding(.bottom, 8)
+
+            Divider()
+
+            switch kind {
+            case .folders: FolderSourceSettings(coordinator: coordinator, settings: settings)
+            case .albums: PhotosAlbumSettings(settings: settings, onChange: onChange)
+            case .remote: RemoteSourceSettings(settings: settings, onChange: onChange)
+            }
+        }
     }
 }
 
@@ -44,6 +84,7 @@ struct SettingsView: View {
 private struct FolderSourceSettings: View {
 
     @Bindable var coordinator: WallpaperCoordinator
+    @Bindable var settings: AppSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -63,22 +104,32 @@ private struct FolderSourceSettings: View {
             } else {
                 List {
                     ForEach(coordinator.folders, id: \.self) { folder in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(folder.lastPathComponent)
-                                Text(folder.path)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.head)
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(folder.lastPathComponent)
+                                    Text(folder.path)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.head)
+                                }
+                                Spacer()
+                                Button("顯示") { coordinator.revealInFinder(folder) }
+                                    .buttonStyle(.borderless)
+                                Button("移除") { coordinator.removeFolder(folder) }
+                                    .buttonStyle(.borderless)
                             }
-                            Spacer()
-                            Button("顯示") { coordinator.revealInFinder(folder) }
-                                .buttonStyle(.borderless)
-                            Button("移除") { coordinator.removeFolder(folder) }
-                                .buttonStyle(.borderless)
+                            HStack(spacing: 14) {
+                                Toggle("蒙太奇", isOn: usage(folder, .montage))
+                                    .toggleStyle(.checkbox)
+                                Toggle("影片", isOn: usage(folder, .video))
+                                    .toggleStyle(.checkbox)
+                            }
+                            .font(.caption)
+                            .padding(.leading, 2)
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, 3)
                     }
                 }
                 .listStyle(.inset)
@@ -104,8 +155,26 @@ private struct FolderSourceSettings: View {
                     .font(.caption)
                     .foregroundStyle(.orange)
             }
+
+            Text("資料夾是唯一兩用的來源：裡面的圖進蒙太奇、影片進影片桌布。"
+                 + "只想拿某個資料夾當影片來源，就把「蒙太奇」取消勾選。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
+    }
+
+    private func usage(_ folder: URL, _ kind: SourceUsage) -> Binding<Bool> {
+        Binding(
+            get: { settings.usage(for: folder).contains(kind) },
+            set: { isOn in
+                var current = settings.usage(for: folder)
+                if isOn { current.insert(kind) } else { current.remove(kind) }
+                settings.setUsage(current, for: folder)
+                coordinator.folderUsageDidChange()
+            }
+        )
     }
 }
 
@@ -843,5 +912,152 @@ private struct CacheSettings: View {
 
     private func format(_ bytes: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    }
+}
+
+// MARK: - 蒙太奇桌布
+
+/// 靜態管線自己的設定。間隔與後製在選單列也有——那裡是隨手切換的地方，
+/// 這裡則把「這些數字實際代表什麼」講清楚。
+private struct MontageSettings: View {
+
+    @Bindable var coordinator: WallpaperCoordinator
+    @Bindable var settings: AppSettings
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            GroupBox {
+                HStack {
+                    Image(systemName: "photo.on.rectangle.angled")
+                        .foregroundStyle(.secondary)
+                    Text(poolSummary)
+                    Spacer()
+                    Button("下一張") { coordinator.next() }
+                }
+                .padding(4)
+            }
+
+            Form {
+                Picker("切換間隔", selection: Binding(
+                    get: { settings.intervalMinutes },
+                    set: { coordinator.setInterval($0) }
+                )) {
+                    ForEach(Scheduler.intervalOptions, id: \.self) { minutes in
+                        Text(Scheduler.intervalLabel(minutes)).tag(minutes)
+                    }
+                }
+
+                Picker("後製", selection: Binding(
+                    get: { settings.effect },
+                    set: { coordinator.setEffect($0) }
+                )) {
+                    ForEach(PostProcess.allCases, id: \.self) { effect in
+                        Text(effect.displayName).tag(effect)
+                    }
+                }
+            }
+            .formStyle(.grouped)
+
+            GroupBox("每輪抽幾張") {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(coordinator.displays, id: \.uuid) { display in
+                        let longSide = max(display.canvas.width, display.canvas.height)
+                        HStack {
+                            Text("\(Int(display.canvas.width))×\(Int(display.canvas.height))")
+                                .monospacedDigit()
+                            Spacer()
+                            Text("\(StillPipeline.pieceCount(longSide: longSide, tier: .full)) 張")
+                                .foregroundStyle(.secondary)
+                        }
+                        .font(.caption)
+                    }
+                    Text("依螢幕長邊決定，每台螢幕各自抽圖、各自合成——同一時間兩台不會是同一張。"
+                         + "降載時封頂 6 張。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 2)
+                }
+                .padding(4)
+            }
+
+            Spacer()
+        }
+        .padding()
+    }
+
+    private var poolSummary: String {
+        let status = coordinator.status
+        if status.isIndexing && status.poolCount == 0 { return "正在掃描資料夾…" }
+        var parts = ["池 \(status.poolCount) 張"]
+        if status.remoteCount > 0 { parts.append("網路 \(status.remoteCount)") }
+        if status.photosCount > 0 { parts.append("相簿 \(status.photosCount)") }
+        if status.isIndexing { parts.append("掃描中") }
+        return parts.joined(separator: "・")
+    }
+
+}
+
+// MARK: - 版本
+
+private struct AboutSettings: View {
+
+    private var version: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(short)（build \(build)）"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 64, height: 64)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Foldwall").font(.title2.bold())
+                    Text(version).foregroundStyle(.secondary).monospacedDigit()
+                    Text("macOS 26+・Apple Silicon")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+
+            Divider()
+
+            Text("從資料夾、照片相簿與免 OAuth 的網路來源隨機合成蒙太奇桌布，"
+                 + "並支援影片桌布（桌面＋鎖屏）。")
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+
+            GroupBox("授權") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Foldwall 以 MIT 授權釋出。")
+                        .font(.caption)
+                    Text("影片桌布 extension fork 自 **Phosphene**（MIT），"
+                         + "授權原文隨原始碼一起保留。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("照片由 Unsplash／Pexels／Pixabay／Wallhaven 等來源提供，"
+                         + "各自的使用規範以該站條款為準。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(4)
+            }
+
+            HStack {
+                Link("原始碼（GitHub）", destination: URL(string: "https://github.com/gixiphy/foldwall")!)
+                Spacer()
+            }
+            .font(.callout)
+
+            Spacer()
+        }
+        .padding()
     }
 }

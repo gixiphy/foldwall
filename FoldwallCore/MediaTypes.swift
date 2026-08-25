@@ -24,6 +24,17 @@ public enum PostProcess: String, CaseIterable, Sendable {
     /// 去飽和固定比例：v1 無設定項。
     public static let desaturationFactor: Double = 0.4
 
+    /// 選單與設定視窗共用。
+    public var displayName: String {
+        switch self {
+        case .none: "無"
+        case .grayscale: "灰階"
+        case .sepia: "棕褐"
+        case .desaturate: "去飽和"
+        case .random: "隨機"
+        }
+    }
+
     /// `random` 解析成一個具體效果（含 `none`），用傳入 RNG 以便測試穩定。
     public func resolved(using rng: inout some RandomNumberGenerator) -> PostProcess {
         guard self == .random else { return self }

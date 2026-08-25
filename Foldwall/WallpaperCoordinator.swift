@@ -309,7 +309,9 @@ final class WallpaperCoordinator {
         // **不等掃描**：拿當下快取到的清單就走，背景掃完會自己回呼補一輪。
         let index = await folderIndex.current(roots: folders)
         status.isIndexing = index.isScanning
-        var pool = effects.contains(.disableFolders) ? [] : index.images
+        // 逐資料夾的用途勾選：只餵給有標記「蒙太奇」的
+        var pool = effects.contains(.disableFolders) ? [] : SourceUsageMap.filter(
+            index.images, roots: folders, usage: settings.folderUsage, needing: .montage)
 
         // 照片相簿與網路來源各自有節流，不會每輪都去打 API
         let fromPhotos = effects.contains(.disablePhotos)
@@ -324,9 +326,12 @@ final class WallpaperCoordinator {
         status.sourceError = remotePool.lastError
         status.poolCount = pool.count
 
-        status.videoCount = index.videos.count
+        var forVideo = index
+        forVideo.videos = SourceUsageMap.filter(
+            index.videos, roots: folders, usage: settings.folderUsage, needing: .video)
+        status.videoCount = forVideo.videos.count
         if !effects.contains(.pauseVideo) {
-            syncVideosInBackground(index)
+            syncVideosInBackground(forVideo)
         }
 
         let displays = ScreenBridge.currentDisplays()
@@ -533,6 +538,13 @@ final class WallpaperCoordinator {
             self.videoSyncTask = nil
             self.refreshNow()   // 影片沒了 → 那些螢幕改由蒙太奇接管
         }
+    }
+
+    /// 改了資料夾用途就立刻重跑：勾掉影片時要讓那些影片從 container 消失。
+    func folderUsageDidChange() {
+        forceVideoSync = true
+        rotateVideosOnNextRefresh = true
+        refreshNow()
     }
 
     /// 設定視窗改了規則就立刻重評一次。
