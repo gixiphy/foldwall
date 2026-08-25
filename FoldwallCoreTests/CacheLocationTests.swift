@@ -53,23 +53,78 @@ final class CacheLocationTests: XCTestCase {
         XCTAssertEqual(measured.bytes, 5000, "大小要往下數一層才算得到")
     }
 
-    /// 只有 Caches 底下的才會被系統清掉；合成輸出放 Application Support 是刻意的。
-    func testOnlyCachesAreMarkedPurgeable() {
-        let paths = AppPaths.standard()
-        let byID = Dictionary(uniqueKeysWithValues: paths.locations.map { ($0.id, $0) })
+    /// 使用者心裡只有照片與影片兩類，不該被迫理解六個子目錄。
+    func testOnlyTwoGroupsAreExposed() {
+        let locations = AppPaths.standard().locations()
+        XCTAssertEqual(locations.map(\.id), ["photos", "videos"])
+    }
 
-        XCTAssertEqual(byID["wallpapers"]?.isPurgeable, false)
-        XCTAssertEqual(byID["remote"]?.isPurgeable, true)
-        XCTAssertEqual(byID["smb"]?.isPurgeable, true)
-        for location in paths.locations where location.isPurgeable {
-            XCTAssertTrue(location.url.path.contains("/Caches/"), "\(location.id) 標了可清除卻不在 Caches 底下")
+    /// 合成輸出是正掛在桌面上的檔案，不是快取——不能出現在可清除的清單裡。
+    func testLiveWallpaperIsNotListedAsCache() {
+        let paths = AppPaths.standard()
+        let everyMember = paths.locations().flatMap(\.members)
+        XCTAssertFalse(everyMember.contains(paths.wallpapers))
+        for directory in everyMember {
+            XCTAssertTrue(directory.path.contains("/Caches/") || directory.path.contains("Containers"),
+                          "\(directory.lastPathComponent) 不該被列成可清除的快取")
         }
     }
 
+    /// 照片那組要涵蓋三個來源目錄，清除才會真的清乾淨。
+    func testPhotoGroupCoversEverySourceCache() {
+        let paths = AppPaths.standard()
+        let photos = paths.locations().first { $0.id == "photos" }
+        XCTAssertEqual(Set(photos?.members ?? []),
+                       [paths.remoteCache, paths.photosCache, paths.smbCache])
+        XCTAssertEqual(photos?.url, paths.remoteCache, "複製路徑要給螢保指得到的那一個")
+    }
+
+    func testVideoGroupIncludesTheExtensionContainer() {
+        let container = URL(filePath: "/tmp/foldwall-container/videos")
+        let videos = AppPaths.standard().locations(videoContainer: container)
+            .first { $0.id == "videos" }
+        XCTAssertEqual(videos?.members.count, 2)
+        XCTAssertTrue(videos?.members.contains(container) == true)
+    }
+
     func testEveryLocationHasAUniqueIDAndPath() {
-        let locations = AppPaths.standard().locations
+        let locations = AppPaths.standard().locations()
         XCTAssertEqual(Set(locations.map(\.id)).count, locations.count)
         XCTAssertEqual(Set(locations.map(\.url)).count, locations.count)
+    }
+
+    /// 一組多目錄時，統計與清除都要跨目錄。
+    func testMeasureAndClearSpanEveryMember() throws {
+        let root = URL.temporaryDirectory.appending(path: "foldwall-group-\(UUID().uuidString)")
+        let a = root.appending(path: "a"), b = root.appending(path: "b")
+        for dir in [a, b] {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try Data(repeating: 0, count: 100).write(to: dir.appending(path: "f.jpg"))
+        }
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let group = CacheLocation(id: "g", name: "n", purpose: "p",
+                                  url: a, members: [a, b], isPurgeable: true)
+        XCTAssertEqual(group.measure().count, 2)
+        XCTAssertEqual(group.measure().bytes, 200)
+        XCTAssertEqual(try group.clearContents(), 2)
+        XCTAssertEqual(group.measure().count, 0)
+    }
+
+    /// 整組有一個目錄不合格就整組不做，不留半清空的狀態。
+    func testClearRefusesWholeGroupIfAnyMemberIsOutside() throws {
+        let ok = URL.temporaryDirectory.appending(path: "foldwall-ok-\(UUID().uuidString)")
+        let bad = URL.temporaryDirectory.appending(path: "elsewhere-\(UUID().uuidString)")
+        for dir in [ok, bad] {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try Data([1]).write(to: dir.appending(path: "f.jpg"))
+        }
+        defer { for dir in [ok, bad] { try? FileManager.default.removeItem(at: dir) } }
+
+        let group = CacheLocation(id: "g", name: "n", purpose: "p",
+                                  url: ok, members: [ok, bad], isPurgeable: true)
+        XCTAssertThrowsError(try group.clearContents())
+        XCTAssertEqual(group.measure().count, 2, "一個檔案都不能少")
     }
 }
 
@@ -115,9 +170,12 @@ extension CacheLocationTests {
     }
 
     func testEveryRealLocationPassesTheSafetyGuard() {
-        for location in AppPaths.standard().locations {
-            XCTAssertTrue(location.url.path.lowercased().contains("foldwall"),
-                          "\(location.id) 會被安全閥擋下，使用者按了清除不會有反應")
+        let container = VideoLibraryPathStub.container
+        for location in AppPaths.standard().locations(videoContainer: container) {
+            for directory in location.members {
+                XCTAssertTrue(directory.path.lowercased().contains("foldwall"),
+                              "\(directory.path) 會被安全閥擋下，使用者按了清除不會有反應")
+            }
         }
     }
 
@@ -126,4 +184,11 @@ extension CacheLocationTests {
         let location = CacheLocation(id: "x", name: "n", purpose: "p", url: missing, isPurgeable: true)
         XCTAssertEqual(try location.clearContents(), 0)
     }
+}
+
+
+/// extension container 的實際路徑在 app target，測試這邊用同樣的形狀。
+private enum VideoLibraryPathStub {
+    static let container = URL.homeDirectory
+        .appending(path: "Library/Containers/app.foldwall.extension/Data/Documents/videos")
 }

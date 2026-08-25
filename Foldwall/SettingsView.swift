@@ -670,15 +670,10 @@ private struct CacheSettings: View {
     @State private var pendingClear: CacheLocation?
     @State private var clearError: String?
 
-    /// extension 的 container 不歸 AppPaths 管，另外補上。
     private var locations: [CacheLocation] {
-        AppPaths.standard().locations + [
-            CacheLocation(
-                id: "extension", name: "影片桌布 container",
-                purpose: "這一輪輪替中的影片。沙盒 extension 讀不到來源資料夾，只能拷貝進去。",
-                url: VideoLibrary.documentsURL.appending(path: "videos"),
-                isPurgeable: false)
-        ]
+        AppPaths.standard().locations(
+            videoContainer: VideoLibrary.documentsURL.appending(path: "videos")
+        )
     }
 
     var body: some View {
@@ -688,7 +683,7 @@ private struct CacheSettings: View {
                     Text("想讓**螢幕保護程式**播 Foldwall 抓下來的圖？")
                         .font(.callout)
                     Text("系統設定 → 螢幕保護程式 → 選「照片」類的樣式 → 選項 → 來源，"
-                         + "把來源指到下面的**網路來源原圖**。Foldwall 沒辦法把自己註冊進那個選單，"
+                         + "把來源指到下面**照片**那一列的路徑。Foldwall 沒辦法把自己註冊進那個選單，"
                          + "所以要手動指一次。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -743,8 +738,9 @@ private struct CacheSettings: View {
             }
             .listStyle(.inset)
 
-            Text("標「可被系統清除」的在 ~/Library/Caches 底下，磁碟空間不足時 macOS 會自己刪。"
-                 + "Foldwall 會重新下載，但螢幕保護程式那邊會暫時沒圖可播。")
+            Text("兩組都在 ~/Library/Caches 底下，磁碟空間不足時 macOS 會自己刪。"
+                 + "Foldwall 會重新下載，但螢幕保護程式那邊會暫時沒圖可播。"
+                 + "目前掛在桌面上的桌布放在 Application Support，不會被清掉。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -776,14 +772,11 @@ private struct CacheSettings: View {
     /// 講清楚刪了會怎樣，而不是只問「確定嗎」。
     private func consequence(_ location: CacheLocation) -> String {
         switch location.id {
-        case "wallpapers":
-            "目前掛在桌面上的檔案也在裡面，清除後會立刻重新合成一張。"
-        case "extension":
-            "這一輪輪替中的影片會被移除，影片螢幕暫由蒙太奇接管，下次螢幕亮起時再換一批。"
-        case "smb":
-            "下次合成時會重新從網路磁碟拷貝，第一輪會慢一點。"
+        case "videos":
+            "輪替中的影片會被移除，影片螢幕暫由蒙太奇接管，下次螢幕亮起時再換一批。"
         default:
-            "下次輪到這個來源時會重新下載。"
+            "下次輪到這些來源時會重新下載；SMB 的副本也會重拷，第一輪會慢一點。"
+                + "目前掛在桌面上的桌布不受影響。"
         }
     }
 

@@ -463,14 +463,14 @@ final class WallpaperCoordinator {
     /// - **影片 container** 要連帳本一起清，否則下次同步會把它們當成孤兒——
     ///   雖然啟動時的 sweepOrphans 會收拾，但沒必要製造那個中間狀態。
     func clearCache(_ location: CacheLocation) throws {
-        if location.id == "extension" {
-            runVideoSync(videos: [])   // 走正規路徑：清 container 並更新帳本
+        if location.id == "videos" {
+            // container 要連帳本一起清，否則下次同步會把它們當成孤兒
+            runVideoSync(videos: [])
+            try location.clearContents()   // 下載快取照樣清
             return
         }
         try location.clearContents()
-        if location.id == "wallpapers" {
-            refreshNow()
-        }
+        refreshNow()   // 池空了，立刻補一輪，不要讓桌面停在舊圖等下一個間隔
     }
 
     /// 設定視窗改了規則就立刻重評一次。

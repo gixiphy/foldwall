@@ -37,30 +37,27 @@ public struct AppPaths: Sendable {
     /// Pexels 影片。
     public var remoteVideoCache: URL { caches.appending(path: "remoteVideos") }
 
-    /// 給設定視窗列表用：使用者常需要知道「東西到底放在哪」，
-    /// 尤其是要把系統的螢幕保護程式指到某個資料夾時。
-    public var locations: [CacheLocation] {
+    /// 給設定視窗列表用。**只分照片與影片兩組**——使用者心裡只有這兩類，
+    /// 不需要知道網路下載、相簿匯出、SMB 副本各自躺在哪個子目錄。
+    ///
+    /// 合成輸出（wallpapers）刻意不在這裡：那是正掛在桌面上的檔案，不是快取。
+    ///
+    /// - Parameter videoContainer: extension 的 container 不歸 AppPaths 管，由 app 層傳入。
+    public func locations(videoContainer: URL? = nil) -> [CacheLocation] {
         [
             CacheLocation(
-                id: "wallpapers", name: "合成輸出",
-                purpose: "目前掛在桌面上的蒙太奇。只留當前輪＋上一輪，指螢保過去只會有兩張圖。",
-                url: wallpapers, isPurgeable: false),
+                id: "photos", name: "照片",
+                purpose: "網路來源下載的原圖、照片相簿匯出，以及合成前從網路磁碟拷回來的副本。"
+                    + "想讓螢幕保護程式播這些，來源就指下面這個路徑。",
+                url: remoteCache,
+                members: [remoteCache, photosCache, smbCache],
+                isPurgeable: true),
             CacheLocation(
-                id: "remote", name: "網路來源原圖",
-                purpose: "從 Unsplash／Pexels／Wallhaven 等下載的原圖。想讓螢幕保護程式播這些，來源就指這裡。",
-                url: remoteCache, isPurgeable: true),
-            CacheLocation(
-                id: "photos", name: "照片相簿匯出",
-                purpose: "從「照片」選定相簿匯出的圖。",
-                url: photosCache, isPurgeable: true),
-            CacheLocation(
-                id: "smb", name: "SMB 本機副本",
-                purpose: "合成前從網路磁碟拷回來的原圖，總量上限 2GB、LRU 淘汰。",
-                url: smbCache, isPurgeable: true),
-            CacheLocation(
-                id: "remoteVideos", name: "網路影片",
-                purpose: "Pexels 影片下載，總量上限 2GB。",
-                url: remoteVideoCache, isPurgeable: true),
+                id: "videos", name: "影片",
+                purpose: "Pexels 下載的影片，以及這一輪輪替中、已拷進影片 extension 的那幾支。",
+                url: remoteVideoCache,
+                members: [remoteVideoCache] + (videoContainer.map { [$0] } ?? []),
+                isPurgeable: true),
         ]
     }
 
