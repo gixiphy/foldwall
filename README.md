@@ -60,6 +60,40 @@ xcodebuild -scheme Foldwall -destination 'platform=macOS' build
 xcodebuild -scheme Foldwall -destination 'platform=macOS' test
 ```
 
+## 打包安裝檔
+
+```bash
+./packaging/make-dmg.sh
+```
+
+產物在 `dist/Foldwall-<版本>-arm64.dmg`。腳本會自動選簽名憑證、驗證 Hardened Runtime
+與純 arm64，任一項不符就中止。
+
+### 簽名憑證兩種，別搞混
+
+| 憑證 | 用途 | 能不能公證 |
+| --- | --- | --- |
+| **Apple Development** | 本機開發測試 | **不行**。裝到別台 Mac 會被 Gatekeeper 擋 |
+| **Developer ID Application** | 對外分發 | 可以。這才是 notarized DMG 需要的 |
+
+取得 Developer ID Application（需付費 Apple Developer Program；Organization 帳號
+只有 Account Holder 能建立）：Xcode → Settings → Accounts → 選 team →
+Manage Certificates → 左下 **+** → **Developer ID Application**。
+
+### 公證
+
+憑證側寫只需建立一次（這步會問你的 Apple ID 與 app-specific password，自己執行）：
+
+```bash
+xcrun notarytool store-credentials foldwall --apple-id <你的 Apple ID> --team-id T87VR9424E
+```
+
+之後打包時帶上側寫名，腳本會自動送件、等待、釘票證：
+
+```bash
+NOTARY_PROFILE=foldwall ./packaging/make-dmg.sh
+```
+
 ## 歸屬
 
 影片 extension fork 自 Phosphene（MIT，作者 kageroumado），LICENSE 保留於 `ThirdParty/`。

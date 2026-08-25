@@ -43,6 +43,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.foldwall
         PRODUCT_NAME: Foldwall
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
         GENERATE_INFOPLIST_FILE: YES
         # 選單列 app：不進 Dock、不開主視窗
         INFOPLIST_KEY_LSUIElement: YES
@@ -70,6 +72,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.foldwall.extension
         PRODUCT_NAME: FoldwallExtension
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: FoldwallExtension/Info.plist
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Foldwall
