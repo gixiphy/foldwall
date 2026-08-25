@@ -6,7 +6,34 @@ macOS 26+ 選單列 app：資料夾當來源，靜態做**隨機蒙太奇**桌�
 
 ## 現況
 
-開發中。任務進度見 `docs/`。
+v1 程式碼完成（Task 0–11），56 個單元測試綠。待人工驗收項目見 [docs/ACCEPTANCE.md](docs/ACCEPTANCE.md)。
+
+## 怎麼用
+
+1. 啟動後圖示在選單列（不進 Dock）。
+2. **來源資料夾 → 加入資料夾…** 選一個有照片的資料夾。之後每 5 分鐘換一次構圖。
+3. 影片要**兩步**：先在 系統設定 → 桌布 → **Foldwall** 選片，再回選單勾 **此螢幕改用影片**。
+   只做第一步的話，下一輪靜態桌布會把影片蓋掉。
+4. 雙螢時每台各自合成；勾了影片的那台不寫靜態。
+
+## 架構
+
+```
+Foldwall.app（選單列，不沙盒）
+├── FoldwallCore.framework   純邏輯，56 測試鎖死
+│   ├── MediaIndexer         掃描分類、濾 sidecar 與過小圖
+│   ├── ImageLoader          下採樣、EXIF 方向、壞檔 throw
+│   ├── MontageComposer      隨機構圖（CoreGraphics，決定性）
+│   ├── PostProcessor        灰階／棕褐／去飽和（Core Image）
+│   ├── StillPipeline        每螢一張 → setDesktopImageURL
+│   ├── Materializer         File Provider 物化、SMB 快取 LRU
+│   ├── Scheduler            純狀態機（事件進、動作出）
+│   ├── PowerPolicy          full / reduced / paused
+│   └── BookmarkCodec/FolderStore
+└── FoldwallExtension.appex  fork 自 Phosphene，播影片（沙盒）
+```
+
+靜態管線**完全不碰私有 API**：`WallpaperExtensionKit` 哪天斷了，蒙太奇輪播照常運作。
 
 ## 風險與限制（先讀）
 
