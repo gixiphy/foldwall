@@ -584,6 +584,26 @@ private struct RemoteSourceDetail: View {
                 }
             }
 
+            if config.kind == .rsshub {
+                Section {
+                    Text("需要**自架的 RSSHub**。官方 rsshub.app 已限制存取"
+                         + "（自己標明僅供測試），實測匿名請求直接被擋。")
+                        .font(.caption)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("網址填你的 instance（例：`http://localhost:1200`），"
+                         + "關鍵字填路由。三種寫法都吃：\n"
+                         + "・`rsshub://pixiv/ranking/day`（Radar 複製來的）\n"
+                         + "・`/pixiv/ranking/day`（文件複製來的）\n"
+                         + "・完整網址（瀏覽器複製來的，只取路由）\n"
+                         + "路由後面可以帶參數，例如 `?limit=10`。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } header: {
+                    Text("RSSHub")
+                }
+            }
+
             if config.kind == .wallhaven {
                 Section {
                     Text("Wallhaven 的公開內容**不需要 key**，直接用就行。")

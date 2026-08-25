@@ -474,3 +474,58 @@ final class RSSHubSourceTests: XCTestCase {
         XCTAssertEqual(config.displayTitle, "RSSHub（自架）：/pixiv/user/12345")
     }
 }
+
+/// 使用者手上的路由有好幾種來源：文件、RSSHub Radar、瀏覽器網址列。
+/// 三種都該貼了就能用，而不是要他自己去頭去尾。
+final class RSSHubRouteTests: XCTestCase {
+
+    func testRadarSchemeIsAccepted() throws {
+        let route = try XCTUnwrap(RSSHubRoute("rsshub://pixiv/ranking/day"))
+        XCTAssertEqual(route.path, "/pixiv/ranking/day")
+        XCTAssertTrue(route.queryItems.isEmpty)
+    }
+
+    func testPlainPathFormsAreEquivalent() throws {
+        for input in ["/pixiv/ranking/day", "pixiv/ranking/day", "  /pixiv/ranking/day  ",
+                      "/pixiv/ranking/day/"] {
+            XCTAssertEqual(RSSHubRoute(input)?.path, "/pixiv/ranking/day", "輸入：\(input)")
+        }
+    }
+
+    /// 從瀏覽器網址列複製整串也該能用——instance 由設定決定，這裡只取路由。
+    func testFullURLKeepsOnlyTheRoute() throws {
+        let route = try XCTUnwrap(RSSHubRoute("https://rsshub.app/pixiv/ranking/day"))
+        XCTAssertEqual(route.path, "/pixiv/ranking/day")
+    }
+
+    /// 路由可以帶 query。整串當 path 塞的話 `?` 會被百分比編碼，RSSHub 收到壞路由。
+    func testQueryIsSplitOutNotEncodedIntoThePath() throws {
+        let route = try XCTUnwrap(RSSHubRoute("rsshub://pixiv/user/12345?limit=10&mode=fulltext"))
+        XCTAssertEqual(route.path, "/pixiv/user/12345")
+        XCTAssertEqual(route.queryItems.count, 2)
+        XCTAssertEqual(route.queryItems.first { $0.name == "limit" }?.value, "10")
+    }
+
+    func testEmptyAndRootAreRejected() {
+        for input in ["", "   ", "/", "rsshub://"] {
+            XCTAssertNil(RSSHubRoute(input), "輸入：\(input) 只是首頁，不是 feed")
+        }
+    }
+
+    func testCanonicalRoundTrips() throws {
+        let route = try XCTUnwrap(RSSHubRoute("rsshub://pixiv/user/1?limit=10"))
+        XCTAssertEqual(RSSHubRoute(route.canonical), route)
+    }
+
+    /// 端到端：Radar 寫法 + 帶 query + 存取 key，組出來要是完整可用的網址。
+    func testComposedURLKeepsRouteQueryAndKey() throws {
+        let request = try RSSHubSource(instance: "http://localhost:1200",
+                                       route: "rsshub://pixiv/user/1?limit=10",
+                                       key: "secret").listRequest(limit: 8)
+        let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!
+        XCTAssertEqual(components.path, "/pixiv/user/1")
+        let items = Dictionary(uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value ?? "") })
+        XCTAssertEqual(items["limit"], "10")
+        XCTAssertEqual(items["key"], "secret")
+    }
+}

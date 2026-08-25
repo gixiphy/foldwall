@@ -10,11 +10,57 @@
 
 import Foundation
 
+/// 路由的正規化。使用者手上的路由可能長成好幾種樣子：
+/// 從 RSSHub 文件複製是 `/pixiv/ranking/day`，從 RSSHub Radar 複製是
+/// `rsshub://pixiv/ranking/day`，從瀏覽器網址列複製則是完整網址。
+/// 三種都該貼了就能用，而不是要使用者自己去頭去尾。
+public struct RSSHubRoute: Sendable, Equatable {
+
+    public var path: String
+    public var queryItems: [URLQueryItem]
+
+    public init?(_ input: String) {
+        var text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+
+        // rsshub://pixiv/ranking/day —— Radar 的慣例寫法
+        if let range = text.range(of: "rsshub://", options: .caseInsensitive) {
+            text = String(text[range.upperBound...])
+        } else if text.contains("://") {
+            // 完整網址：只取 path 之後，instance 由設定決定
+            guard let url = URL(string: text) else { return nil }
+            text = url.path + (url.query.map { "?\($0)" } ?? "")
+        }
+
+        // 路由本身可以帶 query（例如 ?limit=10），要拆開，
+        // 否則整串當 path 塞進去時 `?` 會被百分比編碼，RSSHub 收到的是壞路由。
+        let parts = text.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
+        var routePath = String(parts[0])
+        guard !routePath.isEmpty, routePath != "/" else { return nil }
+        if !routePath.hasPrefix("/") { routePath = "/" + routePath }
+        // 尾斜線對 RSSHub 沒意義，去掉避免同一路由存成兩種寫法
+        if routePath.count > 1, routePath.hasSuffix("/") { routePath.removeLast() }
+
+        self.path = routePath
+        self.queryItems = parts.count > 1
+            ? URLComponents(string: "?" + parts[1])?.queryItems ?? []
+            : []
+    }
+
+    /// 存回設定時用的正規形式。
+    public var canonical: String {
+        guard !queryItems.isEmpty else { return path }
+        var components = URLComponents()
+        components.queryItems = queryItems
+        return path + "?" + (components.percentEncodedQuery ?? "")
+    }
+}
+
 public struct RSSHubSource: RemotePhotoSource {
     public let kind = RemoteSourceKind.rsshub
 
     let instance: URL
-    let route: String
+    let route: RSSHubRoute
     /// RSSHub 的存取控制（`?key=`）。沒設就不帶。
     let key: String?
 
@@ -27,14 +73,13 @@ public struct RSSHubSource: RemotePhotoSource {
         guard let url = URL(string: normalized), url.host?.isEmpty == false else {
             throw RemoteSourceError.badEndpoint(instance)
         }
-        let path = route.trimmingCharacters(in: .whitespaces)
-        guard !path.isEmpty else {
+        guard let parsed = RSSHubRoute(route) else {
             // 沒有路由就只是 instance 首頁，那是一份說明文件不是 feed
             throw RemoteSourceError.missingEndpoint(.rsshub)
         }
 
         self.instance = url
-        self.route = path.hasPrefix("/") ? path : "/" + path
+        self.route = parsed
         self.key = key?.isEmpty == false ? key : nil
     }
 
@@ -44,10 +89,11 @@ public struct RSSHubSource: RemotePhotoSource {
         var components = try RemoteSourceHelper.components(instance.absoluteString)
         // instance 可能帶子路徑（反向代理常見），路由接在後面
         let base = components.path.hasSuffix("/") ? String(components.path.dropLast()) : components.path
-        components.path = base + route
-        if let key {
-            components.queryItems = (components.queryItems ?? []) + [URLQueryItem(name: "key", value: key)]
-        }
+        components.path = base + route.path
+
+        var items = (components.queryItems ?? []) + route.queryItems
+        if let key { items.append(URLQueryItem(name: "key", value: key)) }
+        components.queryItems = items.isEmpty ? nil : items
 
         var request = URLRequest(url: try RemoteSourceHelper.url(components, kind: kind))
         request.setValue("application/rss+xml, application/atom+xml, application/xml, text/xml",
