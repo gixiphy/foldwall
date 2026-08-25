@@ -17,6 +17,7 @@ final class WallpaperCoordinator {
         var offlineCount = 0
         var isPaused = false
         var poolWasEmpty = false
+        var videoCount = 0
         var nextDue: Date?
 
         var hasNoSources: Bool { sourceCount == 0 && offlineCount == 0 }
@@ -29,6 +30,7 @@ final class WallpaperCoordinator {
     @ObservationIgnored private let bookmarks: BookmarkStore
     @ObservationIgnored private let pipeline: StillPipeline
     @ObservationIgnored private let indexer = MediaIndexer()
+    @ObservationIgnored private let videoLibrary = VideoLibrary()
 
     @ObservationIgnored private var scheduler: Scheduler
     @ObservationIgnored private var heartbeat: Timer?
@@ -175,6 +177,11 @@ final class WallpaperCoordinator {
         let items = await indexer.scan(roots: folders)
         let pool = items.filter { $0.kind == .image }.map(\.url)
         status.poolCount = pool.count
+
+        // 影片差異同步進 extension container：來源移除的一併清掉
+        let videos = items.filter { $0.kind == .video }.map(\.url)
+        status.videoCount = videos.count
+        await videoLibrary.sync(videos: videos)
 
         let displays = ScreenBridge.currentDisplays()
         let skipIDs = Set(displays.filter { settings.videoScreens.contains($0.uuid) }.map(\.id))

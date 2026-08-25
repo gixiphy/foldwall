@@ -35,6 +35,20 @@
                ReferencedContainer = "container:Foldwall.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "FF04888971DC8A34248FE432"
+               BuildableName = "FoldwallExtension.appex"
+               BlueprintName = "FoldwallExtension"
+               ReferencedContainer = "container:Foldwall.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

@@ -7,4 +7,5 @@ enum Log {
     static let app = Logger(subsystem: "app.foldwall", category: "app")
     static let pipeline = Logger(subsystem: "app.foldwall", category: "pipeline")
     static let sources = Logger(subsystem: "app.foldwall", category: "sources")
+    static let video = Logger(subsystem: "app.foldwall", category: "video")
 }

@@ -37,6 +37,8 @@ targets:
     dependencies:
       - target: FoldwallCore
         embed: true
+      - target: FoldwallExtension
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.foldwall
@@ -49,6 +51,34 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_APP_SANDBOX: NO
         CODE_SIGN_ENTITLEMENTS: Foldwall/Foldwall.entitlements
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+
+  FoldwallExtension:
+    # fork 自 Phosphene（MIT），只改 bundle id／顯示名／container。
+    # 不動 renderer 與省電邏輯：私有 API 斷版時才能 rebase 上游修法。
+    type: extensionkit-extension
+    platform: macOS
+    sources: [FoldwallExtension]
+    info:
+      path: FoldwallExtension/Info.plist
+      properties:
+        # 沒有這段，系統設定 → 桌布 不會出現 Foldwall
+        EXAppExtensionAttributes:
+          EXExtensionPointIdentifier: com.apple.wallpaper
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.foldwall.extension
+        PRODUCT_NAME: FoldwallExtension
+        INFOPLIST_FILE: FoldwallExtension/Info.plist
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Foldwall
+        SWIFT_OBJC_BRIDGING_HEADER: FoldwallExtension/WallpaperExtension-Bridging-Header.h
+        # extension 本身是沙盒的（與 app 不同）：所以 app 只能用「拷貝進 container」
+        # 這條契約，不能用 bookmark-link
+        ENABLE_APP_SANDBOX: YES
+        ENABLE_HARDENED_RUNTIME: YES
+        SKIP_INSTALL: YES
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: Manual
 
@@ -70,6 +100,7 @@ schemes:
       targets:
         Foldwall: all
         FoldwallCore: all
+        FoldwallExtension: all
     test:
       targets: [FoldwallCoreTests]
       gatherCoverageData: false
