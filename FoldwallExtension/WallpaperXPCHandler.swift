@@ -801,8 +801,8 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
         extensionLog("=== CONTEXT MENU ACTION === identifier: \(identifier)")
 
         let urlByAction = [
-            "add-video": "phosphene://add-video",
-            "manage-library": "phosphene://library",
+            "add-video": "foldwall://add-video",
+            "manage-library": "foldwall://library",
         ]
         if let urlString = urlByAction[identifier], let url = URL(string: urlString) {
             extensionLog("  Launching companion app via NSWorkspace: \(urlString)")

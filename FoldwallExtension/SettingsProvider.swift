@@ -15,7 +15,7 @@ func buildSettingsViewModelsXPC() async -> AnyObject? {
 
     // Right-click menu on the group and every tile. Settings routes presses to
     // invokeContextMenuAction with the item's identifier; the handler opens the
-    // matching phosphene:// URL in the companion app.
+    // matching foldwall:// URL in the companion app.
     let addVideoMenu = ContextMenu(items: [
         ContextMenuItem(
             id: ContextMenuItemID(id: "add-video"),
@@ -95,7 +95,7 @@ func buildSettingsViewModelsXPC() async -> AnyObject? {
     let group = SettingsGroup(
         id: groupID,
         items: items,
-        localizedName: "Phosphene \u{2014} Video Wallpapers",
+        localizedName: "Foldwall \u{2014} Video Wallpapers",
         disposability: .none,
         sortOrder: -100,
         sortID: GroupSortID(id: "com.apple.wallpaper.aerials"),

@@ -75,6 +75,7 @@
 		EDF67E4774379F61CEAEA4A3 /* WallpaperIDProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3795C77FC9B118EFF6165BFC /* WallpaperIDProbe.swift */; };
 		F0F35D7FBBF9A88B621B8E38 /* WallpaperPrefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF3539615A6B30B3606F7909 /* WallpaperPrefs.swift */; };
 		F284864AD5D3FFD2108FABF6 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1D4C56749604071D777F79 /* App.swift */; };
+		F5BDA3E030571A72F08DD061 /* URLCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C5157584F83440AAC77604 /* URLCommands.swift */; };
 		F62BD57266782820386C1DD8 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B89E4469A8396C7755B3F3 /* KeychainStore.swift */; };
 		F6D52EE27881CC76F93FEF53 /* SettingsPush.swift in Sources */ = {isa = PBXBuildFile; fileRef = B343126CD55D783EC5E00EE5 /* SettingsPush.swift */; };
 		FA6BD13E5C5D78CF617584B6 /* BookmarkCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE46C077CBAA4384DAC0ACD7 /* BookmarkCodecTests.swift */; };
@@ -172,6 +173,7 @@
 		6F0090E8FE99370E3B33F4C3 /* SeededGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeededGenerator.swift; sourceTree = "<group>"; };
 		71E708670941E4004FD0507F /* VideoLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoLibrary.swift; sourceTree = "<group>"; };
 		730E77457041D8F787E9CB3B /* PostProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostProcessorTests.swift; sourceTree = "<group>"; };
+		75E399C0F031A106A0C2F0B0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		795D5C0D79855DB63BB50C04 /* PathSafety.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathSafety.swift; sourceTree = "<group>"; };
 		79F2C91E4115654025078FA7 /* PhotosAlbumSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotosAlbumSource.swift; sourceTree = "<group>"; };
 		7C4BFC4A5542B8AF792DC9E0 /* CodableShims.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableShims.swift; sourceTree = "<group>"; };
@@ -202,6 +204,7 @@
 		CBF4F8F8720739430A6B2304 /* FoldwallExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = FoldwallExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CDCF3EE91465CE5238202918 /* BookmarkCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkCodec.swift; sourceTree = "<group>"; };
 		D39B229838E571534ADF21BC /* SourcePools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcePools.swift; sourceTree = "<group>"; };
+		D4C5157584F83440AAC77604 /* URLCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLCommands.swift; sourceTree = "<group>"; };
 		DBAC7B5EAFB0B7AD84CC89FA /* SchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchedulerTests.swift; sourceTree = "<group>"; };
 		DBB8D3B7FAF0FF86FEB4C4B3 /* ImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoader.swift; sourceTree = "<group>"; };
 		DC3A9FD410CB3D9B2DC5C4FF /* WallpaperExtensionConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperExtensionConfig.swift; sourceTree = "<group>"; };
@@ -270,6 +273,7 @@
 				9F4CC304EBB9F0D5D0E651C7 /* Assets.xcassets */,
 				B0C5AB7864D8B64E462BEBFC /* BookmarkStore.swift */,
 				E404CF85EC5B012A6502A22F /* Foldwall.entitlements */,
+				75E399C0F031A106A0C2F0B0 /* Info.plist */,
 				64B89E4469A8396C7755B3F3 /* KeychainStore.swift */,
 				A9DBB3AC09D4C639CC4D6F16 /* Log.swift */,
 				BB691C4A6FDC0397BEE42712 /* MenuBarView.swift */,
@@ -277,6 +281,7 @@
 				01FA436262094C77F145604F /* ScreenBridge.swift */,
 				E221C56A9E685EE7ACF3A57A /* SettingsView.swift */,
 				D39B229838E571534ADF21BC /* SourcePools.swift */,
+				D4C5157584F83440AAC77604 /* URLCommands.swift */,
 				5F50DFF1C33FCD3418748A55 /* VideoLibrary.swift */,
 				454234BEFCC9A12FB66E29D8 /* WallpaperCoordinator.swift */,
 			);
@@ -520,6 +525,7 @@
 				5F9315C6A2D52A85413145ED /* ScreenBridge.swift in Sources */,
 				E497FC198B031BA42C51FC88 /* SettingsView.swift in Sources */,
 				B5E53840ED965C03C2758641 /* SourcePools.swift in Sources */,
+				F5BDA3E030571A72F08DD061 /* URLCommands.swift in Sources */,
 				00C0E066D66649D4E8A616CC /* VideoLibrary.swift in Sources */,
 				DEE8E46B1D901D07C5714997 /* WallpaperCoordinator.swift in Sources */,
 			);
@@ -654,10 +660,11 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Foldwall/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "MIT. Video pipeline forked from Phosphene (MIT).";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Foldwall 讀取你選擇的相簿，用來合成桌布蒙太奇。照片不會離開這台電腦。";
@@ -665,7 +672,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall;
 				PRODUCT_NAME = Foldwall;
 				SDKROOT = macosx;
@@ -702,7 +709,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -712,7 +719,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.extension;
 				PRODUCT_NAME = FoldwallExtension;
 				SDKROOT = macosx;
@@ -875,7 +882,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -885,7 +892,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.extension;
 				PRODUCT_NAME = FoldwallExtension;
 				SDKROOT = macosx;
@@ -920,10 +927,11 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Foldwall/Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "MIT. Video pipeline forked from Phosphene (MIT).";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Foldwall 讀取你選擇的相簿，用來合成桌布蒙太奇。照片不會離開這台電腦。";
@@ -931,7 +939,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall;
 				PRODUCT_NAME = Foldwall;
 				SDKROOT = macosx;
