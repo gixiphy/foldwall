@@ -8,15 +8,19 @@
 
 /* Begin PBXBuildFile section */
 		091134F43F3E9697E215BD56 /* FoldwallCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		0A328497EF2B9FB5F10FB13A /* BookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C5AB7864D8B64E462BEBFC /* BookmarkStore.swift */; };
 		16649CB4399A84CEE2CC4B86 /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 564344F73AFB43461C1C5C6F /* SmokeTests.swift */; };
 		23BBDD3C9164C1F85EA7160A /* FoldwallCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */; };
+		27166EDA9AF7EBCAC515D4D5 /* BookmarkCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDCF3EE91465CE5238202918 /* BookmarkCodec.swift */; };
 		29662DE33EFC38AD76C0F490 /* FoldwallCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; };
 		8F165965AF7C999A7B627A59 /* FoldwallCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A0A9099A6D996FB5B3536C8A /* FoldwallCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; };
 		B2EB06A05DE4694840CE0EA8 /* MediaTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0536332713CD383113F12207 /* MediaTypes.swift */; };
+		BBAB65431B2DFD61F0889A4B /* FolderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21CCF36F676D3CBC0E595622 /* FolderStore.swift */; };
 		C2158F12A42DF513374AD5B9 /* MediaIndexerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38B76ED23633AAB64E77B82 /* MediaIndexerTests.swift */; };
 		D9C3D378F0BD590722071BEC /* MediaIndexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F33540AF00E0706871101C /* MediaIndexer.swift */; };
 		F284864AD5D3FFD2108FABF6 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1D4C56749604071D777F79 /* App.swift */; };
+		FA6BD13E5C5D78CF617584B6 /* BookmarkCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE46C077CBAA4384DAC0ACD7 /* BookmarkCodecTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -63,12 +67,16 @@
 
 /* Begin PBXFileReference section */
 		0536332713CD383113F12207 /* MediaTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTypes.swift; sourceTree = "<group>"; };
+		21CCF36F676D3CBC0E595622 /* FolderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderStore.swift; sourceTree = "<group>"; };
 		330F76F05B90DA6A2C8994B2 /* FoldwallCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoldwallCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		482A530F542F9E528E053F99 /* Foldwall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Foldwall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		564344F73AFB43461C1C5C6F /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoldwallCore.swift; sourceTree = "<group>"; };
 		A1F33540AF00E0706871101C /* MediaIndexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaIndexer.swift; sourceTree = "<group>"; };
+		B0C5AB7864D8B64E462BEBFC /* BookmarkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkStore.swift; sourceTree = "<group>"; };
 		BC1D4C56749604071D777F79 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
+		BE46C077CBAA4384DAC0ACD7 /* BookmarkCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkCodecTests.swift; sourceTree = "<group>"; };
+		CDCF3EE91465CE5238202918 /* BookmarkCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkCodec.swift; sourceTree = "<group>"; };
 		E404CF85EC5B012A6502A22F /* Foldwall.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Foldwall.entitlements; sourceTree = "<group>"; };
 		E49E531D6B989F9304A2E022 /* FoldwallCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FoldwallCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		F38B76ED23633AAB64E77B82 /* MediaIndexerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaIndexerTests.swift; sourceTree = "<group>"; };
@@ -118,6 +126,7 @@
 			isa = PBXGroup;
 			children = (
 				BC1D4C56749604071D777F79 /* App.swift */,
+				B0C5AB7864D8B64E462BEBFC /* BookmarkStore.swift */,
 				E404CF85EC5B012A6502A22F /* Foldwall.entitlements */,
 			);
 			path = Foldwall;
@@ -126,6 +135,7 @@
 		D0124B9B35C7BE554E63590F /* FoldwallCoreTests */ = {
 			isa = PBXGroup;
 			children = (
+				BE46C077CBAA4384DAC0ACD7 /* BookmarkCodecTests.swift */,
 				F38B76ED23633AAB64E77B82 /* MediaIndexerTests.swift */,
 				564344F73AFB43461C1C5C6F /* SmokeTests.swift */,
 			);
@@ -135,6 +145,8 @@
 		D835018F0782A3A7A6FD6E67 /* FoldwallCore */ = {
 			isa = PBXGroup;
 			children = (
+				CDCF3EE91465CE5238202918 /* BookmarkCodec.swift */,
+				21CCF36F676D3CBC0E595622 /* FolderStore.swift */,
 				A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */,
 				A1F33540AF00E0706871101C /* MediaIndexer.swift */,
 				0536332713CD383113F12207 /* MediaTypes.swift */,
@@ -249,6 +261,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F284864AD5D3FFD2108FABF6 /* App.swift in Sources */,
+				0A328497EF2B9FB5F10FB13A /* BookmarkStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -256,6 +269,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				27166EDA9AF7EBCAC515D4D5 /* BookmarkCodec.swift in Sources */,
+				BBAB65431B2DFD61F0889A4B /* FolderStore.swift in Sources */,
 				23BBDD3C9164C1F85EA7160A /* FoldwallCore.swift in Sources */,
 				D9C3D378F0BD590722071BEC /* MediaIndexer.swift in Sources */,
 				B2EB06A05DE4694840CE0EA8 /* MediaTypes.swift in Sources */,
@@ -266,6 +281,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FA6BD13E5C5D78CF617584B6 /* BookmarkCodecTests.swift in Sources */,
 				C2158F12A42DF513374AD5B9 /* MediaIndexerTests.swift in Sources */,
 				16649CB4399A84CEE2CC4B86 /* SmokeTests.swift in Sources */,
 			);
