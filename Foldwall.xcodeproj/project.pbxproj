@@ -13,6 +13,9 @@
 		29662DE33EFC38AD76C0F490 /* FoldwallCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; };
 		8F165965AF7C999A7B627A59 /* FoldwallCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A0A9099A6D996FB5B3536C8A /* FoldwallCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; };
+		B2EB06A05DE4694840CE0EA8 /* MediaTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0536332713CD383113F12207 /* MediaTypes.swift */; };
+		C2158F12A42DF513374AD5B9 /* MediaIndexerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38B76ED23633AAB64E77B82 /* MediaIndexerTests.swift */; };
+		D9C3D378F0BD590722071BEC /* MediaIndexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F33540AF00E0706871101C /* MediaIndexer.swift */; };
 		F284864AD5D3FFD2108FABF6 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1D4C56749604071D777F79 /* App.swift */; };
 /* End PBXBuildFile section */
 
@@ -59,13 +62,16 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0536332713CD383113F12207 /* MediaTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTypes.swift; sourceTree = "<group>"; };
 		330F76F05B90DA6A2C8994B2 /* FoldwallCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoldwallCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		482A530F542F9E528E053F99 /* Foldwall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Foldwall.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		564344F73AFB43461C1C5C6F /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoldwallCore.swift; sourceTree = "<group>"; };
+		A1F33540AF00E0706871101C /* MediaIndexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaIndexer.swift; sourceTree = "<group>"; };
 		BC1D4C56749604071D777F79 /* App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
 		E404CF85EC5B012A6502A22F /* Foldwall.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Foldwall.entitlements; sourceTree = "<group>"; };
 		E49E531D6B989F9304A2E022 /* FoldwallCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = FoldwallCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		F38B76ED23633AAB64E77B82 /* MediaIndexerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaIndexerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,6 +126,7 @@
 		D0124B9B35C7BE554E63590F /* FoldwallCoreTests */ = {
 			isa = PBXGroup;
 			children = (
+				F38B76ED23633AAB64E77B82 /* MediaIndexerTests.swift */,
 				564344F73AFB43461C1C5C6F /* SmokeTests.swift */,
 			);
 			path = FoldwallCoreTests;
@@ -129,6 +136,8 @@
 			isa = PBXGroup;
 			children = (
 				A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */,
+				A1F33540AF00E0706871101C /* MediaIndexer.swift */,
+				0536332713CD383113F12207 /* MediaTypes.swift */,
 			);
 			path = FoldwallCore;
 			sourceTree = "<group>";
@@ -248,6 +257,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				23BBDD3C9164C1F85EA7160A /* FoldwallCore.swift in Sources */,
+				D9C3D378F0BD590722071BEC /* MediaIndexer.swift in Sources */,
+				B2EB06A05DE4694840CE0EA8 /* MediaTypes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -255,6 +266,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C2158F12A42DF513374AD5B9 /* MediaIndexerTests.swift in Sources */,
 				16649CB4399A84CEE2CC4B86 /* SmokeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
