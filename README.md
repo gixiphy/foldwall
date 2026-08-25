@@ -59,6 +59,7 @@ Foldwall.app（選單列，不沙盒）
 | **網路來源有速率上限** | 免費 API 額度有限（例如 Unsplash 每小時 50 次）。Foldwall 以磁碟快取當池，池太薄或距上次逾 30 分才補貨，不會每 5 分鐘打一次 API。 |
 | **照片要 entitlement** | Hardened Runtime 下（即使不沙盒）TCC 要求 `com.apple.security.personal-information.photos-library`，缺了連授權框都不會跳，app 也不會出現在系統設定的照片清單裡。已加入 `Foldwall.entitlements`。 |
 | **專注模式非公開格式** | macOS 沒有公開 API 能查詢**目前是哪個**專注模式（`INFocusStatusCenter` 只給開／關，且要 entitlement）。Foldwall 讀 `~/Library/DoNotDisturb/DB/`——不是私有 API 呼叫，但格式沒保證。解析全部寬容處理：讀不到就當沒開，規則靜默失效，桌布不受影響。 |
+| **不公證** | 私人自用專案，刻意不做公證。安裝到任何機器都要先 `xattr -dr com.apple.quarantine /Applications/Foldwall.app`，否則 Gatekeeper 會擋。`make-dmg.sh` 已支援公證流程，要用時設 `NOTARY_PROFILE` 即可。 |
 | **不做 OAuth** | SmugMug 與 Flickr 私人相簿需要 OAuth，刻意不做。Flickr 只支援公開搜尋。 |
 | **不做 YouTube** | 三條路全不通：Data API 是 Google API（規格第一條「放棄 Google」）；官方 IFrame 嵌入要求播放器可見、不被遮蔽、顯示廣告，桌布定義上就違反；抽 `googlevideo` 串流網址是規避技術保護措施。**串流不比下載寬鬆**。網路影片改走 Pexels Videos。 |
 | **影片預設不拷** | 影片需拷進 extension container（沙盒 extension 讀不了 app 的 bookmark）。來源若是 NAS，那是幾十到幾百 GB——所以「設定 → 影片桌布 → 啟用影片桌布」**預設關閉**，開了才拷，而且是**輪替**不是囤積：一次只放 1–3 支（視大小，單輪上限 512MB；單檔超過 512MB 一律不收），下次換一批。**觸發點是螢幕重新亮起**（睡醒／螢保結束／解鎖）、最少間隔 30 分鐘，不跟桌布輪換同步。關掉開關會把 container 清空。 |
