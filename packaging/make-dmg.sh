@@ -65,6 +65,14 @@ hdiutil create -volname "Foldwall $VERSION" -srcfolder "$STAGE" \
 echo "==> 簽 DMG"
 codesign --sign "$IDENTITY" "$DMG"
 
+# 把建置產物從 LaunchServices 取消登錄。
+# 否則 build-release 裡的 .appex 會被系統當成一個「已安裝」的桌布 extension，
+# 和之後裝進 /Applications 的那份同 bundle id 打架（桌布清單出現重複／過期項目）。
+"$(xcode-select -p)/../Frameworks/LaunchServices.framework/Support/lsregister" \
+  -u "$APP" 2>/dev/null || \
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister \
+  -u "$APP" 2>/dev/null || true
+
 echo
 echo "完成：$DMG"
 echo "大小：$(du -h "$DMG" | cut -f1)"
