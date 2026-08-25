@@ -37,6 +37,15 @@ public struct AppPaths: Sendable {
     /// Pexels 影片。
     public var remoteVideoCache: URL { caches.appending(path: "remoteVideos") }
 
+    /// 彙整資料夾：三個快取目錄裡的圖在這裡各有一個硬連結，
+    /// 讓系統的螢幕保護程式能一次指到全部。放在 ~/Pictures 是因為使用者找得到。
+    public var aggregateFolder: URL {
+        URL.homeDirectory.appending(path: "Pictures/Foldwall")
+    }
+
+    /// 要彙整進去的來源目錄。
+    public var aggregateSources: [URL] { [remoteCache, photosCache, smbCache] }
+
     /// 給設定視窗列表用。**只分照片與影片兩組**——使用者心裡只有這兩類，
     /// 不需要知道網路下載、相簿匯出、SMB 副本各自躺在哪個子目錄。
     ///
@@ -49,7 +58,9 @@ public struct AppPaths: Sendable {
                 id: "photos", name: "照片",
                 purpose: "網路來源下載的原圖、照片相簿匯出，以及合成前從網路磁碟拷回來的副本。"
                     + "想讓螢幕保護程式播這些，來源就指下面這個路徑。",
-                url: remoteCache,
+                // 複製路徑要給**彙整資料夾**：三個快取分開放，螢保只能指一個目錄，
+                // 給其中任何一個都會漏掉另外兩個的圖。
+                url: aggregateFolder,
                 members: [remoteCache, photosCache, smbCache],
                 isPurgeable: true),
             CacheLocation(

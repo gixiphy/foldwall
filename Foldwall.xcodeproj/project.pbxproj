@@ -71,6 +71,7 @@
 		B58B5B92EBFE84E3DBA8DADE /* RSSPhotoSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4C106A8CD899E27A4D09DB6 /* RSSPhotoSource.swift */; };
 		B5E53840ED965C03C2758641 /* SourcePools.swift in Sources */ = {isa = PBXBuildFile; fileRef = D39B229838E571534ADF21BC /* SourcePools.swift */; };
 		BBAB65431B2DFD61F0889A4B /* FolderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21CCF36F676D3CBC0E595622 /* FolderStore.swift */; };
+		C0531F96CBD217A66D2A7715 /* AggregateFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04785BCF5442C9B2FF9BCA60 /* AggregateFolderTests.swift */; };
 		C2158F12A42DF513374AD5B9 /* MediaIndexerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38B76ED23633AAB64E77B82 /* MediaIndexerTests.swift */; };
 		C24D15F995832C471CB6A068 /* Materializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1ABB98FFC2C01CC91F13C7 /* Materializer.swift */; };
 		C43F79CADDE30F70102A808E /* VideoBudgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48735D5E9C401F36A5445D3E /* VideoBudgetTests.swift */; };
@@ -91,6 +92,7 @@
 		EDF67E4774379F61CEAEA4A3 /* WallpaperIDProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3795C77FC9B118EFF6165BFC /* WallpaperIDProbe.swift */; };
 		F0F35D7FBBF9A88B621B8E38 /* WallpaperPrefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF3539615A6B30B3606F7909 /* WallpaperPrefs.swift */; };
 		F284864AD5D3FFD2108FABF6 /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC1D4C56749604071D777F79 /* App.swift */; };
+		F593D897BEADF40EECBD3D19 /* AggregateFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1BCF4E6B8D0C80FAD7A08E /* AggregateFolder.swift */; };
 		F5BDA3E030571A72F08DD061 /* URLCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4C5157584F83440AAC77604 /* URLCommands.swift */; };
 		F62BD57266782820386C1DD8 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B89E4469A8396C7755B3F3 /* KeychainStore.swift */; };
 		F6D52EE27881CC76F93FEF53 /* SettingsPush.swift in Sources */ = {isa = PBXBuildFile; fileRef = B343126CD55D783EC5E00EE5 /* SettingsPush.swift */; };
@@ -163,12 +165,14 @@
 /* Begin PBXFileReference section */
 		009C3F8619E6EDA0D03BF7F1 /* RuntimeHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeHelpers.swift; sourceTree = "<group>"; };
 		01FA436262094C77F145604F /* ScreenBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenBridge.swift; sourceTree = "<group>"; };
+		04785BCF5442C9B2FF9BCA60 /* AggregateFolderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AggregateFolderTests.swift; sourceTree = "<group>"; };
 		0536332713CD383113F12207 /* MediaTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaTypes.swift; sourceTree = "<group>"; };
 		0AFDC7276A7213CF7E068E29 /* VideoSyncPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSyncPolicy.swift; sourceTree = "<group>"; };
 		0C53395606A1DA4E05C57349 /* ImmichSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImmichSource.swift; sourceTree = "<group>"; };
 		0E4ED49A791C704E2B642E77 /* VideoBudget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBudget.swift; sourceTree = "<group>"; };
 		1255182E3C1E803ACB818039 /* WallpaperXPCHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperXPCHandler.swift; sourceTree = "<group>"; };
 		1C09F091FE57E0C6E576D4DB /* SourceRule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceRule.swift; sourceTree = "<group>"; };
+		1F1BCF4E6B8D0C80FAD7A08E /* AggregateFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AggregateFolder.swift; sourceTree = "<group>"; };
 		21CCF36F676D3CBC0E595622 /* FolderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderStore.swift; sourceTree = "<group>"; };
 		2216BA67DC766360D922163E /* MontageComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MontageComposer.swift; sourceTree = "<group>"; };
 		226ADC67883FCB088091056A /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
@@ -360,6 +364,7 @@
 		D0124B9B35C7BE554E63590F /* FoldwallCoreTests */ = {
 			isa = PBXGroup;
 			children = (
+				04785BCF5442C9B2FF9BCA60 /* AggregateFolderTests.swift */,
 				BE46C077CBAA4384DAC0ACD7 /* BookmarkCodecTests.swift */,
 				4E01CE88CBBB810189D8DA9F /* CacheLocationTests.swift */,
 				C92B9B55B320A65ABD988F12 /* FolderIndexTests.swift */,
@@ -385,6 +390,7 @@
 		D835018F0782A3A7A6FD6E67 /* FoldwallCore */ = {
 			isa = PBXGroup;
 			children = (
+				1F1BCF4E6B8D0C80FAD7A08E /* AggregateFolder.swift */,
 				4F48E153F0F5100E70855B71 /* AppPaths.swift */,
 				CDCF3EE91465CE5238202918 /* BookmarkCodec.swift */,
 				82AF9FEF27C90104972F2A43 /* CacheLocation.swift */,
@@ -587,6 +593,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F593D897BEADF40EECBD3D19 /* AggregateFolder.swift in Sources */,
 				A01F51BB128D11E0938E7C96 /* AppPaths.swift in Sources */,
 				27166EDA9AF7EBCAC515D4D5 /* BookmarkCodec.swift in Sources */,
 				B3C57A19BAB25B7EBCFCBDCB /* CacheLocation.swift in Sources */,
@@ -622,6 +629,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0531F96CBD217A66D2A7715 /* AggregateFolderTests.swift in Sources */,
 				FA6BD13E5C5D78CF617584B6 /* BookmarkCodecTests.swift in Sources */,
 				151782763573134BF1A2DB6F /* CacheLocationTests.swift in Sources */,
 				375747239E8D23673EDA3BE0 /* FolderIndexTests.swift in Sources */,
@@ -728,7 +736,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -740,7 +748,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.8;
+				MARKETING_VERSION = 0.3.9;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall;
 				PRODUCT_NAME = Foldwall;
 				SDKROOT = macosx;
@@ -777,7 +785,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -787,7 +795,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.8;
+				MARKETING_VERSION = 0.3.9;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.extension;
 				PRODUCT_NAME = FoldwallExtension;
 				SDKROOT = macosx;
@@ -950,7 +958,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -960,7 +968,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.8;
+				MARKETING_VERSION = 0.3.9;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall.extension;
 				PRODUCT_NAME = FoldwallExtension;
 				SDKROOT = macosx;
@@ -995,7 +1003,7 @@
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 23;
+				CURRENT_PROJECT_VERSION = 24;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1007,7 +1015,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.3.8;
+				MARKETING_VERSION = 0.3.9;
 				PRODUCT_BUNDLE_IDENTIFIER = app.foldwall;
 				PRODUCT_NAME = Foldwall;
 				SDKROOT = macosx;

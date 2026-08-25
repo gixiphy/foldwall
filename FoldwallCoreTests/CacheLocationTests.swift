@@ -76,7 +76,9 @@ final class CacheLocationTests: XCTestCase {
         let photos = paths.locations().first { $0.id == "photos" }
         XCTAssertEqual(Set(photos?.members ?? []),
                        [paths.remoteCache, paths.photosCache, paths.smbCache])
-        XCTAssertEqual(photos?.url, paths.remoteCache, "複製路徑要給螢保指得到的那一個")
+        XCTAssertEqual(photos?.url, paths.aggregateFolder,
+                       "複製路徑要給彙整資料夾——螢保只能指一個目錄，"
+                       + "給其中任何一個快取都會漏掉另外兩個的圖")
     }
 
     func testVideoGroupIncludesTheExtensionContainer() {

@@ -699,8 +699,10 @@ private struct CacheSettings: View {
                     Text("想讓**螢幕保護程式**播 Foldwall 抓下來的圖？")
                         .font(.callout)
                     Text("系統設定 → 螢幕保護程式 → 選「照片」類的樣式 → 選項 → 來源，"
-                         + "把來源指到下面**照片**那一列的路徑。Foldwall 沒辦法把自己註冊進那個選單，"
-                         + "所以要手動指一次。")
+                         + "把來源指到下面**照片**那一列的路徑（`~/Pictures/Foldwall`）。"
+                         + "那是一個彙整資料夾，裡面用硬連結收攏了三個快取裡的所有圖——"
+                         + "不佔額外空間，快取更新時會自動同步。Foldwall 沒辦法把自己註冊進"
+                         + "那個選單，所以要手動指一次。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

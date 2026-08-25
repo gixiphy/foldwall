@@ -53,6 +53,8 @@ final class WallpaperCoordinator {
     @ObservationIgnored private let remoteVideoPool = RemoteVideoPool()
     @ObservationIgnored private let photosPool = PhotosPool()
     @ObservationIgnored private let focus = FocusModeMonitor()
+    @ObservationIgnored private let aggregate = AggregateFolder()
+    @ObservationIgnored private var aggregateTask: Task<Void, Never>?
 
     @ObservationIgnored private var scheduler: Scheduler
     @ObservationIgnored private var heartbeat: Timer?
@@ -356,6 +358,7 @@ final class WallpaperCoordinator {
             )
             status.poolWasEmpty = outcome.poolWasEmpty
             Log.pipeline.info("已更新 \(outcome.written.count) 螢，跳過 \(outcome.skipped.count) 螢，池 \(pool.count) 張")
+            syncAggregateFolder()
         } catch {
             // 失敗保留現桌布，不黑屏
             Log.pipeline.error("合成失敗：\(error.localizedDescription, privacy: .public)")
@@ -470,6 +473,22 @@ final class WallpaperCoordinator {
         }
     }
 
+    /// 把三個快取的圖彙整成一個實體資料夾，讓系統的螢幕保護程式指得到。
+    /// 全程在背景：要走三個目錄、建連結、清斷鏈，不能擋著主執行緒。
+    private func syncAggregateFolder() {
+        guard aggregateTask == nil else { return }
+        let paths = AppPaths.standard()
+        let aggregate = self.aggregate
+        aggregateTask = Task { @MainActor [weak self] in
+            defer { self?.aggregateTask = nil }
+            let outcome = await Task.detached(priority: .utility) {
+                try? aggregate.sync(sources: paths.aggregateSources, into: paths.aggregateFolder)
+            }.value
+            guard let outcome, outcome.linked > 0 || outcome.pruned > 0 else { return }
+            Log.sources.info("彙整資料夾：新增 \(outcome.linked, privacy: .public) 個連結，清掉 \(outcome.pruned, privacy: .public) 個")
+        }
+    }
+
     /// 選單要說得出「為什麼現在停著」。
     private static func reason(
         for context: RuleContext, effects: RuleEffect, focusName: String?
@@ -494,6 +513,9 @@ final class WallpaperCoordinator {
     func clearCache(_ location: CacheLocation) throws {
         guard location.id == "videos" else {
             try location.clearContents()
+            // 連結指向的原檔沒了 → 立刻收掉，否則硬連結會讓那些 inode 一直活著，
+            // 磁碟空間根本沒釋放。
+            syncAggregateFolder()
             return
         }
         // container 要連帳本一起清，否則下次同步會把它們當成孤兒。
