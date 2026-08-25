@@ -21,7 +21,7 @@ struct SettingsView: View {
             MontageSettings(coordinator: coordinator, settings: settings)
                 .tabItem { Label("蒙太奇桌布", systemImage: "square.grid.2x2") }
 
-            VideoSettings(settings: settings, onVideoToggle: onVideoToggle)
+            VideoSettings(coordinator: coordinator, settings: settings, onVideoToggle: onVideoToggle)
                 .tabItem { Label("影片桌布", systemImage: "play.rectangle") }
 
             RuleSettings(coordinator: coordinator, settings: settings, onChange: onRulesChange)
@@ -49,7 +49,7 @@ private struct SourceSettings: View {
 
     private enum Kind: String, CaseIterable, Identifiable {
         case folders = "資料夾"
-        case albums = "照片相簿"
+        case albums = "照片授權"
         case remote = "網路"
         var id: String { rawValue }
     }
@@ -120,11 +120,12 @@ private struct FolderSourceSettings: View {
                                 Button("移除") { coordinator.removeFolder(folder) }
                                     .buttonStyle(.borderless)
                             }
-                            HStack(spacing: 14) {
-                                Toggle("蒙太奇", isOn: usage(folder, .montage))
-                                    .toggleStyle(.checkbox)
-                                Toggle("影片", isOn: usage(folder, .video))
-                                    .toggleStyle(.checkbox)
+                            HStack(spacing: 6) {
+                                let usable = FileManager.default.isReadableFile(atPath: folder.path)
+                                Image(systemName: usable ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                    .foregroundStyle(usable ? Color.green : Color.red)
+                                Text(usable ? "可讀取" : "讀不到（未掛載或無權限）")
+                                    .foregroundStyle(.secondary)
                             }
                             .font(.caption)
                             .padding(.leading, 2)
@@ -156,25 +157,13 @@ private struct FolderSourceSettings: View {
                     .foregroundStyle(.orange)
             }
 
-            Text("資料夾是唯一兩用的來源：裡面的圖進蒙太奇、影片進影片桌布。"
-                 + "只想拿某個資料夾當影片來源，就把「蒙太奇」取消勾選。")
+            Text("這一頁只管來源設好了沒、讀不讀得到。"
+                 + "要拿哪些來源合成蒙太奇、哪些放影片，在「蒙太奇桌布」和「影片桌布」分頁決定。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
-    }
-
-    private func usage(_ folder: URL, _ kind: SourceUsage) -> Binding<Bool> {
-        Binding(
-            get: { settings.usage(for: folder).contains(kind) },
-            set: { isOn in
-                var current = settings.usage(for: folder)
-                if isOn { current.insert(kind) } else { current.remove(kind) }
-                settings.setUsage(current, for: folder)
-                coordinator.folderUsageDidChange()
-            }
-        )
     }
 }
 
@@ -273,8 +262,38 @@ private struct PhotosAlbumSettings: View {
 /// 不講清楚沒人知道怎麼用。這一頁就是把流程攤開。
 private struct VideoSettings: View {
 
+    @Bindable var coordinator: WallpaperCoordinator
     @Bindable var settings: AppSettings
     var onVideoToggle: () -> Void
+
+    /// 只列會產出影片的網路來源。
+    private var videoSources: [RemoteSourceConfig] {
+        settings.remoteSources.filter { $0.kind.media == .video }
+    }
+
+    private func folderBinding(_ folder: URL) -> Binding<Bool> {
+        Binding(
+            get: { settings.usage(for: folder).contains(.video) },
+            set: { isOn in
+                var usage = settings.usage(for: folder)
+                if isOn { usage.insert(.video) } else { usage.remove(.video) }
+                settings.setUsage(usage, for: folder)
+                coordinator.folderUsageDidChange()
+            }
+        )
+    }
+
+    private func remoteBinding(_ id: UUID) -> Binding<Bool> {
+        Binding(
+            get: { settings.remoteSources.first { $0.id == id }?.isEnabled ?? false },
+            set: { isOn in
+                guard let index = settings.remoteSources.firstIndex(where: { $0.id == id })
+                else { return }
+                settings.remoteSources[index].isEnabled = isOn
+                coordinator.folderUsageDidChange()
+            }
+        )
+    }
 
     @State private var deployedCount = 0
     @State private var libraryPath = VideoLibrary.documentsURL
@@ -324,6 +343,31 @@ private struct VideoSettings: View {
                 Text("影片和照片用**同一批來源資料夾**——資料夾裡的影片會自動送進系統的桌布清單，不必另外設定路徑。")
                     .font(.callout)
                     .foregroundStyle(.secondary)
+
+                GroupBox("要用哪些來源") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if coordinator.folders.isEmpty && videoSources.isEmpty {
+                            Text("還沒有任何來源。到「來源」分頁加入。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        ForEach(coordinator.folders, id: \.self) { folder in
+                            Toggle(isOn: folderBinding(folder)) {
+                                Label(folder.lastPathComponent, systemImage: "folder")
+                            }
+                            .toggleStyle(.checkbox)
+                        }
+                        ForEach(videoSources) { config in
+                            Toggle(isOn: remoteBinding(config.id)) {
+                                Label(config.displayTitle, systemImage: "globe")
+                            }
+                            .toggleStyle(.checkbox)
+                        }
+                    }
+                    .font(.callout)
+                    .padding(4)
+                }
+                .disabled(!settings.videoWallpaperEnabled)
 
                 Divider()
 
@@ -483,14 +527,51 @@ private struct RemoteSourceDetail: View {
     @Binding var config: RemoteSourceConfig
     var onChange: () -> Void
 
+    private func runTest() {
+        // 存檔再測，否則測到的是舊設定
+        saveKey()
+        onChange()
+        let snapshot = config
+        test = .testing
+        Task {
+            let result = await SourceProbe.test(snapshot)
+            if snapshot.id == config.id { test = result }
+        }
+    }
+
+    private func color(for result: SourceTestResult) -> Color {
+        switch result {
+        case .passed: .green
+        case .empty: .orange
+        case .failed: .red
+        default: .secondary
+        }
+    }
+
     @State private var key = ""
     @State private var keyLoaded = false
+    @State private var test: SourceTestResult = .untested
 
     var body: some View {
         Form {
             Section {
-                Toggle("啟用", isOn: $config.isEnabled)
-                    .onChange(of: config.isEnabled) { _, _ in onChange() }
+                HStack {
+                    Button("測試連線") { runTest() }
+                        .disabled(test == .testing)
+                    if test == .testing { ProgressView().controlSize(.small) }
+                    Spacer()
+                }
+                if test != .untested {
+                    Label(test.summary, systemImage: test.symbol)
+                        .font(.caption)
+                        .foregroundStyle(color(for: test))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Text("這一頁只確認設定填對、連得上。要不要拿它合成蒙太奇或當影片來源，"
+                     + "在「蒙太奇桌布」／「影片桌布」分頁勾選。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if config.kind.requiresKey {
@@ -505,7 +586,7 @@ private struct RemoteSourceDetail: View {
 
             if config.kind == .wallhaven {
                 Section {
-                    Text("Wallhaven 的公開內容**不需要 key**，直接啟用就能用。")
+                    Text("Wallhaven 的公開內容**不需要 key**，直接用就行。")
                         .font(.caption)
                     SecureField("API key（選填，可提高速率上限）", text: $key)
                         .onSubmit(saveKey)
@@ -958,6 +1039,37 @@ private struct MontageSettings: View {
             }
             .formStyle(.grouped)
 
+            GroupBox("要用哪些來源") {
+                VStack(alignment: .leading, spacing: 6) {
+                    if coordinator.folders.isEmpty && imageSources.isEmpty
+                        && coordinator.albums.isEmpty {
+                        Text("還沒有任何來源。到「來源」分頁加入。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(coordinator.folders, id: \.self) { folder in
+                        Toggle(isOn: folderBinding(folder)) {
+                            Label(folder.lastPathComponent, systemImage: "folder")
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    ForEach(coordinator.albums) { album in
+                        Toggle(isOn: albumBinding(album)) {
+                            Label("\(album.title)（\(album.count)）", systemImage: "photo.stack")
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    ForEach(imageSources) { config in
+                        Toggle(isOn: remoteBinding(config.id)) {
+                            Label(config.displayTitle, systemImage: "globe")
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                }
+                .font(.callout)
+                .padding(4)
+            }
+
             GroupBox("每輪抽幾張") {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(coordinator.displays, id: \.uuid) { display in
@@ -984,6 +1096,46 @@ private struct MontageSettings: View {
             Spacer()
         }
         .padding()
+    }
+
+    /// 只列會產出圖的網路來源；Pexels 影片那種歸影片分頁。
+    private var imageSources: [RemoteSourceConfig] {
+        settings.remoteSources.filter { $0.kind.media == .image }
+    }
+
+    private func folderBinding(_ folder: URL) -> Binding<Bool> {
+        Binding(
+            get: { settings.usage(for: folder).contains(.montage) },
+            set: { isOn in
+                var usage = settings.usage(for: folder)
+                if isOn { usage.insert(.montage) } else { usage.remove(.montage) }
+                settings.setUsage(usage, for: folder)
+                coordinator.folderUsageDidChange()
+            }
+        )
+    }
+
+    private func albumBinding(_ album: PhotoAlbum) -> Binding<Bool> {
+        Binding(
+            get: { settings.photoAlbums.contains(album.id) },
+            set: { isOn in
+                if isOn { settings.photoAlbums.insert(album.id) }
+                else { settings.photoAlbums.remove(album.id) }
+                coordinator.sourcesDidChange()
+            }
+        )
+    }
+
+    private func remoteBinding(_ id: UUID) -> Binding<Bool> {
+        Binding(
+            get: { settings.remoteSources.first { $0.id == id }?.isEnabled ?? false },
+            set: { isOn in
+                guard let index = settings.remoteSources.firstIndex(where: { $0.id == id })
+                else { return }
+                settings.remoteSources[index].isEnabled = isOn
+                coordinator.sourcesDidChange()
+            }
+        )
     }
 
     private var poolSummary: String {

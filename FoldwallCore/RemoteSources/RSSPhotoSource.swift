@@ -27,6 +27,16 @@ public struct RSSPhotoSource: RemotePhotoSource {
     }
 
     public func parse(_ data: Data) throws -> [RemoteImage] {
+        try RSSImageExtractor.images(from: data, kind: kind, attribution: feed.host)
+    }
+}
+
+/// RSS／Atom 的抓圖邏輯。RSSHub 產的也是一般 RSS，兩個來源共用同一套解析。
+public enum RSSImageExtractor {
+
+    public static func images(
+        from data: Data, kind: RemoteSourceKind, attribution: String?
+    ) throws -> [RemoteImage] {
         let parser = XMLParser(data: data)
         let collector = ImageCollector()
         parser.delegate = collector
@@ -37,7 +47,7 @@ public struct RSSPhotoSource: RemotePhotoSource {
             guard !seen.contains(string), let url = URL(string: string), url.host != nil
             else { return nil }
             seen.insert(string)
-            return RemoteImage(id: string, url: url, attribution: feed.host)
+            return RemoteImage(id: string, url: url, attribution: attribution)
         }
     }
 }

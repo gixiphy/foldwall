@@ -7,7 +7,7 @@
 import Foundation
 
 public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
-    case unsplash, pexels, pixabay, wallhaven, flickr, immich, rss, pexelsVideo
+    case unsplash, pexels, pixabay, wallhaven, flickr, immich, rss, pexelsVideo, rsshub
 
     public var displayName: String {
         switch self {
@@ -19,6 +19,7 @@ public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
         case .immich: "Immich"
         case .rss: "RSS 相片來源"
         case .pexelsVideo: "Pexels 影片"
+        case .rsshub: "RSSHub（自架）"
         }
     }
 
@@ -26,14 +27,17 @@ public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
     public var requiresKey: Bool {
         switch self {
         case .unsplash, .pexels, .pixabay, .flickr, .immich, .pexelsVideo: true
-        case .wallhaven, .rss: false   // Wallhaven 公開內容免 key；RSS 完全免驗證
+        // Wallhaven 公開內容免 key；RSS 完全免驗證；
+        // RSSHub 的 key 是自架者自己設的存取控制，沒設就不用
+        case .wallhaven, .rss, .rsshub: false
         }
     }
 
     /// 需要一個網址（Immich 伺服器、RSS feed）。
     public var requiresEndpoint: Bool {
         switch self {
-        case .immich, .rss: true
+        // RSSHub 要的是**自架 instance 的網址**，不是完整 feed 網址
+        case .immich, .rss, .rsshub: true
         default: false
         }
     }
@@ -48,13 +52,15 @@ public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
         case .wallhaven: URL(string: "https://wallhaven.cc/settings/account")
         case .immich: URL(string: "https://immich.app/docs/features/command-line-interface/")
         case .rss: nil
+        case .rsshub: URL(string: "https://docs.rsshub.app/deploy/")
         }
     }
 
     /// 搜尋關鍵字有意義嗎。
     public var supportsQuery: Bool {
         switch self {
-        case .unsplash, .pexels, .pixabay, .wallhaven, .flickr, .pexelsVideo: true
+        // RSSHub 的「關鍵字」欄位放的是路由，例如 /pixiv/user/12345
+        case .unsplash, .pexels, .pixabay, .wallhaven, .flickr, .pexelsVideo, .rsshub: true
         case .immich, .rss: false
         }
     }
@@ -161,6 +167,8 @@ public enum RemoteSourceFactory {
         case .flickr: return FlickrSource(key: key ?? "", query: config.query)
         case .immich: return try ImmichSource(key: key ?? "", server: config.endpoint)
         case .rss: return try RSSPhotoSource(feed: config.endpoint)
+        case .rsshub:
+            return try RSSHubSource(instance: config.endpoint, route: config.query, key: key)
         case .pexelsVideo: return PexelsVideoSource(key: key ?? "", query: config.query)
         }
     }

@@ -43,6 +43,15 @@ public struct RemoteFetcher: Sendable {
         return local
     }
 
+    /// 只打一次清單、解析、回報數量——**不下載任何圖**。
+    /// 設定視窗的「測試」用這個：使用者要知道 key 對不對、路由通不通，
+    /// 不是要它現在就抓一批圖回來。
+    public func probe(source: any RemotePhotoSource) async throws -> Int {
+        let (data, response) = try await session.data(for: try source.listRequest(limit: 8))
+        try Self.validate(response)
+        return try source.parse(data).count
+    }
+
     /// 已經下載過就直接用，不重抓。
     public func cacheURL(for image: RemoteImage, kind: RemoteSourceKind) -> URL {
         let ext = image.url.pathExtension.lowercased()

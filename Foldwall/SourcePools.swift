@@ -93,6 +93,23 @@ final class RemoteSourcePool {
 ///
 /// 下載時機由 WallpaperCoordinator 控制——只在螢幕重新亮起那條背景線上呼叫，
 /// 不會在合成路徑上發生。
+/// 設定視窗的「測試」：只打一次清單、不下載。
+@MainActor
+enum SourceProbe {
+
+    static func test(_ config: RemoteSourceConfig) async -> SourceTestResult {
+        do {
+            let key = KeychainStore.get(AppSettings.keychainAccount(for: config))
+            let source = try RemoteSourceFactory.make(config: config, key: key)
+            let count = try await RemoteFetcher(cacheDirectory: AppPaths.standard().remoteCache)
+                .probe(source: source)
+            return .fromCount(count)
+        } catch {
+            return .fromError(error)
+        }
+    }
+}
+
 @MainActor
 final class RemoteVideoPool {
 

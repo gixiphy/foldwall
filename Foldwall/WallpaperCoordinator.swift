@@ -43,6 +43,8 @@ final class WallpaperCoordinator {
 
     private(set) var status = Status()
     private(set) var folders: [URL] = []
+    /// 照片圖庫裡有內容的相簿。設定視窗要用它列勾選項，所以放在這裡而不是各自去抓。
+    private(set) var albums: [PhotoAlbum] = []
 
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let bookmarks: BookmarkStore
@@ -100,6 +102,7 @@ final class WallpaperCoordinator {
             }
         }
         reloadFolders()
+        reloadAlbums()
         refreshNow()
 
         // 開關關著＝container 應該是空的。這裡順手把上次跑到一半留下的孤兒清掉，
@@ -545,6 +548,16 @@ final class WallpaperCoordinator {
         forceVideoSync = true
         rotateVideosOnNextRefresh = true
         refreshNow()
+    }
+
+    /// 相簿清單要授權後才拿得到；設定視窗按了「請求授權」之後會回頭叫這個。
+    func reloadAlbums() {
+        guard PhotosAlbumSource.authorizationStatus == .authorized
+                || PhotosAlbumSource.authorizationStatus == .limited else {
+            albums = []
+            return
+        }
+        albums = PhotosAlbumSource.albums()
     }
 
     /// 設定視窗改了規則就立刻重評一次。
