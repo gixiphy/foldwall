@@ -18,6 +18,7 @@
 		27166EDA9AF7EBCAC515D4D5 /* BookmarkCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDCF3EE91465CE5238202918 /* BookmarkCodec.swift */; };
 		29662DE33EFC38AD76C0F490 /* FoldwallCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E49E531D6B989F9304A2E022 /* FoldwallCore.framework */; };
 		40E7998011B4545649176ABF /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB8D3B7FAF0FF86FEB4C4B3 /* ImageLoader.swift */; };
+		495C27A4ACA263CB4FEBBCBE /* MaterializerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 370E7E214D59EA0EA71EA2AE /* MaterializerTests.swift */; };
 		54E39334AB011B4CBB2A9F56 /* MontageComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D1BC76F17F313123DC82D1E /* MontageComposerTests.swift */; };
 		5F9315C6A2D52A85413145ED /* ScreenBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FA436262094C77F145604F /* ScreenBridge.swift */; };
 		65A9EAD6358876ED744707CB /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9DBB3AC09D4C639CC4D6F16 /* Log.swift */; };
@@ -32,6 +33,7 @@
 		B2EB06A05DE4694840CE0EA8 /* MediaTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0536332713CD383113F12207 /* MediaTypes.swift */; };
 		BBAB65431B2DFD61F0889A4B /* FolderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21CCF36F676D3CBC0E595622 /* FolderStore.swift */; };
 		C2158F12A42DF513374AD5B9 /* MediaIndexerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38B76ED23633AAB64E77B82 /* MediaIndexerTests.swift */; };
+		C24D15F995832C471CB6A068 /* Materializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A1ABB98FFC2C01CC91F13C7 /* Materializer.swift */; };
 		CABE1C2984D7A947A550212A /* SeededGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F0090E8FE99370E3B33F4C3 /* SeededGenerator.swift */; };
 		D78F40C2C2CB739C8376EC74 /* ImageLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80EB9ED77FE384AFBBD4E399 /* ImageLoaderTests.swift */; };
 		D9C3D378F0BD590722071BEC /* MediaIndexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F33540AF00E0706871101C /* MediaIndexer.swift */; };
@@ -91,8 +93,10 @@
 		2216BA67DC766360D922163E /* MontageComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MontageComposer.swift; sourceTree = "<group>"; };
 		25B46C52900F8DCB6413B3CA /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
 		330F76F05B90DA6A2C8994B2 /* FoldwallCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FoldwallCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		370E7E214D59EA0EA71EA2AE /* MaterializerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaterializerTests.swift; sourceTree = "<group>"; };
 		454234BEFCC9A12FB66E29D8 /* WallpaperCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperCoordinator.swift; sourceTree = "<group>"; };
 		482A530F542F9E528E053F99 /* Foldwall.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Foldwall.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4A1ABB98FFC2C01CC91F13C7 /* Materializer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Materializer.swift; sourceTree = "<group>"; };
 		4F48E153F0F5100E70855B71 /* AppPaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPaths.swift; sourceTree = "<group>"; };
 		50AC50656034A8E70E15745A /* PostProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostProcessor.swift; sourceTree = "<group>"; };
 		564344F73AFB43461C1C5C6F /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
@@ -180,6 +184,7 @@
 			children = (
 				BE46C077CBAA4384DAC0ACD7 /* BookmarkCodecTests.swift */,
 				80EB9ED77FE384AFBBD4E399 /* ImageLoaderTests.swift */,
+				370E7E214D59EA0EA71EA2AE /* MaterializerTests.swift */,
 				F38B76ED23633AAB64E77B82 /* MediaIndexerTests.swift */,
 				7D1BC76F17F313123DC82D1E /* MontageComposerTests.swift */,
 				730E77457041D8F787E9CB3B /* PostProcessorTests.swift */,
@@ -199,6 +204,7 @@
 				21CCF36F676D3CBC0E595622 /* FolderStore.swift */,
 				A11A99B8528DAD2DC4A4A791 /* FoldwallCore.swift */,
 				DBB8D3B7FAF0FF86FEB4C4B3 /* ImageLoader.swift */,
+				4A1ABB98FFC2C01CC91F13C7 /* Materializer.swift */,
 				A1F33540AF00E0706871101C /* MediaIndexer.swift */,
 				0536332713CD383113F12207 /* MediaTypes.swift */,
 				2216BA67DC766360D922163E /* MontageComposer.swift */,
@@ -336,6 +342,7 @@
 				BBAB65431B2DFD61F0889A4B /* FolderStore.swift in Sources */,
 				23BBDD3C9164C1F85EA7160A /* FoldwallCore.swift in Sources */,
 				40E7998011B4545649176ABF /* ImageLoader.swift in Sources */,
+				C24D15F995832C471CB6A068 /* Materializer.swift in Sources */,
 				D9C3D378F0BD590722071BEC /* MediaIndexer.swift in Sources */,
 				B2EB06A05DE4694840CE0EA8 /* MediaTypes.swift in Sources */,
 				95B31AFB47B596304F871036 /* MontageComposer.swift in Sources */,
@@ -353,6 +360,7 @@
 			files = (
 				FA6BD13E5C5D78CF617584B6 /* BookmarkCodecTests.swift in Sources */,
 				D78F40C2C2CB739C8376EC74 /* ImageLoaderTests.swift in Sources */,
+				495C27A4ACA263CB4FEBBCBE /* MaterializerTests.swift in Sources */,
 				C2158F12A42DF513374AD5B9 /* MediaIndexerTests.swift in Sources */,
 				54E39334AB011B4CBB2A9F56 /* MontageComposerTests.swift in Sources */,
 				66343747EF40A8EB3BBA6D68 /* PostProcessorTests.swift in Sources */,

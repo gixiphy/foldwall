@@ -11,6 +11,11 @@ public protocol DesktopSetting: Sendable {
     func setDesktopImageURL(_ url: URL, for screenID: CGDirectDisplayID) async throws
 }
 
+/// 合成前把來源變成本機讀得到的檔案（File Provider 物化／SMB 拷貝）。
+public protocol MediaPreparing: Sendable {
+    func prepare(_ url: URL) async throws -> URL
+}
+
 public struct DisplayTarget: Sendable, Equatable {
     /// 執行期用；**不要**持久化（重開機／熱插拔會變）。
     public var id: CGDirectDisplayID
@@ -46,15 +51,19 @@ public struct StillPipeline: Sendable {
     private let composer: any MontageComposing
     private let desktop: any DesktopSetting
     private let paths: AppPaths
+    /// nil = 來源都在本機，不需物化。
+    private let preparer: (any MediaPreparing)?
 
     public init(
         composer: any MontageComposing = MontageComposer(),
         desktop: any DesktopSetting,
-        paths: AppPaths
+        paths: AppPaths,
+        preparer: (any MediaPreparing)? = nil
     ) {
         self.composer = composer
         self.desktop = desktop
         self.paths = paths
+        self.preparer = preparer
     }
 
     /// 依螢幕長邊決定抽幾張；`reduced` 封頂 6。門檻定死，改了要連測試一起改。
@@ -96,7 +105,7 @@ public struct StillPipeline: Sendable {
             let count = Self.pieceCount(longSide: longSide, tier: tier)
             let seed = SeededGenerator.seed(cycleNonce: cycleNonce, displayUUID: display.uuid)
 
-            let images = loadImages(from: pool, count: count, seed: seed, maxPixel: Int(longSide))
+            let images = await loadImages(from: pool, count: count, seed: seed, maxPixel: Int(longSide))
             guard !images.isEmpty else {
                 // 這台沒圖可用 → 保留現桌布，不寫黑圖
                 outcome.poolWasEmpty = true
@@ -120,8 +129,9 @@ public struct StillPipeline: Sendable {
 
     // MARK: - 私有
 
-    /// 依 seed 抽片並載入。壞檔略過（視同離線），不讓一顆爛蘋果毀掉整輪。
-    private func loadImages(from pool: [URL], count: Int, seed: UInt64, maxPixel: Int) -> [CGImage] {
+    /// 依 seed 抽片並載入。**只物化抽中的**，不是整池下載。
+    /// 壞檔／離線略過（視同離線），不讓一顆爛蘋果毀掉整輪。
+    private func loadImages(from pool: [URL], count: Int, seed: UInt64, maxPixel: Int) async -> [CGImage] {
         guard !pool.isEmpty else { return [] }
         var rng = SeededGenerator(seed: seed)
         var images: [CGImage] = []
@@ -131,7 +141,12 @@ public struct StillPipeline: Sendable {
         while images.count < count, attempts < budget {
             attempts += 1
             let url = pool[Int.random(in: 0..<pool.count, using: &rng)]
-            if let image = try? ImageLoader.load(url, maxPixel: maxPixel) {
+            var local = url
+            if let preparer {
+                guard let prepared = try? await preparer.prepare(url) else { continue }
+                local = prepared
+            }
+            if let image = try? ImageLoader.load(local, maxPixel: maxPixel) {
                 images.append(image)
             }
         }

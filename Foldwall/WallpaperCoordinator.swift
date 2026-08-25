@@ -40,8 +40,12 @@ final class WallpaperCoordinator {
         self.settings = settings
         self.bookmarks = bookmarks
         self.scheduler = Scheduler(intervalMinutes: settings.intervalMinutes, now: .now)
-        self.pipeline = StillPipeline(desktop: WorkspaceDesktopSetting(),
-                                      paths: .standard())
+        let paths = AppPaths.standard()
+        self.pipeline = StillPipeline(
+            desktop: WorkspaceDesktopSetting(),
+            paths: paths,
+            preparer: Materializer(cacheDirectory: paths.smbCache)
+        )
     }
 
     // MARK: - 生命週期
