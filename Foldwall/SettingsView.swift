@@ -399,6 +399,11 @@ private struct VideoSettings: View {
                 }
                 .disabled(!settings.videoWallpaperEnabled)
 
+                GroupBox("從網址下載") {
+                    VideoDownloadBox(service: coordinator.downloadService)
+                }
+                .disabled(!settings.videoWallpaperEnabled)
+
                 Divider()
 
                 Text("怎麼開始播").font(.headline)
@@ -1272,5 +1277,62 @@ private struct AboutSettings: View {
             Spacer()
         }
         .padding()
+    }
+}
+
+// MARK: - 從網址下載
+
+/// Foldwall **不做**串流解析。這裡呼叫的是使用者自己安裝的 yt-dlp，
+/// 抽取那一段由那個工具負責，也由使用者自己決定要對哪個站用。
+private struct VideoDownloadBox: View {
+
+    @Bindable var service: VideoDownloadService
+    @State private var url = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if service.toolURL == nil {
+                Label("需要 yt-dlp", systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                Text("Foldwall 不自己解析串流。安裝後即可使用：`brew install yt-dlp`\n"
+                     + "（同時裝 ffmpeg 可以支援更多格式）")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                HStack {
+                    TextField("影片網址", text: $url)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { service.download(url) }
+                    Button("下載") { service.download(url) }
+                        .disabled(url.isEmpty || service.state == .running)
+                    if service.state == .running {
+                        ProgressView().controlSize(.small)
+                    }
+                }
+                if !service.state.summary.isEmpty {
+                    Text(service.state.summary)
+                        .font(.caption)
+                        .foregroundStyle(color)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Text("存到 `~/Movies/Foldwall`，自動成為影片來源。"
+                     + "最高 \(VideoDownloadTool.maximumHeight)p——桌布不需要 4K，"
+                     + "檔案大好幾倍又更吃電。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(4)
+    }
+
+    private var color: Color {
+        switch service.state {
+        case .finished: .green
+        case .failed: .red
+        default: .secondary
+        }
     }
 }

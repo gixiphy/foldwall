@@ -57,6 +57,8 @@ final class WallpaperCoordinator {
     @ObservationIgnored private let focus = FocusModeMonitor()
     @ObservationIgnored private let aggregate = AggregateFolder()
     @ObservationIgnored private let desktopVideo = DesktopVideoEngine()
+    @ObservationIgnored private let downloads = VideoDownloadService()
+    var downloadService: VideoDownloadService { downloads }
     @ObservationIgnored private var aggregateTask: Task<Void, Never>?
 
     @ObservationIgnored private var scheduler: Scheduler
@@ -410,7 +412,7 @@ final class WallpaperCoordinator {
         rotateVideosOnNextRefresh = false
         lastVideoSync = .now
 
-        runVideoRotation(folderVideos: index.videos)
+        runVideoRotation(folderVideos: index.videos + Self.downloadedVideos())
     }
 
     /// 選片與下載都在**這條背景線**上：網路影片一支幾十 MB，
@@ -509,7 +511,7 @@ final class WallpaperCoordinator {
 
         // 網路影片一併納入：AVPlayer 播得動本機檔，也播得動已下載的快取
         let remote = await remoteVideoPool.videos(configs: settings.remoteSources)
-        let pool = index.videos + remote
+        let pool = index.videos + remote + Self.downloadedVideos()
         guard !pool.isEmpty else {
             desktopVideo.stopAll()
             return
@@ -519,6 +521,15 @@ final class WallpaperCoordinator {
             screens: marked.map(\.uuid), videos: pool, cycle: settings.videoRotationCursor)
         desktopVideo.apply(plan: plan, layer: settings.desktopVideoLayer, screens: displays)
         desktopVideo.setPaused(currentTier() == .paused)
+    }
+
+    /// `~/Movies/Foldwall` 是使用者主動用網址抓下來的，永遠算影片來源——
+    /// 不需要他再去「來源」分頁把同一個資料夾加一次。
+    static func downloadedVideos() -> [URL] {
+        let directory = AppPaths.standard().downloadedVideos
+        let entries = (try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: nil)) ?? []
+        return entries.filter { MediaIndexer.videoExtensions.contains($0.pathExtension.lowercased()) }
     }
 
     /// 切換引擎：把另一條路留下的東西收乾淨，不要兩套同時在畫面上。

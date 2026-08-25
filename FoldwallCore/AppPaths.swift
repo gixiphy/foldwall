@@ -43,6 +43,12 @@ public struct AppPaths: Sendable {
         URL.homeDirectory.appending(path: "Pictures/Foldwall")
     }
 
+    /// 從網址下載的影片。放 ~/Movies 而不是 Caches：那是使用者主動要的東西，
+    /// 不該被系統當快取清掉。
+    public var downloadedVideos: URL {
+        URL.homeDirectory.appending(path: "Movies/Foldwall")
+    }
+
     /// 要彙整進去的來源目錄。
     public var aggregateSources: [URL] { [remoteCache, photosCache, smbCache] }
 
