@@ -47,6 +47,17 @@ final class URLCommandHandler {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+
+    /// 由 FoldwallApp.init 設定。啟動工作放這裡而不是 MenuBarExtra 的 .task——
+    /// 後者要等使用者點開選單才會執行。
+    @MainActor static var onLaunch: (() -> Void)?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        MainActor.assumeIsolated {
+            Self.onLaunch?()
+        }
+    }
+
     func application(_ application: NSApplication, open urls: [URL]) {
         Task { @MainActor in
             urls.forEach { URLCommandHandler.shared.handle($0) }
