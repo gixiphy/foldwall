@@ -49,6 +49,7 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # 選單列 app：不進 Dock、不開主視窗
         INFOPLIST_KEY_LSUIElement: YES
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Foldwall 讀取你選擇的相簿，用來合成桌布蒙太奇。照片不會離開這台電腦。"
         INFOPLIST_KEY_NSHumanReadableCopyright: "MIT. Video pipeline forked from Phosphene (MIT)."
         # v1 不沙盒；Hardened Runtime 開、Library Validation 由 entitlements 關（私有 framework dlopen）
         ENABLE_HARDENED_RUNTIME: YES

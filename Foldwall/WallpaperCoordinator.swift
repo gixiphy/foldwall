@@ -18,19 +18,27 @@ final class WallpaperCoordinator {
         var isPaused = false
         var poolWasEmpty = false
         var videoCount = 0
+        var remoteCount = 0
+        var photosCount = 0
+        var sourceError: String?
         var nextDue: Date?
 
-        var hasNoSources: Bool { sourceCount == 0 && offlineCount == 0 }
+        /// 三種來源都沒有才算「還沒設定」。
+        var hasNoSources: Bool {
+            sourceCount == 0 && offlineCount == 0 && remoteCount == 0 && photosCount == 0
+        }
     }
 
     private(set) var status = Status()
     private(set) var folders: [URL] = []
 
-    @ObservationIgnored private let settings: Settings
+    @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let bookmarks: BookmarkStore
     @ObservationIgnored private let pipeline: StillPipeline
     @ObservationIgnored private let indexer = MediaIndexer()
     @ObservationIgnored private let videoLibrary = VideoLibrary()
+    @ObservationIgnored private let remotePool = RemoteSourcePool()
+    @ObservationIgnored private let photosPool = PhotosPool()
 
     @ObservationIgnored private var scheduler: Scheduler
     @ObservationIgnored private var heartbeat: Timer?
@@ -38,7 +46,7 @@ final class WallpaperCoordinator {
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
     @ObservationIgnored private var cycleNonce = UInt64(Date().timeIntervalSince1970)
 
-    init(settings: Settings, bookmarks: BookmarkStore = BookmarkStore()) {
+    init(settings: AppSettings, bookmarks: BookmarkStore = BookmarkStore()) {
         self.settings = settings
         self.bookmarks = bookmarks
         self.scheduler = Scheduler(intervalMinutes: settings.intervalMinutes, now: .now)
@@ -148,6 +156,9 @@ final class WallpaperCoordinator {
 
     var displays: [DisplayTarget] { ScreenBridge.currentDisplays() }
 
+    /// 設定視窗改了來源就立刻重跑一輪。
+    func sourcesDidChange() { refreshNow() }
+
     // MARK: - 排程
 
     private func dispatch(_ event: Scheduler.Event) {
@@ -175,7 +186,17 @@ final class WallpaperCoordinator {
         reloadFolders()
 
         let items = await indexer.scan(roots: folders)
-        let pool = items.filter { $0.kind == .image }.map(\.url)
+        var pool = items.filter { $0.kind == .image }.map(\.url)
+
+        // 照片相簿與網路來源各自有節流，不會每輪都去打 API
+        let fromPhotos = await photosPool.images(albums: settings.photoAlbums)
+        let fromRemote = await remotePool.images(configs: settings.remoteSources)
+        pool.append(contentsOf: fromPhotos)
+        pool.append(contentsOf: fromRemote)
+
+        status.photosCount = fromPhotos.count
+        status.remoteCount = fromRemote.count
+        status.sourceError = remotePool.lastError
         status.poolCount = pool.count
 
         // 影片差異同步進 extension container：來源移除的一併清掉

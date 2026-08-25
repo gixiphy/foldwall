@@ -7,7 +7,7 @@ import FoldwallCore
 struct MenuBarView: View {
 
     @Bindable var coordinator: WallpaperCoordinator
-    @Bindable var settings: Settings
+    @Bindable var settings: AppSettings
 
     var body: some View {
         Group {
@@ -15,6 +15,7 @@ struct MenuBarView: View {
 
             if coordinator.status.hasNoSources {
                 Button("尚未加入資料夾…") { Task { await coordinator.addFolders() } }
+                SettingsLink { Text("…或加入照片相簿／網路來源") }
             }
 
             Divider()
@@ -30,6 +31,13 @@ struct MenuBarView: View {
 
             displayMenu
             sourcesMenu
+            SettingsLink { Text("設定（照片相簿・網路來源）…") }
+                .keyboardShortcut(",")
+
+            if let error = coordinator.status.sourceError {
+                Text("網路來源異常：\(error)")
+                    .font(.caption)
+            }
 
             if coordinator.status.offlineCount > 0 {
                 Button("來源離線／無權限（\(coordinator.status.offlineCount)）…") {
@@ -59,7 +67,7 @@ struct MenuBarView: View {
 
     private var statusText: String {
         let status = coordinator.status
-        if status.hasNoSources { return "尚未加入資料夾" }
+        if status.hasNoSources { return "尚未加入任何來源" }
         if status.offlineCount > 0 && status.sourceCount == 0 {
             return "來源離線 \(status.offlineCount) 個"
         }
@@ -67,7 +75,11 @@ struct MenuBarView: View {
             return "來源無可用影像"
         }
 
-        let base = "來源 \(status.sourceCount)・池 \(status.poolCount)"
+        var parts = ["池 \(status.poolCount)"]
+        if status.sourceCount > 0 { parts.insert("資料夾 \(status.sourceCount)", at: 0) }
+        if status.photosCount > 0 { parts.append("相簿 \(status.photosCount)") }
+        if status.remoteCount > 0 { parts.append("網路 \(status.remoteCount)") }
+        let base = parts.joined(separator: "・")
         if status.isPaused { return base + "・已暫停" }
         guard let due = status.nextDue else { return base }
         return base + "・下次 " + due.formatted(date: .omitted, time: .shortened)
@@ -161,7 +173,7 @@ struct MenuBarView: View {
     }
 
     private func openWallpaperSettings() {
-        guard let url = URL(string: "x-apple.systempreferences:com.apple.Wallpaper-Settings.extension")
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.Wallpaper-AppSettings.extension")
         else { return }
         NSWorkspace.shared.open(url)
     }
