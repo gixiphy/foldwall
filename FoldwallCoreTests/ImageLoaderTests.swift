@@ -90,7 +90,7 @@ final class ImageLoaderTests: XCTestCase {
 
         var images: [CGImage] = []
         if let source = env["FOLDWALL_SAMPLE_SOURCE"] {
-            let items = await MediaIndexer().scan(roots: [URL(filePath: source)])
+            let items = await MediaIndexer().scan(roots: [URL(filePath: source)]).items
             images = items.filter { $0.kind == .image }.prefix(12)
                 .compactMap { try? ImageLoader.load($0.url, maxPixel: 1600) }
         }
@@ -104,7 +104,7 @@ final class ImageLoaderTests: XCTestCase {
         try FileManager.default.createDirectory(at: URL(filePath: outDir), withIntermediateDirectories: true)
         for (index, effect) in [PostProcess.none, .grayscale, .sepia, .desaturate].enumerated() {
             let composite = try MontageComposer().compose(
-                images: images, canvas: canvas,
+                pieces: images.map { MontagePiece(image: $0) }, canvas: canvas,
                 recipe: MontageRecipe(pieceCount: 9, seed: UInt64(index + 1)),
                 effect: effect
             )

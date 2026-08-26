@@ -38,6 +38,13 @@ enum ScreenBridge {
     static func displayID(forUUID uuid: String) -> CGDirectDisplayID? {
         NSScreen.screens.first { $0.foldwallDisplayUUID == uuid }?.foldwallDisplayID
     }
+
+    /// 設備名稱（"Built-in Retina Display"、"AG493UCX2"…）。
+    /// 現拔現查而不是存進 DisplayTarget：那個型別在 Core 裡、要能被純邏輯測試建構，
+    /// 而名稱只有 AppKit 拿得到，且螢幕被拔掉後就查不到了。
+    static func localizedName(forUUID uuid: String) -> String? {
+        NSScreen.screens.first { $0.foldwallDisplayUUID == uuid }?.localizedName
+    }
 }
 
 /// 公開 API，不碰私有 framework：私有 API 掛了蒙太奇還能用。

@@ -54,19 +54,30 @@ final class CacheLocationTests: XCTestCase {
     }
 
     /// 使用者心裡只有照片與影片兩類，不該被迫理解六個子目錄。
-    func testOnlyTwoGroupsAreExposed() {
+    /// 使用者心裡只有這幾類。多一類就要先想清楚它是什麼，不要隨手加。
+    func testExposedGroupsAreTheExpectedOnes() {
         let locations = AppPaths.standard().locations()
-        XCTAssertEqual(locations.map(\.id), ["photos", "videos"])
+        XCTAssertEqual(locations.map(\.id), ["photos", "videos"],
+                       "網址下載的影片併進「影片」那組——它們現在是同一個目錄")
     }
 
     /// 合成輸出是正掛在桌面上的檔案，不是快取——不能出現在可清除的清單裡。
     func testLiveWallpaperIsNotListedAsCache() {
         let paths = AppPaths.standard()
-        let everyMember = paths.locations().flatMap(\.members)
-        XCTAssertFalse(everyMember.contains(paths.wallpapers))
-        for directory in everyMember {
-            XCTAssertTrue(directory.path.contains("/Caches/") || directory.path.contains("Containers"),
-                          "\(directory.lastPathComponent) 不該被列成可清除的快取")
+        XCTAssertFalse(paths.locations().flatMap(\.members).contains(paths.wallpapers))
+    }
+
+    /// `isPurgeable` 要誠實：只有真的躺在 Caches／Containers 底下的才會被系統
+    /// 在空間不足時清掉。標錯會讓使用者對「這些東西會不會自己消失」有錯誤預期——
+    /// 從網址下載的影片就是刻意放在 ~/Movies 不讓系統碰的。
+    func testPurgeableFlagMatchesWhereTheFilesActuallyLive() {
+        for location in AppPaths.standard().locations() {
+            let systemManaged = location.members.allSatisfy {
+                $0.path.contains("/Caches/") || $0.path.contains("Containers")
+            }
+            XCTAssertEqual(location.isPurgeable, systemManaged,
+                           "\(location.id)：標成\(location.isPurgeable ? "可" : "不可")清除，"
+                           + "但實際位置\(systemManaged ? "在" : "不在")系統管的範圍")
         }
     }
 

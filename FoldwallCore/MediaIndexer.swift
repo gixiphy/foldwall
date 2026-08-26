@@ -8,8 +8,24 @@
 
 import Foundation
 
+/// 一輪掃描的結果。
+///
+/// `unreadableRoots` 是這個型別存在的理由：**「掃過但沒東西」和「根本打不開」
+/// 必須分得開。** 兩者都回空清單的話，NAS 沒掛載時上層會以為來源真的空了，
+/// 影片差異同步就把 extension container 裡還在的影片全刪掉。
+public struct MediaScan: Sendable, Equatable {
+    public var items: [IndexedItem]
+    /// 打不開的根目錄：磁碟沒掛、被刪、TCC 拒絕。
+    public var unreadableRoots: [URL]
+
+    public init(items: [IndexedItem] = [], unreadableRoots: [URL] = []) {
+        self.items = items
+        self.unreadableRoots = unreadableRoots
+    }
+}
+
 public protocol MediaIndexing: Sendable {
-    func scan(roots: [URL]) async -> [IndexedItem]
+    func scan(roots: [URL]) async -> MediaScan
 }
 
 public struct MediaIndexer: MediaIndexing {
@@ -24,28 +40,46 @@ public struct MediaIndexer: MediaIndexing {
 
     public init() {}
 
-    public func scan(roots: [URL]) async -> [IndexedItem] {
-        await withTaskGroup(of: [IndexedItem].self) { group in
+    public func scan(roots: [URL]) async -> MediaScan {
+        await withTaskGroup(of: (URL, [IndexedItem]?).self) { group in
             for root in roots {
-                group.addTask { Self.scanRoot(root) }
+                group.addTask { (root, Self.scanRoot(root)) }
             }
             var all: [IndexedItem] = []
-            for await chunk in group {
-                all.append(contentsOf: chunk)
+            var unreadable: [URL] = []
+            for await (root, chunk) in group {
+                if let chunk {
+                    all.append(contentsOf: chunk)
+                } else {
+                    unreadable.append(root)
+                }
             }
             // 固定順序：讓同一 seed 的蒙太奇可重現
-            return all.sorted { $0.url.path < $1.url.path }
+            return MediaScan(
+                items: all.sorted { $0.url.path < $1.url.path },
+                unreadableRoots: unreadable.sorted { $0.path < $1.path })
         }
     }
 
-    private static func scanRoot(_ root: URL) -> [IndexedItem] {
+    /// - Returns: nil＝這個根目錄打不開（磁碟沒掛／被刪／TCC 拒絕）。
+    ///   空陣列是另一回事：目錄在，只是裡面沒有影像檔。
+    private static func scanRoot(_ root: URL) -> [IndexedItem]? {
         let fm = FileManager.default
+
+        // 先確認目錄真的在。enumerator(at:) 對不存在的路徑**不一定**回 nil，
+        // 它可能給一個第一次 nextObject 就結束的列舉器——那看起來跟「空目錄」
+        // 一模一樣，正是要避免的誤判。
+        var isDirectory: ObjCBool = false
+        guard fm.fileExists(atPath: root.path(percentEncoded: false), isDirectory: &isDirectory),
+              isDirectory.boolValue
+        else { return nil }
+
         guard let walker = fm.enumerator(
             at: root,
             includingPropertiesForKeys: [.isRegularFileKey],
             options: [.skipsHiddenFiles, .skipsPackageDescendants]
         ) else {
-            return []   // 讀不到（不存在／TCC 拒絕）→ 空池，由上層標離線
+            return nil
         }
 
         var items: [IndexedItem] = []

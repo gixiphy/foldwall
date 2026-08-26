@@ -44,13 +44,19 @@ public enum PostProcess: String, CaseIterable, Sendable {
 }
 
 public struct MontageRecipe: Sendable, Equatable {
-    /// 合法範圍 4...12，超出由 Composer clamp。
+    /// 合法範圍見 `MontageComposer.pieceCountRange`，超出由 Composer clamp。
     public var pieceCount: Int
     public var seed: UInt64
+    /// 要不要把來源與作者印上去。
+    ///
+    /// **關掉是使用者的選擇，不是預設。** Unsplash 與 Pexels 的授權都要求標註作者，
+    /// 所以預設開；關掉之後那些來源就只剩使用者自己看得到，責任在使用者身上。
+    public var showCredits: Bool
 
-    public init(pieceCount: Int, seed: UInt64) {
+    public init(pieceCount: Int, seed: UInt64, showCredits: Bool = true) {
         self.pieceCount = pieceCount
         self.seed = seed
+        self.showCredits = showCredits
     }
 }
 

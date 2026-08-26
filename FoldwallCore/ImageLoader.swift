@@ -14,7 +14,8 @@ public enum ImageLoader {
     }
 
     /// - Parameters:
-    ///   - maxPixel: 長邊上限（像素），通常給 canvas 長邊。
+    ///   - maxPixel: 長邊上限（像素）。**不是 canvas 長邊**——一片只佔畫面一小塊，
+    ///     由 `StillPipeline.decodeMaxPixel(canvas:)` 算出實際需要的大小。
     ///   - minimumShortSide: 短邊門檻；`nil` 不檢查。索引階段不驗尺寸（開檔太貴），
     ///     所以這道關卡在這裡——只對真的抽中的圖付這個成本。
     public static func load(_ url: URL, maxPixel: Int, minimumShortSide: Int? = nil) throws -> CGImage {

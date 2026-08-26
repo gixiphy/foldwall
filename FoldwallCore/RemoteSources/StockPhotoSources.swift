@@ -27,10 +27,23 @@ public struct UnsplashSource: RemotePhotoSource {
 
     private struct Photo: Decodable {
         struct URLs: Decodable { let full: String; let regular: String }
-        struct User: Decodable { let name: String? }
+        struct Links: Decodable { let download_location: String? }
+        struct UserLinks: Decodable { let html: String? }
+        struct User: Decodable { let name: String?; let username: String?; let links: UserLinks? }
         let id: String
         let urls: URLs
         let user: User?
+        let links: Links?
+    }
+
+    /// 連回 Unsplash 的網址都要帶 utm，這是 API 規範明文要求的。
+    static func referral(_ raw: String) -> URL? {
+        guard var components = URLComponents(string: raw) else { return nil }
+        components.queryItems = (components.queryItems ?? []) + [
+            URLQueryItem(name: "utm_source", value: "Foldwall"),
+            URLQueryItem(name: "utm_medium", value: "referral"),
+        ]
+        return components.url
     }
 
     public func parse(_ data: Data) throws -> [RemoteImage] {
@@ -47,9 +60,26 @@ public struct UnsplashSource: RemotePhotoSource {
         return photos.compactMap { photo in
             guard let url = URL(string: photo.urls.full) ?? URL(string: photo.urls.regular)
             else { return nil }
-            return RemoteImage(id: photo.id, url: url,
-                               attribution: photo.user?.name.map { "\($0) / Unsplash" })
+            // 規範要求的寫法是「Photo by <作者> on Unsplash」
+            let credit = photo.user?.name.map { "Photo by \($0) on Unsplash" }
+            let profile = photo.user?.links?.html.flatMap(Self.referral)
+                ?? photo.user?.username.flatMap { Self.referral("https://unsplash.com/@\($0)") }
+            var image = RemoteImage(id: photo.id, url: url,
+                                    attribution: credit, profileURL: profile)
+            // download_location 原樣帶著，觸發時要加上 Client-ID
+            image.downloadTrigger = photo.links?.download_location.flatMap(URL.init(string:))
+            return image
         }
+    }
+
+    /// 下載完回報一次。**這是拿 production 額度的硬性要求**：
+    /// Unsplash 靠它統計作者被使用的次數。
+    public func downloadTriggerRequest(for image: RemoteImage) -> URLRequest? {
+        guard let trigger = image.downloadTrigger else { return nil }
+        var request = URLRequest(url: trigger)
+        request.setValue("Client-ID \(key)", forHTTPHeaderField: "Authorization")
+        request.setValue("v1", forHTTPHeaderField: "Accept-Version")
+        return request
     }
 }
 
@@ -93,7 +123,7 @@ public struct PexelsSource: RemotePhotoSource {
         return response.photos.compactMap { photo in
             guard let url = URL(string: photo.src.original) else { return nil }
             return RemoteImage(id: String(photo.id), url: url,
-                               attribution: photo.photographer.map { "\($0) / Pexels" })
+                               attribution: photo.photographer.map { "Photo by \($0) on Pexels" })
         }
     }
 }

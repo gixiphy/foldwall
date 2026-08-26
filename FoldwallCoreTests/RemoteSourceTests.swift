@@ -39,7 +39,7 @@ final class RemoteSourceTests: XCTestCase {
         XCTAssertEqual(images.count, 1)
         XCTAssertEqual(images[0].id, "a1")
         XCTAssertEqual(images[0].url.absoluteString, "https://images.unsplash.com/a1")
-        XCTAssertEqual(images[0].attribution, "Ann / Unsplash", "授權要求標註作者")
+        XCTAssertEqual(images[0].attribution, "Photo by Ann on Unsplash", "規範指定的寫法就是「Photo by <作者> on Unsplash」")
 
         // 帶 query 時 API 回傳單一物件而不是陣列
         let single = Data("""
@@ -70,7 +70,7 @@ final class RemoteSourceTests: XCTestCase {
         """.utf8)
         let images = try PexelsSource(key: "K", query: "").parse(data)
         XCTAssertEqual(images.map(\.id), ["42"])
-        XCTAssertEqual(images[0].attribution, "Bo / Pexels")
+        XCTAssertEqual(images[0].attribution, "Photo by Bo on Pexels")
     }
 
     // MARK: - Pixabay
@@ -239,12 +239,15 @@ final class RemoteSourceTests: XCTestCase {
         // OAuth 來源刻意不存在
         XCTAssertEqual(Set(RemoteSourceKind.allCases.map(\.rawValue)),
                        ["unsplash", "pexels", "pixabay", "wallhaven", "flickr", "immich", "rss",
-                        "pexelsVideo", "rsshub"])
+                        "pexelsVideo", "fourKWallpapers"])
         XCTAssertFalse(RemoteSourceKind.wallhaven.requiresKey)
         XCTAssertFalse(RemoteSourceKind.rss.requiresKey)
         XCTAssertTrue(RemoteSourceKind.immich.requiresEndpoint)
         XCTAssertTrue(RemoteSourceKind.rss.requiresEndpoint)
         XCTAssertFalse(RemoteSourceKind.immich.supportsQuery)
+        // 沒有 API 的站：抓公開網頁，本來就沒有 key 這回事
+        XCTAssertFalse(RemoteSourceKind.fourKWallpapers.requiresKey)
+        XCTAssertFalse(RemoteSourceKind.fourKWallpapers.requiresEndpoint)
     }
 
     /// 沒有任何 Google／YouTube 來源：規格第一條。
@@ -383,149 +386,83 @@ final class RemoteSourceTitleTests: XCTestCase {
     }
 }
 
-/// RSSHub 只接自架 instance：官方 rsshub.app 明講「僅供測試」，
-/// 實測匿名請求回 403、換 UA 撞 Cloudflare 挑戰頁，繞過那個在禁碰清單裡。
-final class RSSHubSourceTests: XCTestCase {
+final class RemoteSourceMigrationTests: XCTestCase {
 
-    private func query(_ request: URLRequest) -> [String: String] {
-        let items = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
-        return Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value ?? "") })
+    // MARK: - 移除來源型別時不能連坐
+
+    /// 認不得的 kind 只丟那一筆，其他來源要留著。
+    ///
+    /// 直接 `decode([RemoteSourceConfig].self)` 的話，一筆舊型別（例如 0.5.1
+    /// 移除的 RSSHub）會讓整份設定解不開，呼叫端的 `?? []` 就把使用者
+    /// **所有**網路來源清空了。
+    func testUnknownKindDropsOnlyThatEntry() throws {
+        let json = Data("""
+        [{"id":"11111111-1111-1111-1111-111111111111","kind":"pexels",
+          "isEnabled":true,"query":"","endpoint":""},
+         {"id":"22222222-2222-2222-2222-222222222222","kind":"rsshub",
+          "isEnabled":true,"query":"/pixiv/x","endpoint":"http://localhost:1200"},
+         {"id":"33333333-3333-3333-3333-333333333333","kind":"wallhaven",
+          "isEnabled":true,"query":"Hololive","endpoint":""}]
+        """.utf8)
+
+        let configs = RemoteSourceConfig.decodeList(json)
+        XCTAssertEqual(configs.map(\.kind), [.pexels, .wallhaven], "只有認不得的那筆被丟掉")
+        XCTAssertEqual(configs.last?.query, "Hololive", "後面的來源沒有被連累")
     }
 
-    func testComposesInstanceAndRoute() throws {
-        let request = try RSSHubSource(instance: "http://localhost:1200",
-                                       route: "/pixiv/user/12345").listRequest(limit: 10)
-        XCTAssertEqual(request.url?.absoluteString, "http://localhost:1200/pixiv/user/12345")
+    func testDecodeListSurvivesGarbage() {
+        XCTAssertTrue(RemoteSourceConfig.decodeList(Data("not json".utf8)).isEmpty)
+        XCTAssertTrue(RemoteSourceConfig.decodeList(Data("[]".utf8)).isEmpty)
     }
 
-    func testRouteWithoutLeadingSlashStillWorks() throws {
-        let request = try RSSHubSource(instance: "https://rss.example.com",
-                                       route: "bilibili/user/dynamic/1").listRequest(limit: 10)
-        XCTAssertEqual(request.url?.path, "/bilibili/user/dynamic/1")
+    /// RSSHub 已移除：官方 instance 明講僅供測試、自架門檻高，
+    /// 而它產出的就是一般 RSS——需要的人用「RSS 相片來源」填完整 feed 網址即可。
+    func testRSSHubIsGone() {
+        XCTAssertFalse(RemoteSourceKind.allCases.map(\.rawValue).contains("rsshub"))
+    }
+}
+final class UnsplashComplianceTests: XCTestCase {
+
+    private let payload = Data("""
+    [{"id":"p1",
+      "urls":{"full":"https://images.unsplash.com/p1","regular":"https://images.unsplash.com/r1"},
+      "links":{"download_location":"https://api.unsplash.com/photos/p1/download?ixid=abc"},
+      "user":{"name":"Annie Spratt","username":"anniespratt",
+              "links":{"html":"https://unsplash.com/@anniespratt"}}}]
+    """.utf8)
+
+    /// 規範明文：連回 Unsplash 的網址都要帶 utm。
+    func testProfileLinkCarriesReferralParameters() throws {
+        let image = try XCTUnwrap(UnsplashSource(key: "K", query: "").parse(payload).first)
+        let url = try XCTUnwrap(image.profileURL)
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        XCTAssertEqual(url.path, "/@anniespratt")
+        XCTAssertEqual(items.first { $0.name == "utm_source" }?.value, "Foldwall")
+        XCTAssertEqual(items.first { $0.name == "utm_medium" }?.value, "referral")
     }
 
-    /// 反向代理常見：instance 掛在子路徑底下。
-    func testInstanceWithSubpathKeepsIt() throws {
-        let request = try RSSHubSource(instance: "https://example.com/rsshub/",
-                                       route: "/pixiv/user/1").listRequest(limit: 10)
-        XCTAssertEqual(request.url?.path, "/rsshub/pixiv/user/1")
+    /// download_location 要原樣留著——那是拿 production 額度的硬性要求。
+    func testDownloadTriggerIsCapturedAndAuthorised() throws {
+        let source = UnsplashSource(key: "KEY123", query: "")
+        let image = try XCTUnwrap(source.parse(payload).first)
+        XCTAssertEqual(image.downloadTrigger?.absoluteString,
+                       "https://api.unsplash.com/photos/p1/download?ixid=abc")
+
+        let request = try XCTUnwrap(source.downloadTriggerRequest(for: image))
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Client-ID KEY123",
+                       "回報也要帶 key，否則 Unsplash 不認")
     }
 
-    func testAccessKeyIsAppended() throws {
-        let request = try RSSHubSource(instance: "https://rss.example.com",
-                                       route: "/x", key: "secret").listRequest(limit: 10)
-        XCTAssertEqual(query(request)["key"], "secret")
+    /// 沒有 download_location 就不打——不要對著 nil 硬組請求。
+    func testNoTriggerWhenTheSourceDoesNotProvideOne() {
+        let plain = RemoteImage(id: "x", url: URL(string: "https://e.com/a.jpg")!)
+        XCTAssertNil(UnsplashSource(key: "K", query: "").downloadTriggerRequest(for: plain))
     }
 
-    func testNoKeyMeansNoQueryItem() throws {
-        let request = try RSSHubSource(instance: "https://rss.example.com",
-                                       route: "/x", key: "").listRequest(limit: 10)
-        XCTAssertNil(request.url?.query)
-    }
-
-    /// 沒有路由就只是 instance 首頁，那是說明文件不是 feed。
-    func testEmptyRouteIsRejected() {
-        XCTAssertThrowsError(try RSSHubSource(instance: "https://rss.example.com", route: "  "))
-    }
-
-    func testBadInstanceIsRejected() {
-        XCTAssertThrowsError(try RSSHubSource(instance: "", route: "/x"))
-    }
-
-    /// RSSHub 產的是一般 RSS，抓圖邏輯與 RSSPhotoSource 共用。
-    func testParsesRSSHubShapedFeed() throws {
-        let data = Data(#"""
-        <?xml version="1.0" encoding="UTF-8"?>
-        <rss version="2.0"><channel>
-          <title>Pixiv User</title>
-          <item>
-            <title>作品一</title>
-            <description><![CDATA[<img src="https://i.pximg.net/a.jpg" referrerpolicy="no-referrer">]]></description>
-          </item>
-          <item>
-            <title>作品二</title>
-            <description><![CDATA[<img src="https://i.pximg.net/b.png"><img src="https://i.pximg.net/c.png">]]></description>
-          </item>
-        </channel></rss>
-        """#.utf8)
-
-        let images = try RSSHubSource(instance: "http://localhost:1200", route: "/pixiv/user/1")
-            .parse(data)
-        XCTAssertEqual(images.map(\.url.lastPathComponent), ["a.jpg", "b.png", "c.png"])
-        XCTAssertEqual(images.first?.attribution, "localhost")
-    }
-
-    func testKindRoutesToPhotoPool() {
-        XCTAssertEqual(RemoteSourceKind.rsshub.media, .image)
-        XCTAssertTrue(RemoteSourceKind.rsshub.requiresEndpoint, "要填自架 instance 網址")
-        XCTAssertFalse(RemoteSourceKind.rsshub.requiresKey, "key 是自架者自己設的存取控制，可有可無")
-        XCTAssertTrue(RemoteSourceKind.rsshub.supportsQuery, "關鍵字欄位放的是路由")
-    }
-
-    func testFactoryBuildsItWithoutAKey() throws {
-        let config = RemoteSourceConfig(kind: .rsshub, query: "/pixiv/user/1",
-                                        endpoint: "http://localhost:1200")
-        XCTAssertNoThrow(try RemoteSourceFactory.make(config: config, key: nil))
-    }
-
-    func testTitleShowsTheRoute() {
-        let config = RemoteSourceConfig(kind: .rsshub, query: "/pixiv/user/12345",
-                                        endpoint: "http://localhost:1200")
-        XCTAssertEqual(config.displayTitle, "RSSHub（自架）：/pixiv/user/12345")
+    /// 其他來源沒有這種要求，預設實作要回 nil。
+    func testOtherSourcesHaveNoTrigger() {
+        let image = RemoteImage(id: "x", url: URL(string: "https://e.com/a.jpg")!)
+        XCTAssertNil(WallhavenSource(key: nil, query: "").downloadTriggerRequest(for: image))
     }
 }
 
-/// 使用者手上的路由有好幾種來源：文件、RSSHub Radar、瀏覽器網址列。
-/// 三種都該貼了就能用，而不是要他自己去頭去尾。
-final class RSSHubRouteTests: XCTestCase {
-
-    func testRadarSchemeIsAccepted() throws {
-        let route = try XCTUnwrap(RSSHubRoute("rsshub://pixiv/ranking/day"))
-        XCTAssertEqual(route.path, "/pixiv/ranking/day")
-        XCTAssertTrue(route.queryItems.isEmpty)
-    }
-
-    func testPlainPathFormsAreEquivalent() throws {
-        for input in ["/pixiv/ranking/day", "pixiv/ranking/day", "  /pixiv/ranking/day  ",
-                      "/pixiv/ranking/day/"] {
-            XCTAssertEqual(RSSHubRoute(input)?.path, "/pixiv/ranking/day", "輸入：\(input)")
-        }
-    }
-
-    /// 從瀏覽器網址列複製整串也該能用——instance 由設定決定，這裡只取路由。
-    func testFullURLKeepsOnlyTheRoute() throws {
-        let route = try XCTUnwrap(RSSHubRoute("https://rsshub.app/pixiv/ranking/day"))
-        XCTAssertEqual(route.path, "/pixiv/ranking/day")
-    }
-
-    /// 路由可以帶 query。整串當 path 塞的話 `?` 會被百分比編碼，RSSHub 收到壞路由。
-    func testQueryIsSplitOutNotEncodedIntoThePath() throws {
-        let route = try XCTUnwrap(RSSHubRoute("rsshub://pixiv/user/12345?limit=10&mode=fulltext"))
-        XCTAssertEqual(route.path, "/pixiv/user/12345")
-        XCTAssertEqual(route.queryItems.count, 2)
-        XCTAssertEqual(route.queryItems.first { $0.name == "limit" }?.value, "10")
-    }
-
-    func testEmptyAndRootAreRejected() {
-        for input in ["", "   ", "/", "rsshub://"] {
-            XCTAssertNil(RSSHubRoute(input), "輸入：\(input) 只是首頁，不是 feed")
-        }
-    }
-
-    func testCanonicalRoundTrips() throws {
-        let route = try XCTUnwrap(RSSHubRoute("rsshub://pixiv/user/1?limit=10"))
-        XCTAssertEqual(RSSHubRoute(route.canonical), route)
-    }
-
-    /// 端到端：Radar 寫法 + 帶 query + 存取 key，組出來要是完整可用的網址。
-    func testComposedURLKeepsRouteQueryAndKey() throws {
-        let request = try RSSHubSource(instance: "http://localhost:1200",
-                                       route: "rsshub://pixiv/user/1?limit=10",
-                                       key: "secret").listRequest(limit: 8)
-        let components = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)!
-        XCTAssertEqual(components.path, "/pixiv/user/1")
-        let items = Dictionary(uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value ?? "") })
-        XCTAssertEqual(items["limit"], "10")
-        XCTAssertEqual(items["key"], "secret")
-    }
-}

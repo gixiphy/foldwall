@@ -11,3 +11,12 @@ dist/
 build-release/
 DerivedData/
 *.xcworkspace/xcuserdata/
+
+# 對內的開發筆記，不進倉庫
+docs/DEVELOPMENT.md
+
+# xcodegen 的生成產物。同一份 project.yml 每次 generate 出來的順序都不一樣，
+# 留在版控只會讓每次打包都多一份沒有意義的 diff（make-dmg.sh 會跑 generate）。
+# 同目錄的 xcworkspace 與 scheme 生成結果是穩定的，留著。
+# clone 之後要先 `xcodegen generate` 才開得了專案，見 docs/DEVELOPMENT.md。
+Foldwall.xcodeproj/project.pbxproj

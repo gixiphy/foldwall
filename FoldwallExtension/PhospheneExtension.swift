@@ -15,6 +15,7 @@ final class PhospheneExtension: NSObject, AppExtension {
             verifyRuntimeLayout()
             VideoLibrary.shared.scan()
             observeLibraryChanges()
+            observeSkipRequests()
             // Push current view models shortly after launch: the extension is only
             // ever spawned by a host connection, and the host's disk cache may
             // predate library changes made while no extension process was alive to
@@ -171,6 +172,26 @@ final class PhospheneExtension: NSObject, AppExtension {
                 SettingsPush.libraryDidChange()
             },
             "app.foldwall.libraryChanged" as CFString,
+            nil,
+            .deliverImmediately,
+        )
+    }
+
+    /// The main app's "next video" command. It cannot reach in and retarget a
+    /// renderer — that state lives in this (sandboxed) process — so it posts a
+    /// Darwin notification and we do the skip here. Ignored unless the shuffle
+    /// choice is active: with a fixed choice there is nothing to skip to.
+    private func observeSkipRequests() {
+        let center = CFNotificationCenterGetDarwinNotifyCenter()
+        let observer = Unmanaged.passUnretained(self).toOpaque()
+        CFNotificationCenterAddObserver(
+            center,
+            observer,
+            { _, _, _, _, _ in
+                let skipped = ShuffleController.shared.skip()
+                extensionLog("[Extension] Skip requested by app, shuffle active: \(skipped)")
+            },
+            "app.foldwall.skipVideo" as CFString,
             nil,
             .deliverImmediately,
         )

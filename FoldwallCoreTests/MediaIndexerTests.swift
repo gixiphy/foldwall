@@ -43,7 +43,7 @@ final class MediaIndexerTests: XCTestCase {
     }
 
     func testScanClassifiesAndSkipsSidecars() async {
-        let items = await MediaIndexer().scan(roots: [fixtureRoot])
+        let items = await MediaIndexer().scan(roots: [fixtureRoot]).items
         let names = Set(items.map { $0.url.lastPathComponent.lowercased() })
 
         XCTAssertTrue(names.contains("a.jpg"), "副檔名大小寫不敏感")
@@ -62,7 +62,7 @@ final class MediaIndexerTests: XCTestCase {
     }
 
     func testEmptyRootsYieldsEmptyPool() async {
-        let items = await MediaIndexer().scan(roots: [])
+        let items = await MediaIndexer().scan(roots: []).items
         XCTAssertTrue(items.isEmpty)
     }
 
@@ -72,8 +72,35 @@ final class MediaIndexerTests: XCTestCase {
         let broken = fixtureRoot.appending(path: "broken.jpg")
         try Data("這不是 JPEG".utf8).write(to: broken)
 
-        let items = await MediaIndexer().scan(roots: [fixtureRoot])
+        let items = await MediaIndexer().scan(roots: [fixtureRoot]).items
         XCTAssertTrue(items.contains { $0.url.lastPathComponent == "broken.jpg" },
                       "壞檔在索引階段驗不出來，也不該驗")
+    }
+
+    // MARK: - 讀不到 vs 空的
+
+    func testMissingRootIsReportedAsUnreadable() async {
+        let missing = URL(filePath: NSTemporaryDirectory())
+            .appending(path: "foldwall-does-not-exist-\(UUID().uuidString)")
+        let scan = await MediaIndexer().scan(roots: [missing])
+        XCTAssertTrue(scan.items.isEmpty)
+        XCTAssertEqual(scan.unreadableRoots, [missing],
+                       "不存在的根目錄要能跟「空目錄」分得開")
+    }
+
+    func testEmptyDirectoryIsReadableNotUnreadable() throws {
+        let empty = URL(filePath: NSTemporaryDirectory())
+            .appending(path: "foldwall-empty-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: empty) }
+
+        let expectation = expectation(description: "scan")
+        Task {
+            let scan = await MediaIndexer().scan(roots: [empty])
+            XCTAssertTrue(scan.items.isEmpty)
+            XCTAssertTrue(scan.unreadableRoots.isEmpty, "目錄在、只是沒東西")
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 5)
     }
 }

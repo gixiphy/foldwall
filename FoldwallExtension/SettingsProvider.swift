@@ -75,7 +75,14 @@ func buildSettingsViewModelsXPC() async -> AnyObject? {
         items.append(item)
     }
 
-    if items.count >= 2 {
+    // Offer the shuffle tile whenever there is anything at all, not only at two or
+    // more. The library CHURNS by design — the app rotates 1-3 videos through the
+    // container every time the display sleeps — so gating on the current count
+    // makes the tile vanish whenever a rotation happens to land on a single video,
+    // and with it the user's selection. Shuffle All is a standing intent ("rotate
+    // through whatever is in there"), not a snapshot of today's library size.
+    // Rotating with one video is a no-op, which ShuffleController already handles.
+    if !items.isEmpty {
         items.append(makeShuffleItem(
             bundleID: bundleID,
             thumbnailURLs: thumbnailURLs,
@@ -129,6 +136,9 @@ let shuffleChoiceID = "shuffle-all"
 /// Item ids for the shuffle frequency picker. The ids and their interpretation are
 /// Phosphene's own; the system only stores and returns the selected id.
 enum ShuffleFrequencyID: String, CaseIterable {
+    /// Advance at the end of every clip: the renderer asks for the next URL at each
+    /// loop boundary, so the swap is gapless (see `VideoRenderer.variantSelector`).
+    case afterEachVideo
     case onWakeup
     case onLogin
     case fiveMinutes
@@ -139,6 +149,7 @@ enum ShuffleFrequencyID: String, CaseIterable {
 
     var localizedName: String {
         switch self {
+        case .afterEachVideo: "After Each Video"
         case .onWakeup: "On Wake"
         case .onLogin: "On Login"
         case .fiveMinutes: "Every 5 Minutes"
@@ -152,7 +163,7 @@ enum ShuffleFrequencyID: String, CaseIterable {
     /// Rotation period for the timed frequencies; nil for the event-driven ones.
     var interval: TimeInterval? {
         switch self {
-        case .onWakeup, .onLogin: nil
+        case .afterEachVideo, .onWakeup, .onLogin: nil
         case .fiveMinutes: 5 * 60
         case .fifteenMinutes: 15 * 60
         case .thirtyMinutes: 30 * 60

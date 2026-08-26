@@ -18,16 +18,31 @@ DIST="$ROOT/dist"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
-# 選簽名身分
+# 選簽名身分。
+#
+# 開發憑證**釘死**這一張，不要用 `head -1` 撿：keychain 裡同名的
+# 「Apple Development: HSUEN-YU WU」有兩張，分屬不同 Team——
+#   S5LZ4TWLLL → 2ENEDJHX95（個人）    ← 用這張
+#   D5647Z57T3 → T87VR9424E（Microlife）
+# 而 `security find-identity` 的輸出順序沒有保證。撿錯的後果不是建置失敗，
+# 是 TeamIdentifier 悄悄換人：裝上去之後 TCC 照片授權與資料夾書籤會全部重來。
+DEV_IDENTITY="Apple Development: HSUEN-YU WU (S5LZ4TWLLL)"
+EXPECTED_TEAM="2ENEDJHX95"
+
 IDENTITY="$(security find-identity -v -p codesigning \
   | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/' || true)"
 if [ -z "$IDENTITY" ]; then
-  IDENTITY="$(security find-identity -v -p codesigning \
-    | grep "Apple Development" | head -1 | sed 's/.*"\(.*\)"/\1/' || true)"
+  # 找不到就中止，不要靜默退到別張憑證
+  security find-identity -v -p codesigning | grep -qF "$DEV_IDENTITY" || {
+    echo "✗ 找不到指定的開發憑證：$DEV_IDENTITY"
+    echo "  keychain 裡目前可用的身分："
+    security find-identity -v -p codesigning | sed 's/^/    /'
+    exit 1
+  }
+  IDENTITY="$DEV_IDENTITY"
   echo "⚠️  沒有 Developer ID Application 憑證，改用開發憑證：$IDENTITY"
   echo "    產物只能在本機跑，無法公證、無法給別台機器。"
 fi
-[ -n "$IDENTITY" ] || { echo "找不到任何簽名憑證"; exit 1; }
 
 echo "==> 產生專案"
 xcodegen generate >/dev/null
@@ -52,6 +67,16 @@ if printf '%s' "$SIGN_INFO" | grep -q 'flags=0x10000(runtime)'; then
 else
   echo "    ⚠️  Hardened Runtime 未生效（ad-hoc 簽名會這樣）"
 fi
+
+# TeamIdentifier 才是使用者感受得到的身分：它一變，TCC 授權與資料夾書籤就掉。
+# 憑證選對了不代表簽出來的 team 就對，所以驗產物、不驗意圖。
+TEAM="$(printf '%s\n' "$SIGN_INFO" | sed -n 's/^TeamIdentifier=//p')"
+[ "$TEAM" = "$EXPECTED_TEAM" ] || {
+  echo "✗ TeamIdentifier 是 $TEAM，預期 $EXPECTED_TEAM"
+  echo "  換 team 會讓照片授權與資料夾書籤全部重來。"
+  exit 1
+}
+echo "    Team $TEAM ✓"
 ARCHS="$(lipo -archs "$APP/Contents/MacOS/Foldwall")"
 [ "$ARCHS" = "arm64" ] || { echo "架構不是純 arm64：$ARCHS"; exit 1; }
 echo "    arm64 only ✓"
@@ -83,7 +108,7 @@ echo "大小：$(du -h "$DMG" | cut -f1)"
 # 公證：需要 Developer ID Application 憑證 + notarytool 憑證側寫。
 # 側寫由你自己建立一次（會問 Apple ID 與 app-specific password）：
 #   xcrun notarytool store-credentials foldwall \
-#     --apple-id <你的 Apple ID> --team-id T87VR9424E --password <app-specific password>
+#     --apple-id <你的 Apple ID> --team-id 2ENEDJHX95 --password <app-specific password>
 # 然後：NOTARY_PROFILE=foldwall ./packaging/make-dmg.sh
 if [ -n "${NOTARY_PROFILE:-}" ]; then
   case "$IDENTITY" in

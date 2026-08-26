@@ -33,6 +33,8 @@ final class VideoLibrary {
 
     static let extensionBundleID = "app.foldwall.extension"
     private static let libraryChangedNotification = "app.foldwall.libraryChanged"
+    /// 「下一片」：請 extension 跳到下一支。名稱兩側必須一致（見 PhospheneExtension）。
+    private static let skipVideoNotification = "app.foldwall.skipVideo"
 
     private let ledgerURL: URL
 
@@ -56,6 +58,10 @@ final class VideoLibrary {
     /// container 裡實際備妥幾支。靜態管線靠它判斷「這螢幕真的有影片可播嗎」。
     var deployedCount: Int { loadLedger().count }
 
+    /// 驗過解不動的來源路徑。排片時先濾掉，否則它們每輪都佔一個名額，
+    /// 拷不進去又擠掉了本來排得進來的影片。
+    var rejectedSourcePaths: Set<String> { Set(loadRejects().keys) }
+
     func sync(videos: [URL]) async {
         var ledger = loadLedger()
         sweepOrphans(ledger: ledger)
@@ -71,11 +77,25 @@ final class VideoLibrary {
 
         // 新增。**每拷完一支就寫帳本**——中途被砍（或當機）時，
         // 已經拷進去的才不會變成帳本外的孤兒永遠佔著磁碟。
+        var rejects = loadRejects()
         let deployed = Set(ledger.map(\.sourcePath))
         for url in videos where !deployed.contains(url.standardizedFileURL.path) {
             if Task.isCancelled { break }
+            let path = url.standardizedFileURL.path
+            if let known = rejects[path], known == Self.fileSize(url) {
+                Log.video.info("跳過解不動的影片：\(url.lastPathComponent, privacy: .public)")
+                continue
+            }
+            guard await Self.isDecodable(url) else {
+                // 記下來，下一輪別再花一次 SMB 讀取＋解碼去確認同一件事。
+                // 連檔案大小一起記：檔被換掉（同路徑不同內容）就重驗一次。
+                rejects[path] = Self.fileSize(url) ?? 0
+                saveRejects(rejects)
+                Log.video.error("影片解不動，不拷進 extension：\(url.lastPathComponent, privacy: .public)")
+                continue
+            }
             if let id = await deploy(url) {
-                ledger.append(Deployment(sourcePath: url.standardizedFileURL.path, entryID: id))
+                ledger.append(Deployment(sourcePath: path, entryID: id))
                 saveLedger(ledger)
             }
         }
@@ -93,6 +113,28 @@ final class VideoLibrary {
 
         for dir in contents where !known.contains(dir.lastPathComponent) {
             remove(entryID: dir.lastPathComponent)
+        }
+    }
+
+    /// macOS 真的放得出這支影片嗎。
+    ///
+    /// **必須真的解一格，不能只讀 metadata。** 踩過的坑：`hev1` 封裝的 HEVC
+    /// （參數集放在串流內）在 `loadTracks` 這一層是**完全正常的**——回得出 codec、
+    /// fps、尺寸——但 AVFoundation 一解碼就吐 -12430「Cannot Open」。
+    /// Apple 的堆疊只吃 `hvc1`。所以只驗 metadata 的話，這種檔會一路過關，
+    /// 白白從 SMB 拷幾十 MB 進 container，然後在系統設定的桌布清單裡因為
+    /// 縮圖失敗被靜默跳過——**連帶讓 Shuffle All 磚因為數量不足而整個消失**。
+    ///
+    /// 只解第一格，成本遠低於拷貝整支。
+    private static func isDecodable(_ url: URL) async -> Bool {
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        generator.maximumSize = CGSize(width: 160, height: 90)   // 只是要確認解得動
+        generator.appliesPreferredTrackTransform = true
+        do {
+            _ = try await generator.image(at: .zero).image
+            return true
+        } catch {
+            return false
         }
     }
 
@@ -157,6 +199,25 @@ final class VideoLibrary {
 
     // MARK: - 帳本與通知
 
+    /// 解不動的影片：路徑 → 當時的檔案大小。
+    ///
+    /// 存起來是因為輪替每次都可能再抽到同一支，而確認「這支解不動」要付一次
+    /// SMB 讀取加一次解碼。跟帳本放一起，清快取時一併消失。
+    private var rejectsURL: URL {
+        ledgerURL.deletingLastPathComponent().appending(path: "video-rejects.json")
+    }
+
+    private func loadRejects() -> [String: Int64] {
+        guard let data = try? Data(contentsOf: rejectsURL),
+              let map = try? JSONDecoder().decode([String: Int64].self, from: data)
+        else { return [:] }
+        return map
+    }
+
+    private func saveRejects(_ rejects: [String: Int64]) {
+        try? JSONEncoder().encode(rejects).write(to: rejectsURL, options: .atomic)
+    }
+
     private func loadLedger() -> [Deployment] {
         guard let data = try? Data(contentsOf: ledgerURL),
               let ledger = try? JSONDecoder().decode([Deployment].self, from: data)
@@ -169,6 +230,19 @@ final class VideoLibrary {
             at: ledgerURL.deletingLastPathComponent(), withIntermediateDirectories: true
         )
         try? JSONEncoder().encode(ledger).write(to: ledgerURL, options: .atomic)
+    }
+
+    /// 手動下一片（系統 extension 那條）。
+    ///
+    /// **只能用發通知的**：當前播的是哪一支由 extension 自己持有（沙盒、另一個行程），
+    /// app 這邊沒有把手可以直接指揮。只有在系統設定選了 **Shuffle All** 時它才有得跳；
+    /// 選了固定某一支的話這個通知會被忽略——那正是「單片循環」的意思。
+    static func requestExtensionSkip() {
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName(skipVideoNotification as CFString),
+            nil, nil, true
+        )
     }
 
     /// Darwin notification：讓 extension 重新掃描它的影片庫（名稱兩側必須一致）。

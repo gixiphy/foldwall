@@ -14,6 +14,9 @@ final class WallpaperCoordinator {
     struct Status: Equatable {
         var sourceCount = 0
         var poolCount = 0
+        /// 這一輪的池涵蓋幾個不同來源。蒙太奇是輪流從各來源抽的，
+        /// 這個數字就是「一張圖最多能有幾種來源」。
+        var sourceGroupCount = 0
         var offlineCount = 0
         var isPaused = false
         var poolWasEmpty = false
@@ -26,6 +29,10 @@ final class WallpaperCoordinator {
         var isIndexing = false
         /// 被 VideoBudget 上限擋下的影片支數。
         var videosOverBudget = 0
+        /// 已經拷進 extension container 的支數。
+        /// 由這裡公布而不是讓設定視窗自己去數目錄：那份 UI 開著的時候
+        /// 背景還在拷，自己數一次就永遠停在開窗那一刻的數字。
+        var deployedVideoCount = 0
         /// 網路影片來源（Pexels 影片）目前快取到幾支。
         var remoteVideoCount = 0
         /// 目前生效中的狀態規則效果，以及觸發它的原因（給選單顯示）。
@@ -57,15 +64,20 @@ final class WallpaperCoordinator {
     @ObservationIgnored private let focus = FocusModeMonitor()
     @ObservationIgnored private let aggregate = AggregateFolder()
     @ObservationIgnored private let desktopVideo = DesktopVideoEngine()
-    @ObservationIgnored private let downloads = VideoDownloadService()
-    var downloadService: VideoDownloadService { downloads }
+    @ObservationIgnored private let playlists = PlaylistService()
+    var playlistService: PlaylistService { playlists }
     @ObservationIgnored private var aggregateTask: Task<Void, Never>?
+    @ObservationIgnored private var albumsTask: Task<Void, Never>?
+    @ObservationIgnored let backup = SettingsBackup()
+    /// 播不動的影片先冷卻，不要每輪重新選中同一支。
+    @ObservationIgnored private var playbackCooldown = PlaybackCooldown()
 
     @ObservationIgnored private var scheduler: Scheduler
     @ObservationIgnored private var heartbeat: Timer?
     @ObservationIgnored private var screenDebounce: Task<Void, Never>?
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
     @ObservationIgnored private var refreshPending = false
+    @ObservationIgnored private var refreshDebounce: Task<Void, Never>?
     @ObservationIgnored private var videoSyncTask: Task<Void, Never>?
     /// 世代編號：被取代的舊同步工作結束時，不准去動已經換人的把手。
     @ObservationIgnored private var videoSyncID = 0
@@ -74,6 +86,14 @@ final class WallpaperCoordinator {
     @ObservationIgnored private var forceVideoSync = false
     /// 螢幕剛亮起，這輪 refresh 要順便換一批影片。
     @ObservationIgnored private var rotateVideosOnNextRefresh = false
+    /// 這些螢幕該往前一支了：影片播完，或使用者按了「下一片」。
+    /// 存螢幕 UUID 而不是直接換片，是因為換哪一支要看整批的計畫（避開別台正在播的）。
+    @ObservationIgnored private var pendingVideoAdvance: Set<String> = []
+    /// 隨機模式的 seed 來源。從時間起跳，否則每次重開都從同一支開始隨機。
+    @ObservationIgnored private var videoAdvanceNonce = UInt64(Date().timeIntervalSince1970)
+    /// 最近一次 refresh 算出來的影片候選。換片不必重跑整條蒙太奇管線——
+    /// 影片可能每幾分鐘就播完一支，每次都重合成一輪是白花的。
+    @ObservationIgnored private var lastVideoIndex: FolderIndex.Snapshot?
     @ObservationIgnored private var cycleNonce = UInt64(Date().timeIntervalSince1970)
 
     init(settings: AppSettings, bookmarks: BookmarkStore = BookmarkStore()) {
@@ -84,29 +104,58 @@ final class WallpaperCoordinator {
         self.pipeline = StillPipeline(
             desktop: WorkspaceDesktopSetting(),
             paths: paths,
-            preparer: Materializer(cacheDirectory: paths.smbCache)
+            preparer: Materializer(cacheDirectory: paths.smbCache),
+            // 網路來源的授權要求標註作者；本機與相簿沒有出處要標，查不到就是 nil
+            credits: CombinedCreditLookup([
+                CreditStore(directory: paths.remoteCache),
+                CreditStore(directory: paths.remoteVideoCache),
+            ])
         )
-        // 背景掃描落地時立刻補一輪，不必乾等到下一個間隔
-        self.folderIndex = FolderIndex(onScanCompleted: { [weak self] in
-            Task { @MainActor in self?.refreshNow() }
-        })
+        // 背景掃描落地時立刻補一輪，不必乾等到下一個間隔。
+        // store：上次的索引落地在磁碟上，冷啟動直接接手，不必重掃一次全量才有圖。
+        self.folderIndex = FolderIndex(
+            store: FolderIndexStore(paths: paths),
+            onScanCompleted: { [weak self] in
+                Task { @MainActor in self?.refreshSoon("資料夾索引掃完") }
+            }
+        )
     }
 
     // MARK: - 生命週期
 
     func start() {
         observeSystem()
+        // 桌面視窗播不動就冷卻那支、立刻改播別的。桌布沒人看著，
+        // 少了這條就是停在黑畫面直到有人發現。
+        desktopVideo.onPlaybackFailed = { [weak self] url, reason in
+            guard let self else { return }
+            self.playbackCooldown.recordFailure(url, now: .now)
+            self.status.sourceError = "影片播放失敗：\(url.lastPathComponent)－\(reason)"
+            self.refreshNow("影片播放失敗")
+        }
+        // 一支播完了 → 依播放模式排下一支。單片循環不會走到這裡（那條路無縫接回開頭）。
+        desktopVideo.onVideoEnded = { [weak self] uuid, url in
+            self?.videoDidEnd(screen: uuid, url: url)
+        }
+        // 三個池補到貨就補一輪合成：它們不再擋著 refresh，抓完得有人來收。
+        let refill: () -> Void = { [weak self] in self?.refreshSoon("網路／相簿補貨落地") }
+        remotePool.onRefilled = refill
+        photosPool.onRefilled = refill
+        remoteVideoPool.onRefilled = refill
+        // 片單解析回來、或按需下載落地 → 池變了，補一輪
+        playlists.onChanged = { [weak self] in self?.refreshSoon("片單內容更新") }
         heartbeat = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
                 // 專注模式沒有公開的變更通知，跟著心跳輪詢（檔案只有幾 KB）
-                if self.focus.refresh() { self.refreshNow() }
+                if self.focus.refresh() { self.refreshNow("專注模式改變") }
+                self.syncSettingsTick()
                 self.dispatch(.tick(now: .now))
             }
         }
-        reloadFolders()
+        Task.detached(priority: .utility) { Self.migrateLegacyDownloads() }
         reloadAlbums()
-        refreshNow()
+        refreshNow("啟動")   // performRefresh 自己會先解析資料夾
 
         // 開關關著＝container 應該是空的。這裡順手把上次跑到一半留下的孤兒清掉，
         // 否則沒人會呼叫 sync，那些目錄會永遠佔著磁碟（實測留過 17GB）。
@@ -173,11 +222,11 @@ final class WallpaperCoordinator {
                            object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
-                self.reloadFolders()
+                await self.reloadFolders()
                 await self.folderIndex.invalidate(roots: self.folders)
                 // 移除資料夾要立刻把該來源的影片清掉，不等 30 分鐘節流
                 self.forceVideoSync = true
-                self.refreshNow()
+                self.refreshNow("來源資料夾變動")
             }
         }
     }
@@ -188,7 +237,7 @@ final class WallpaperCoordinator {
         desktopVideo.setPaused(true)   // 沒人看的時候不必解碼
         guard settings.videoWallpaperEnabled else { return }
         rotateVideosOnNextRefresh = true
-        refreshNow()
+        refreshNow("螢幕睡著")
     }
 
     /// 螢幕亮起 → 只重跑靜態。
@@ -200,7 +249,7 @@ final class WallpaperCoordinator {
            settings.videoWallpaperEnabled, videoLibrary.deployedCount == 0 {
             rotateVideosOnNextRefresh = true
         }
-        refreshNow()
+        refreshNow("螢幕喚醒")
     }
 
     private func screensChangedDebounced() {
@@ -216,6 +265,56 @@ final class WallpaperCoordinator {
 
     func next() { dispatch(.userNext(now: .now)) }
 
+    /// 手動下一片：所有正在播影片的螢幕都立刻換下一支。
+    ///
+    /// **跟「下一張」是兩件事。** 那個換的是蒙太奇，這個換的是影片；
+    /// 兩條管線節奏不同（見 VideoPlaybackPlan.keeping），共用一個按鈕會互相打斷。
+    func nextVideo() {
+        guard settings.videoWallpaperEnabled else { return }
+        guard !settings.videoEngine.needsDeployment else {
+            // 系統 extension 那條的當前片由 extension 自己持有，app 這邊指揮不動。
+            // 發個 Darwin 通知請它跳下一支（只有選 Shuffle All 時它才有得跳）。
+            VideoLibrary.requestExtensionSkip()
+            return
+        }
+        let marked = ScreenBridge.currentDisplays()
+            .filter { settings.videoScreens.contains($0.uuid) }
+            .map(\.uuid)
+        guard !marked.isEmpty else { return }
+        pendingVideoAdvance.formUnion(marked)
+        applyDesktopVideoNow("使用者按下一片")
+    }
+
+    /// 改了播放模式。循環方式是建 player 當下決定的，得讓引擎重建一次才會生效。
+    func videoPlaybackModeDidChange() {
+        guard settings.videoWallpaperEnabled, !settings.videoEngine.needsDeployment else { return }
+        applyDesktopVideoNow("改播放模式")
+    }
+
+    /// 一支播完了：排下一支。
+    private func videoDidEnd(screen uuid: String, url: URL) {
+        Log.video.info("播畢，排下一支：\(url.lastPathComponent, privacy: .public)")
+        pendingVideoAdvance.insert(uuid)
+        applyDesktopVideoNow("影片播畢")
+    }
+
+    /// 只重排影片，**不重跑蒙太奇**。
+    ///
+    /// 走 refreshNow 的話，每播完一支就要重抽、重合成、重寫每一台螢幕的桌布——
+    /// 一支三十秒的影片會把靜態桌布的間隔設定整個蓋掉。
+    /// 手上沒有候選清單（還沒跑過第一輪 refresh）時才退回完整那條。
+    private func applyDesktopVideoNow(_ reason: StaticString) {
+        guard let index = lastVideoIndex else {
+            refreshNow(reason)
+            return
+        }
+        Log.video.info("重排影片（\(reason, privacy: .public)）")
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.applyDesktopVideo(candidates: index, effects: self.status.activeEffects)
+        }
+    }
+
     func togglePause() {
         dispatch(status.isPaused ? .resume(now: .now) : .pause)
     }
@@ -227,7 +326,19 @@ final class WallpaperCoordinator {
 
     func setEffect(_ effect: PostProcess) {
         settings.effect = effect
-        refreshNow()
+        refreshNow("改後製")
+    }
+
+    /// nil＝自動（依螢幕長邊）。改了立刻重抽，不然要等到下一輪才看得出差別。
+    func setPieceCount(_ count: Int?) {
+        settings.montagePieceCount = count
+        refreshNow("改抽取張數")
+    }
+
+    /// 改了立刻重抽：這是看得見的改動，等下一輪才生效會以為沒作用。
+    func setShowCredits(_ show: Bool) {
+        settings.showCredits = show
+        refreshNow("改標註顯示")
     }
 
     func addFolders() async {
@@ -254,7 +365,7 @@ final class WallpaperCoordinator {
     func toggleVideo(for display: DisplayTarget) {
         if settings.videoScreens.contains(display.uuid) {
             settings.videoScreens.remove(display.uuid)
-            refreshNow()   // 取消後立刻補一張蒙太奇回去
+            refreshNow("取消此螢用影片")   // 取消後立刻補一張蒙太奇回去
         } else {
             settings.videoScreens.insert(display.uuid)
         }
@@ -267,7 +378,13 @@ final class WallpaperCoordinator {
     var displays: [DisplayTarget] { ScreenBridge.currentDisplays() }
 
     /// 設定視窗改了來源就立刻重跑一輪。
-    func sourcesDidChange() { refreshNow() }
+    ///
+    /// 順便把播放失敗的冷卻紀錄清掉：使用者剛動過手，這時候還壓著上次的失敗不放，
+    /// 會讓「我明明改好了」看起來沒反應。
+    func sourcesDidChange() {
+        playbackCooldown = PlaybackCooldown()
+        refreshNow("來源清單改變")
+    }
 
     // MARK: - 排程
 
@@ -275,28 +392,58 @@ final class WallpaperCoordinator {
         let action = scheduler.handle(event)
         status.isPaused = scheduler.isPaused
         status.nextDue = scheduler.isPaused ? nil : scheduler.nextDue
-        if action == .refresh { refreshNow() }
+        if action == .refresh { refreshNow("排程到期") }
     }
 
-    private func reloadFolders() {
-        folders = bookmarks.resolvedFolders()
+    /// **要 await。** 書籤解析會對每個根做可讀性檢查（SMB＝一次網路往返），
+    /// 所以實際工作在背景執行緒上做，主執行緒在這段期間是放開的。
+    ///
+    /// 但呼叫端不能改成「射後不理」：`folders` 還是空的就往下走，
+    /// FolderIndex 會收到 `roots: []`，把整份索引當成「完整的空」清掉——
+    /// 連帶把 extension container 裡的影片一起刪了。
+    private func reloadFolders() async {
+        folders = await bookmarks.resolvedFoldersInBackground()
         status.sourceCount = folders.count
         status.offlineCount = bookmarks.offlineCount
     }
 
-    private func refreshNow() {
+    /// 背景事件專用的合併版本。
+    ///
+    /// 補貨落地與索引掃完常常在幾十秒內接連發生——三個池（網路圖／網路影片／相簿）
+    /// 各補各的，每個補完都叫一輪合成，等於把「從 SMB 拷 10 張原圖 ＋ 寫一張桌布」
+    /// 的成本乘上來源數量。實測啟動後 85 秒內合成 4 次就是這樣來的。
+    ///
+    /// 使用者動作**不走這裡**：按「下一張」要立刻有反應。
+    private func refreshSoon(_ reason: StaticString) {
+        guard refreshDebounce == nil else { return }   // 這批已經有人排隊了
+        refreshDebounce = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(Self.refreshCoalesceWindow))
+            guard let self else { return }
+            self.refreshDebounce = nil
+            self.refreshNow(reason)
+        }
+    }
+
+    /// 背景事件合併的時間窗。取 20 秒是因為三個池補貨的間隔實測在這個量級。
+    private static let refreshCoalesceWindow: TimeInterval = 20
+
+    /// - Parameter reason: 是誰要求的。這條管線有二十幾個觸發點，出問題時
+    ///   「為什麼又跑了一輪」是第一個要回答的問題，光看合成 log 看不出來。
+    private func refreshNow(_ reason: StaticString = "未標示") {
         // 上一輪還在跑就別疊上去，但要記著補一次——背景索引剛好在這時落地的話，
         // 直接丟掉這次請求會讓新掃到的圖等到下一個間隔（間隔設「每天」就是等一天）。
         guard refreshTask == nil else {
             refreshPending = true
+            Log.pipeline.info("refresh 排隊（\(reason, privacy: .public)）——上一輪還在跑")
             return
         }
+        Log.pipeline.info("refresh 開始（\(reason, privacy: .public)）")
         refreshTask = Task { @MainActor in
             defer {
                 refreshTask = nil
                 if refreshPending {
                     refreshPending = false
-                    refreshNow()
+                    refreshNow("補跑排隊的那次")
                 }
             }
             await performRefresh()
@@ -304,7 +451,7 @@ final class WallpaperCoordinator {
     }
 
     private func performRefresh() async {
-        reloadFolders()
+        await reloadFolders()
 
         focus.refresh()
         let context = RuleContext(onBattery: Self.isOnBattery, activeFocusModeID: focus.activeModeID)
@@ -321,26 +468,50 @@ final class WallpaperCoordinator {
         let index = await folderIndex.current(roots: folders)
         status.isIndexing = index.isScanning
         // 逐資料夾的用途勾選：只餵給有標記「蒙太奇」的
-        var pool = effects.contains(.disableFolders) ? [] : SourceUsageMap.filter(
-            index.images, roots: folders, usage: settings.folderUsage, needing: .montage)
+        let montageRoots = effects.contains(.disableFolders) ? [] : SourceUsageMap.allowedRoots(
+            folders, usage: settings.folderUsage, needing: .montage)
 
         // 照片相簿與網路來源各自有節流，不會每輪都去打 API
         let fromPhotos = effects.contains(.disablePhotos)
-            ? [] : await photosPool.images(albums: settings.photoAlbums)
+            ? [] : photosPool.images(albums: settings.photoAlbums)
         let fromRemote = effects.contains(.disableRemote)
-            ? [] : await remotePool.images(configs: settings.remoteSources)
-        pool.append(contentsOf: fromPhotos)
-        pool.append(contentsOf: fromRemote)
+            ? [] : remotePool.images(configs: settings.remoteSources)
+
+        // **依來源分組**送進管線，不攤平。攤平的話張數多的來源會吃掉整張圖：
+        // 實測資料夾 693,210 張對網路 538 張，隨機抽 10 張抽到網路的機率是 0.16%。
+        //
+        // 一定走背景執行緒，而且**分組與過濾合成一趟**：groupByRoot 會丟掉不屬於
+        // 任何指定根目錄的檔案，所以不需要先 SourceUsageMap.filter 再 group。
+        // 之前是主執行緒上先走一趟 68 萬筆（實測 4.4 秒）再走第二趟——
+        // 兩個資料夾用途不同時 filter 的捷徑會失效，App 就每輪卡 4.4 秒。
+        let images = index.images
+        var groups: [SourcePool.Group] = await Task.detached(priority: .userInitiated) {
+            SourcePool.groupByRoot(images, roots: montageRoots)
+        }.value
+        // 相簿與網路各自的快取是同一個目錄，分不出是哪個相簿／哪個站，各算一組。
+        if !fromPhotos.isEmpty { groups.append(.init(id: "照片相簿", urls: fromPhotos)) }
+        if !fromRemote.isEmpty { groups.append(.init(id: "網路", urls: fromRemote)) }
+        let pool = SourcePool(groups: groups)
 
         status.photosCount = fromPhotos.count
         status.remoteCount = fromRemote.count
         status.sourceError = remotePool.lastError
         status.poolCount = pool.count
+        status.sourceGroupCount = pool.groups.count
 
         var forVideo = index
-        forVideo.videos = SourceUsageMap.filter(
-            index.videos, roots: folders, usage: settings.folderUsage, needing: .video)
+        // 影片清單小得多（實測 4,658 對 68 萬），但同一條路徑上保持一致：
+        // 也不在主執行緒上走。
+        let allVideos = index.videos
+        let videoRoots = folders
+        let usage = settings.folderUsage
+        forVideo.videos = await Task.detached(priority: .userInitiated) {
+            SourceUsageMap.filter(allVideos, roots: videoRoots, usage: usage, needing: .video)
+        }.value
         status.videoCount = forVideo.videos.count
+
+        // 換片那條路要重用這份候選，不必為了換一支影片再跑一次整條管線
+        lastVideoIndex = forVideo
 
         if settings.videoEngine.needsDeployment {
             if !effects.contains(.pauseVideo) { syncVideosInBackground(forVideo) }
@@ -356,10 +527,12 @@ final class WallpaperCoordinator {
         // container 被清空，但 videoScreens 標記還在，靜態管線照樣跳過那台螢幕——
         // 沒有影片可播、也沒有蒙太奇蓋上去。再開啟時兩者就疊在一起。
         // 判斷條件跟畫面上實際有什麼綁在一起，就沒有中間狀態。
+        let deployed = videoLibrary.deployedCount
+        status.deployedVideoCount = deployed
         let videoReady = settings.videoWallpaperEnabled
             && !effects.contains(.pauseVideo)
             && (settings.videoEngine.needsDeployment
-                ? videoLibrary.deployedCount > 0
+                ? deployed > 0
                 : desktopVideo.activeCount > 0)
         let skipIDs = videoReady
             ? Set(displays.filter { settings.videoScreens.contains($0.uuid) }.map(\.id))
@@ -376,10 +549,13 @@ final class WallpaperCoordinator {
         do {
             let outcome = try await pipeline.refresh(
                 displays: displays, skipIDs: skipIDs, pool: pool,
-                effect: settings.effect, tier: tier, cycleNonce: cycleNonce
+                effect: settings.effect, tier: tier, cycleNonce: cycleNonce,
+                pieceCountOverride: settings.montagePieceCount,
+                showCredits: settings.showCredits
             )
             status.poolWasEmpty = outcome.poolWasEmpty
-            Log.pipeline.info("已更新 \(outcome.written.count) 螢，跳過 \(outcome.skipped.count) 螢，池 \(pool.count) 張")
+            // os.Logger 的字串是 OSLogMessage 字面量，不能用 + 串
+            Log.pipeline.info("已更新 \(outcome.written.count) 螢，跳過 \(outcome.skipped.count) 螢，池 \(pool.count) 張／\(pool.groups.count) 個來源")
             syncAggregateFolder()
         } catch {
             // 失敗保留現桌布，不黑屏
@@ -412,7 +588,9 @@ final class WallpaperCoordinator {
         rotateVideosOnNextRefresh = false
         lastVideoSync = .now
 
-        runVideoRotation(folderVideos: index.videos + Self.downloadedVideos())
+        // 網址下載的影片現在就存在 remoteVideoPool 的快取目錄裡，
+        // 由 runVideoRotation 那邊的 remote 一起帶進來，不必也不能在這裡再列一次。
+        runVideoRotation(folderVideos: index.videos)
     }
 
     /// 選片與下載都在**這條背景線**上：網路影片一支幾十 MB，
@@ -423,10 +601,23 @@ final class WallpaperCoordinator {
         videoSyncTask = Task { @MainActor [weak self] in
             guard let self else { return }
 
-            let remote = await self.remoteVideoPool.videos(configs: self.settings.remoteSources)
-            self.status.remoteVideoCount = remote.count
+            let allRemote = self.remoteVideoPool.videos(configs: self.settings.remoteSources)
+            self.status.remoteVideoCount = allRemote.count
             if let error = self.remoteVideoPool.lastError { self.status.sourceError = error }
             guard self.videoSyncID == generation else { return }
+
+            // 驗過解不動的先剔掉。留著的話它們每輪照樣佔一個名額，
+            // 拷不進去，卻擠掉了本來排得進來的影片——container 就一直長不滿，
+            // 系統設定那邊的清單也一直是殘的。（AVFoundation 不吃 hev1 封裝的
+            // HEVC，而那種檔在 loadTracks 這一層看起來完全正常，見 isDecodable。）
+            let rejected = self.videoLibrary.rejectedSourcePaths
+            let playable: ([URL]) -> [URL] = { urls in
+                rejected.isEmpty
+                    ? urls
+                    : urls.filter { !rejected.contains($0.standardizedFileURL.path) }
+            }
+            let folderVideos = playable(folderVideos)
+            let remote = playable(allRemote)
 
             // 兩邊分開輪：資料夾可能有幾千支、網路只有幾支，混在一起排序的話
             // 網路那幾支要繞完全庫才輪得到＝永遠不會播。
@@ -456,7 +647,7 @@ final class WallpaperCoordinator {
             guard self.videoSyncID == generation else { return }
             self.videoSyncTask = nil
             // container 內容變了 → 重評哪些螢幕該由蒙太奇接管
-            self.refreshNow()
+            self.refreshNow("影片同步完成")
         }
     }
 
@@ -471,7 +662,7 @@ final class WallpaperCoordinator {
     func videoWallpaperEnabledDidChange() {
         guard !settings.videoWallpaperEnabled else {
             forceVideoSync = true   // 剛打開就別讓使用者等 30 分鐘
-            refreshNow()
+            refreshNow("影片開關打開")
             return
         }
         lastVideoSync = nil
@@ -491,7 +682,7 @@ final class WallpaperCoordinator {
             if videos.isEmpty { self.status.videosOverBudget = 0 }
             self.videoSyncTask = nil
             // 清空 container 之後，那些螢幕要立刻由蒙太奇接管，不能留白
-            self.refreshNow()
+            self.refreshNow("影片同步完成")
         }
     }
 
@@ -510,26 +701,116 @@ final class WallpaperCoordinator {
         }
 
         // 網路影片一併納入：AVPlayer 播得動本機檔，也播得動已下載的快取
-        let remote = await remoteVideoPool.videos(configs: settings.remoteSources)
-        let pool = index.videos + remote + Self.downloadedVideos()
+        let remote = remoteVideoPool.videos(configs: settings.remoteSources)
+        // 片單：解析清單不下載，**抽到哪支才抓哪支**。這裡只放已經在磁碟上的；
+        // 抽不到就代表還沒抓過，下面會挑一支去抓，抓好下一輪自然會被選中。
+        playlists.refreshIfNeeded(settings.playlistSources)
+        // remote 已經涵蓋網址下載的那些（同一個快取目錄），不要再加一次。
+        // playlists 的檔案也在那個目錄裡，所以用 Set 去重。
+        var seen = Set<URL>()
+        let candidates = (index.videos + remote
+                          + playlists.candidates(for: settings.playlistSources))
+            .filter { seen.insert($0).inserted }
+        // 播不動的先擱著。全部都在冷卻中時 filter 會原樣放行——
+        // 一支會壞的影片好過空池換來的黑畫面。
+        let pool = playbackCooldown.filter(candidates, now: .now)
         guard !pool.isEmpty else {
             desktopVideo.stopAll()
             return
         }
 
-        let plan = VideoPlaybackPlan.assign(
-            screens: marked.map(\.uuid), videos: pool, cycle: settings.videoRotationCursor)
-        desktopVideo.apply(plan: plan, layer: settings.desktopVideoLayer, screens: displays)
+        // 影片**不跟著蒙太奇換**。只有螢幕重新亮起（或使用者動作）才換一批；
+        // 其餘時候正在播的那支只要還在池裡就繼續播。
+        // 少了這道，池一有風吹草動（下載落地、快取淘汰、重掃）影片就被換掉重播。
+        let screens = marked.map(\.uuid)
+        var plan: [String: URL]
+        if rotateVideosOnNextRefresh {
+            rotateVideosOnNextRefresh = false
+            settings.videoRotationCursor &+= 1
+            plan = VideoPlaybackPlan.assign(
+                screens: screens, videos: pool, cycle: settings.videoRotationCursor)
+        } else {
+            plan = VideoPlaybackPlan.keeping(
+                current: desktopVideo.playingURLs, screens: screens,
+                videos: pool, cycle: settings.videoRotationCursor)
+        }
+
+        // 播完了、或使用者按了「下一片」的那幾台，在這裡才往前一步。
+        // 放在 keeping 之後：先讓沒事的螢幕定下來，換片的那台才知道要避開哪幾支。
+        let advancing = pendingVideoAdvance.intersection(screens)
+        if !advancing.isEmpty {
+            // 整個清空而不只扣掉這批：沒被勾影片的螢幕（拔掉的、取消勾選的）
+            // 留在裡面也永遠等不到，只會一直佔著。
+            pendingVideoAdvance = []
+            for uuid in advancing.sorted() {
+                videoAdvanceNonce &+= 1
+                let busy = Set(plan.filter { $0.key != uuid }.map(\.value))
+                guard let next = VideoPlaybackPlan.next(
+                    after: desktopVideo.playingURLs[uuid], screen: uuid, videos: pool,
+                    busy: busy, mode: settings.videoPlaybackMode, nonce: videoAdvanceNonce)
+                else { continue }
+                plan[uuid] = next
+            }
+        }
+
+        desktopVideo.apply(plan: plan, layer: settings.desktopVideoLayer, screens: displays,
+                           mode: settings.videoPlaybackMode)
         desktopVideo.setPaused(currentTier() == .paused)
+
+        // 池裡的片單影片不夠讓每台螢幕各播一支 → 補抓一支。
+        // 這就是「抽到要顯示才下載」：需求量由螢幕數決定，不是把整個片單抓下來。
+        requestPlaylistDownloadIfNeeded(wanted: screens.count)
     }
 
-    /// `~/Movies/Foldwall` 是使用者主動用網址抓下來的，永遠算影片來源——
-    /// 不需要他再去「來源」分頁把同一個資料夾加一次。
-    static func downloadedVideos() -> [URL] {
-        let directory = AppPaths.standard().downloadedVideos
-        let entries = (try? FileManager.default.contentsOfDirectory(
-            at: directory, includingPropertiesForKeys: nil)) ?? []
-        return entries.filter { MediaIndexer.videoExtensions.contains($0.pathExtension.lowercased()) }
+    /// 片單有東西可播了嗎；不夠就抓一支。
+    ///
+    /// **一次只抓一支**（PlaylistService 自己也有同時下載上限）：桌布不急，
+    /// 而片單可能有幾百支、幾十 GB。抓好的那支下一輪就會被選中，
+    /// 不夠再抓下一支——磁碟用量跟「真的播過幾支」成正比。
+    private func requestPlaylistDownloadIfNeeded(wanted: Int) {
+        let sources = settings.playlistSources.filter(\.isEnabled)
+        guard !sources.isEmpty else { return }
+        guard playlists.candidates(for: sources).count < max(1, wanted) else { return }
+        guard let next = playlists.pending(for: sources).first else { return }
+        playlists.requestDownload(next)
+    }
+
+    /// 把 0.5.1 以前存在 `~/Movies/Foldwall` 的下載影片搬進影片快取。
+    ///
+    /// 只搬不刪：同名就加序號。搬完把空目錄收掉，免得使用者在 Finder 裡
+    /// 看到一個永遠不會再更新的資料夾。
+    nonisolated private static func migrateLegacyDownloads() {
+        let fm = FileManager.default
+        let old = AppPaths.standard().legacyDownloadedVideos
+        let new = AppPaths.standard().remoteVideoCache
+        guard let entries = try? fm.contentsOfDirectory(at: old, includingPropertiesForKeys: nil)
+        else { return }
+
+        let videos = entries.filter {
+            MediaIndexer.videoExtensions.contains($0.pathExtension.lowercased())
+        }
+        guard !videos.isEmpty else {
+            try? fm.removeItem(at: old)   // 空的就收掉
+            return
+        }
+        try? fm.createDirectory(at: new, withIntermediateDirectories: true)
+
+        var moved = 0
+        for video in videos {
+            var destination = new.appending(path: video.lastPathComponent)
+            var suffix = 1
+            while fm.fileExists(atPath: destination.path(percentEncoded: false)) {
+                let stem = video.deletingPathExtension().lastPathComponent
+                destination = new.appending(path: "\(stem)-\(suffix).\(video.pathExtension)")
+                suffix += 1
+            }
+            if (try? fm.moveItem(at: video, to: destination)) != nil { moved += 1 }
+        }
+        if moved > 0 {
+            Log.video.notice("已把 \(moved, privacy: .public) 支下載影片搬進影片快取")
+        }
+        // 只有真的全搬完才收掉目錄——removeItem 對非空目錄會失敗，剛好當保險
+        try? fm.removeItem(at: old)
     }
 
     /// 切換引擎：把另一條路留下的東西收乾淨，不要兩套同時在畫面上。
@@ -542,7 +823,7 @@ final class WallpaperCoordinator {
             // 換到桌面視窗就不需要 container 裡那幾份拷貝了
             runVideoSync(videos: [])
         }
-        refreshNow()
+        refreshNow("改影片引擎")
     }
 
     /// 把三個快取的圖彙整成一個實體資料夾，讓系統的螢幕保護程式指得到。
@@ -603,7 +884,7 @@ final class WallpaperCoordinator {
             try? location.clearContents()
             self.status.videosOverBudget = 0
             self.videoSyncTask = nil
-            self.refreshNow()   // 影片沒了 → 那些螢幕改由蒙太奇接管
+            self.refreshNow("影片快取清空")   // 影片沒了 → 那些螢幕改由蒙太奇接管
         }
     }
 
@@ -611,23 +892,170 @@ final class WallpaperCoordinator {
     func folderUsageDidChange() {
         forceVideoSync = true
         rotateVideosOnNextRefresh = true
-        refreshNow()
+        refreshNow("改資料夾用途")
     }
 
     /// 相簿清單要授權後才拿得到；設定視窗按了「請求授權」之後會回頭叫這個。
+    ///
+    /// **在背景列舉。** 這份清單只有設定視窗的勾選欄要用，卻要走遍整個照片圖庫
+    /// （實測十萬張的圖庫是好幾秒）。放在啟動路徑上同步跑，那幾秒選單列是點不開的。
     func reloadAlbums() {
         guard PhotosAlbumSource.authorizationStatus == .authorized
                 || PhotosAlbumSource.authorizationStatus == .limited else {
             albums = []
             return
         }
-        albums = PhotosAlbumSource.albums()
+        guard albumsTask == nil else { return }   // 上一輪還在列就別疊上去
+        albumsTask = Task { @MainActor [weak self] in
+            let found = await Task.detached(priority: .utility) {
+                PhotosAlbumSource.albums()
+            }.value
+            guard let self else { return }
+            self.albums = found
+            self.albumsTask = nil
+        }
+    }
+
+    // MARK: - 設定備份／iCloud 同步
+
+    /// 目前設定的可搬移快照。
+    ///
+    /// `folders` 存路徑而不是 bookmark、相簿連名稱一起存——理由見 SettingsSnapshot。
+    func settingsSnapshot() -> SettingsSnapshot {
+        let albumsByID = Dictionary(uniqueKeysWithValues: albums.map { ($0.id, $0.title) })
+        return SettingsSnapshot(
+            savedAt: .now,
+            deviceName: Host.current().localizedName ?? "未命名 Mac",
+            folders: folders.map(Self.plainPath),
+            folderUsage: settings.folderUsage,
+            // 相簿清單是背景列舉的，還沒回來時查不到名稱——那就只帶 id，
+            // 至少同機還原是對的。
+            albums: settings.photoAlbums.sorted().map {
+                SettingsSnapshot.Album(id: $0, title: albumsByID[$0] ?? "")
+            },
+            remoteSources: settings.remoteSources,
+            playlistSources: settings.playlistSources,
+            sourceRules: settings.sourceRules,
+            intervalMinutes: settings.intervalMinutes,
+            effect: settings.effect.rawValue,
+            montagePieceCount: settings.montagePieceCount,
+            videoWallpaperEnabled: settings.videoWallpaperEnabled,
+            videoEngine: settings.videoEngine,
+            desktopVideoLayer: settings.desktopVideoLayer,
+            videoPlaybackMode: settings.videoPlaybackMode,
+            launchAtLogin: settings.launchAtLogin
+        )
+    }
+
+    /// 目錄 URL 的 `path(percentEncoded:)` 會帶結尾斜線，兩邊表示法不一致就會
+    /// 判成不同的資料夾（FolderIndex 踩過同一個坑）。統一剝掉。
+    private static func plainPath(_ url: URL) -> String {
+        let path = url.standardizedFileURL.path(percentEncoded: false)
+        return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
+    }
+
+    @discardableResult
+    func backupSettingsToICloud() -> Bool {
+        backup.export(settingsSnapshot())
+    }
+
+    @discardableResult
+    func restoreSettingsFromICloud() -> Bool {
+        guard let snapshot = backup.load() else { return false }
+        apply(snapshot)
+        backup.didApply(settingsSnapshot())
+        return true
+    }
+
+    /// 套用一份快照。順序有講究：先把資料夾接回來（那要重建 bookmark），
+    /// 再套其他設定，最後才一次性重掃——中間每改一個欄位就重掃是浪費。
+    private func apply(_ snapshot: SettingsSnapshot) {
+        let existing = Set(folders.map(Self.plainPath))
+        bookmarks.addFolders(paths: snapshot.folders.filter { !existing.contains($0) })
+
+        settings.folderUsage = snapshot.folderUsage
+        settings.remoteSources = snapshot.remoteSources
+        settings.playlistSources = snapshot.playlistSources
+        settings.sourceRules = snapshot.sourceRules
+        settings.intervalMinutes = snapshot.intervalMinutes
+        settings.effect = PostProcess(rawValue: snapshot.effect) ?? settings.effect
+        settings.montagePieceCount = snapshot.montagePieceCount
+        settings.videoEngine = snapshot.videoEngine
+        settings.desktopVideoLayer = snapshot.desktopVideoLayer
+        settings.videoPlaybackMode = snapshot.videoPlaybackMode
+        // videoScreens 刻意不套：它是這台機器的硬體設定，見 SettingsSnapshot 檔頭。
+        settings.launchAtLogin = snapshot.launchAtLogin
+        settings.photoAlbums = Self.matchAlbums(snapshot.albums, against: albums)
+
+        // 這個開關會動到 extension container（幾十 GB 的拷貝），走它自己那條路。
+        if settings.videoWallpaperEnabled != snapshot.videoWallpaperEnabled {
+            settings.videoWallpaperEnabled = snapshot.videoWallpaperEnabled
+            videoWallpaperEnabledDidChange()
+        }
+
+        scheduler = Scheduler(intervalMinutes: settings.intervalMinutes, now: .now)
+        forceVideoSync = true
+        Task { @MainActor in
+            await self.reloadFolders()
+            await self.folderIndex.invalidate(roots: self.folders)
+            self.refreshNow("匯入設定")
+        }
+    }
+
+    /// id 優先（同機還原），比不到再比名稱（跨機——localIdentifier 每台不同）。
+    /// 兩邊都比不到就丟掉：那台機器根本沒有這個相簿。
+    static func matchAlbums(
+        _ wanted: [SettingsSnapshot.Album], against available: [PhotoAlbum]
+    ) -> Set<String> {
+        let ids = Set(available.map(\.id))
+        var byTitle: [String: String] = [:]
+        for album in available where byTitle[album.title] == nil {
+            byTitle[album.title] = album.id
+        }
+
+        var result: Set<String> = []
+        for album in wanted {
+            if ids.contains(album.id) {
+                result.insert(album.id)
+            } else if !album.title.isEmpty, let matched = byTitle[album.title] {
+                result.insert(matched)
+            }
+        }
+        return result
+    }
+
+    /// 心跳上的一拍。**遠端優先**：同一拍裡兩邊都變了就以遠端為準，
+    /// 套用完本機快照就等於遠端那份，也就不會再寫回去。
+    private func syncSettingsTick() {
+        guard settings.iCloudSyncEnabled, backup.isAvailable else { return }
+
+        let snapshot = settingsSnapshot()
+        if backup.hasNewerRemote() {
+            // 每次啟動的第一拍一定會走到這裡（還沒有比較基準）。內容一樣就只是
+            // 記下基準，不要真的套用——套用會連帶重跑一輪合成，而什麼都沒變。
+            if let remote = backup.peekRemote(), remote.hasSameContent(as: snapshot) {
+                backup.didApply(snapshot, quietly: true)
+                return
+            }
+            _ = restoreSettingsFromICloud()
+            return
+        }
+        if backup.hasLocalChanges(comparedTo: snapshot) {
+            backup.export(snapshot)
+        }
+    }
+
+    /// 使用者剛把自動同步打開：立刻推一份上去當基準，
+    /// 不然要等到下一次設定變動才會有東西。
+    func iCloudSyncDidChange() {
+        guard settings.iCloudSyncEnabled else { return }
+        backupSettingsToICloud()
     }
 
     /// 設定視窗改了規則就立刻重評一次。
     func sourceRulesDidChange() {
         forceVideoSync = true
-        refreshNow()
+        refreshNow("改狀態規則")
     }
 
     var focusModes: [FocusMode] { focus.availableModes }

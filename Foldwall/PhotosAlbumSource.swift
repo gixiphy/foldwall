@@ -26,9 +26,9 @@ final class PhotosAlbumSource {
 
     /// PhotoKit 只有 `.addOnly` 與 `.readWrite` 兩級，**沒有唯讀**。
     /// Foldwall 只讀不寫，但要列相簿就只能要 `.readWrite`。
-    static let accessLevel = PHAccessLevel.readWrite
+    nonisolated static let accessLevel = PHAccessLevel.readWrite
 
-    static var authorizationStatus: PHAuthorizationStatus {
+    nonisolated static var authorizationStatus: PHAuthorizationStatus {
         PHPhotoLibrary.authorizationStatus(for: accessLevel)
     }
 
@@ -54,7 +54,9 @@ final class PhotosAlbumSource {
     // MARK: - 相簿清單
 
     /// 使用者相簿 + 智慧相簿（最近項目、我的最愛等）。空相簿不列。
-    static func albums() -> [PhotoAlbum] {
+    /// `nonisolated`：PhotoKit 的 fetch 本來就可以在背景執行緒跑，
+    /// 而列舉十萬張的圖庫要好幾秒——擋在主執行緒上啟動時選單列就點不開。
+    nonisolated static func albums() -> [PhotoAlbum] {
         var result: [PhotoAlbum] = []
 
         let options = PHFetchOptions()
@@ -80,7 +82,7 @@ final class PhotosAlbumSource {
         return result.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
     }
 
-    private static func imageFetchOptions() -> PHFetchOptions {
+    nonisolated private static func imageFetchOptions() -> PHFetchOptions {
         let options = PHFetchOptions()
         // 影片不進靜態池；影片桌布另有 extension 管線
         options.predicate = NSPredicate(format: "mediaType == %d", PHAssetMediaType.image.rawValue)
@@ -91,7 +93,9 @@ final class PhotosAlbumSource {
 
     /// 從相簿隨機取 N 張匯出到快取，回傳本機路徑。
     /// 已匯出過的直接重用，不重複解碼。
-    func export(albumID: String, limit: Int) async -> [URL] {
+    /// `nonisolated` 的理由同 `albums()`：`fetchAssets` 走一趟十萬張的相簿、
+    /// `Materializer.evict` 要列整個快取目錄，都不該壓在主執行緒上。
+    nonisolated func export(albumID: String, limit: Int) async -> [URL] {
         guard Self.authorizationStatus == .authorized || Self.authorizationStatus == .limited else {
             return []
         }
@@ -123,7 +127,7 @@ final class PhotosAlbumSource {
         return urls
     }
 
-    private func export(_ asset: PHAsset) async -> URL? {
+    nonisolated private func export(_ asset: PHAsset) async -> URL? {
         // localIdentifier 含 "/"，不能直接當檔名
         let name = asset.localIdentifier.replacingOccurrences(of: "/", with: "_")
         let destination = cacheDirectory.appending(path: "photos-\(name).jpg")
