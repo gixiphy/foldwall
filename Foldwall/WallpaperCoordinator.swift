@@ -595,10 +595,23 @@ final class WallpaperCoordinator {
         videoSyncTask = Task { @MainActor [weak self] in
             guard let self else { return }
 
-            let remote = self.remoteVideoPool.videos(configs: self.settings.remoteSources)
-            self.status.remoteVideoCount = remote.count
+            let allRemote = self.remoteVideoPool.videos(configs: self.settings.remoteSources)
+            self.status.remoteVideoCount = allRemote.count
             if let error = self.remoteVideoPool.lastError { self.status.sourceError = error }
             guard self.videoSyncID == generation else { return }
+
+            // 驗過解不動的先剔掉。留著的話它們每輪照樣佔一個名額，
+            // 拷不進去，卻擠掉了本來排得進來的影片——container 就一直長不滿，
+            // 系統設定那邊的清單也一直是殘的。（AVFoundation 不吃 hev1 封裝的
+            // HEVC，而那種檔在 loadTracks 這一層看起來完全正常，見 isDecodable。）
+            let rejected = self.videoLibrary.rejectedSourcePaths
+            let playable: ([URL]) -> [URL] = { urls in
+                rejected.isEmpty
+                    ? urls
+                    : urls.filter { !rejected.contains($0.standardizedFileURL.path) }
+            }
+            let folderVideos = playable(folderVideos)
+            let remote = playable(allRemote)
 
             // 兩邊分開輪：資料夾可能有幾千支、網路只有幾支，混在一起排序的話
             // 網路那幾支要繞完全庫才輪得到＝永遠不會播。

@@ -75,7 +75,14 @@ func buildSettingsViewModelsXPC() async -> AnyObject? {
         items.append(item)
     }
 
-    if items.count >= 2 {
+    // Offer the shuffle tile whenever there is anything at all, not only at two or
+    // more. The library CHURNS by design — the app rotates 1-3 videos through the
+    // container every time the display sleeps — so gating on the current count
+    // makes the tile vanish whenever a rotation happens to land on a single video,
+    // and with it the user's selection. Shuffle All is a standing intent ("rotate
+    // through whatever is in there"), not a snapshot of today's library size.
+    // Rotating with one video is a no-op, which ShuffleController already handles.
+    if !items.isEmpty {
         items.append(makeShuffleItem(
             bundleID: bundleID,
             thumbnailURLs: thumbnailURLs,
