@@ -14,6 +14,13 @@
 //
 //  沒收錄的還有 `videoRotationCursor`／`videoRemoteCursor`：那是「輪到第幾支了」，
 //  是執行狀態不是設定，跨機同步只會讓兩台互相打斷輪替。
+//
+//  **`videoScreens` 也不收**（0.6.0 移除）。它存的是顯示器 UUID，而內建螢幕的 UUID
+//  每台機器都不同——同步它只可能做減法：另一台的快照裡沒有這台內建螢幕的 UUID，
+//  套下來就是把「此螢幕改用影片」的勾清掉，影片螢幕被蒙太奇蓋住。
+//  而且會自我固化：清空之後下一拍又把「空的」推回 iCloud，永遠出不來。
+//  哪台螢幕播影片是**這台機器的硬體設定**，跟輪到第幾支一樣不該跨機。
+//  舊的備份檔仍可解——多出來的鍵 JSONDecoder 本來就會忽略。
 
 import Foundation
 
@@ -56,9 +63,6 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
     public var desktopVideoLayer: DesktopVideoLayer
     /// 一支播完之後怎麼辦。只影響桌面視窗那條路。
     public var videoPlaybackMode: VideoPlaybackMode
-    /// 顯示器 UUID。同一台外接螢幕在兩台 Mac 上通常一致（來自 EDID），
-    /// 內建螢幕則否——對不上就是那台沒被標記，不會壞掉。
-    public var videoScreens: [String]
 
     public var launchAtLogin: Bool
 
@@ -79,7 +83,6 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         videoEngine: VideoEngine,
         desktopVideoLayer: DesktopVideoLayer,
         videoPlaybackMode: VideoPlaybackMode = .repeatAll,
-        videoScreens: [String],
         launchAtLogin: Bool
     ) {
         self.version = version
@@ -98,7 +101,6 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         self.videoEngine = videoEngine
         self.desktopVideoLayer = desktopVideoLayer
         self.videoPlaybackMode = videoPlaybackMode
-        self.videoScreens = videoScreens
         self.launchAtLogin = launchAtLogin
     }
 
@@ -108,7 +110,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         case version, savedAt, deviceName, folders, folderUsage, albums
         case remoteSources, playlistSources, sourceRules
         case intervalMinutes, effect, montagePieceCount
-        case videoWallpaperEnabled, videoEngine, desktopVideoLayer, videoScreens
+        case videoWallpaperEnabled, videoEngine, desktopVideoLayer
         case videoPlaybackMode
         case launchAtLogin
     }
@@ -132,7 +134,6 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         videoWallpaperEnabled = try c.decode(Bool.self, forKey: .videoWallpaperEnabled)
         videoEngine = try c.decode(VideoEngine.self, forKey: .videoEngine)
         desktopVideoLayer = try c.decode(DesktopVideoLayer.self, forKey: .desktopVideoLayer)
-        videoScreens = try c.decode([String].self, forKey: .videoScreens)
         launchAtLogin = try c.decode(Bool.self, forKey: .launchAtLogin)
 
         // 後加的欄位用 decodeIfPresent：舊備份沒有它，那不是損壞。

@@ -22,7 +22,6 @@ final class SettingsSnapshotTests: XCTestCase {
             videoEngine: .desktopWindow,
             desktopVideoLayer: .belowIcons,
             videoPlaybackMode: .shuffle,
-            videoScreens: ["UUID-A"],
             launchAtLogin: true
         )
     }
@@ -56,6 +55,28 @@ final class SettingsSnapshotTests: XCTestCase {
         snapshot.montagePieceCount = nil
         let auto = try SettingsSnapshotCodec.decode(SettingsSnapshotCodec.encode(snapshot))
         XCTAssertNil(auto.montagePieceCount, "自動不能在往返後變成某個數字")
+    }
+
+    /// **`videoScreens` 不能進備份。**（0.6.0 移除，回歸測試）
+    ///
+    /// 它存的是顯示器 UUID，內建螢幕的 UUID 每台機器不同。收進快照的話，
+    /// 另一台的快照套下來就是把這台「此螢幕改用影片」的勾清掉——而且會自我固化：
+    /// 清空之後下一拍又把空的推回 iCloud。實際發生過，影片螢幕被蒙太奇蓋住。
+    func testVideoScreensNeverTravel() throws {
+        let text = String(decoding: try SettingsSnapshotCodec.encode(sample()), as: UTF8.self)
+        XCTAssertFalse(text.contains("videoScreens"), "哪台螢幕播影片是這台機器的事")
+    }
+
+    /// 反過來：舊版**有**寫 videoScreens 的備份要照樣解得開，不能當成損壞。
+    func testOlderBackupWithVideoScreensStillDecodes() throws {
+        let encoded = try SettingsSnapshotCodec.encode(sample())
+        var json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        json["videoScreens"] = ["UUID-A", "UUID-B"]
+        let legacy = try JSONSerialization.data(withJSONObject: json)
+
+        let decoded = try SettingsSnapshotCodec.decode(legacy)
+        XCTAssertEqual(decoded.folders, sample().folders, "認不得的鍵忽略掉就好")
     }
 
     /// 舊版寫下的備份沒有 `videoPlaybackMode`。那不是損壞——套新安裝的預設值。

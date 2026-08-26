@@ -924,7 +924,6 @@ final class WallpaperCoordinator {
             videoEngine: settings.videoEngine,
             desktopVideoLayer: settings.desktopVideoLayer,
             videoPlaybackMode: settings.videoPlaybackMode,
-            videoScreens: Array(settings.videoScreens).sorted(),
             launchAtLogin: settings.launchAtLogin
         )
     }
@@ -965,7 +964,7 @@ final class WallpaperCoordinator {
         settings.videoEngine = snapshot.videoEngine
         settings.desktopVideoLayer = snapshot.desktopVideoLayer
         settings.videoPlaybackMode = snapshot.videoPlaybackMode
-        settings.videoScreens = Set(snapshot.videoScreens)
+        // videoScreens 刻意不套：它是這台機器的硬體設定，見 SettingsSnapshot 檔頭。
         settings.launchAtLogin = snapshot.launchAtLogin
         settings.photoAlbums = Self.matchAlbums(snapshot.albums, against: albums)
 
