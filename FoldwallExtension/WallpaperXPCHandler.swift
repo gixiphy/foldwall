@@ -9,9 +9,18 @@ import QuartzCore
 /// Reading the per-context `choice` (not the process-wide `currentVideoID`) keeps
 /// each display on its own selection — otherwise every renderer would converge on
 /// whichever choice was set most recently (multi-monitor bug).
-func makeVariantSelector(choice: String?, fallback: URL) -> @Sendable () -> URL {
+/// - Parameter isShuffle: whether the surface this selector belongs to was acquired
+///   with the shuffle choice. Only those may advance to a DIFFERENT video at a loop
+///   boundary — a surface pinned to one video must keep looping that video even while
+///   another display is shuffling.
+func makeVariantSelector(choice: String?, fallback: URL, isShuffle: Bool = false) -> @Sendable () -> URL {
     {
-        guard let videoID = choice else { return fallback }
+        guard let selected = choice else { return fallback }
+        // "After Each Video": the next clip is chosen here, at the loop boundary, so
+        // the renderer can preload it and swap gaplessly.
+        let videoID = isShuffle
+            ? (ShuffleController.shared.videoIDForLoopBoundary(current: selected) ?? selected)
+            : selected
         let state = WallpaperState.shared
         let prefs = WallpaperPrefs.shared
         let policy = PlaybackPolicy.compute(
@@ -295,7 +304,8 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
                 return
             }
             extensionLog("  [acquire] switching to \(videoURL.lastPathComponent) (renderer \(existing.renderer != nil ? "present → switchVideo" : "nil → create"))")
-            let selector = makeVariantSelector(choice: renderChoice, fallback: videoURL)
+            let selector = makeVariantSelector(choice: renderChoice, fallback: videoURL,
+                                               isShuffle: choiceConfiguration == shuffleChoiceID)
             if let renderer = existing.renderer {
                 // Switch the video IN PLACE on the already-hosted display layer.
                 // Building a fresh renderer here (new AVSampleBufferDisplayLayer) is
@@ -425,7 +435,8 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
             let boxedRoot = SendableBox(value: rootLayer)
             // The reply object is non-Sendable; box it to cross into the render Task.
             let boxedReply = SendableBox(value: replyObj)
-            let selector = makeVariantSelector(choice: renderChoice, fallback: videoURL)
+            let selector = makeVariantSelector(choice: renderChoice, fallback: videoURL,
+                                               isShuffle: choiceConfiguration == shuffleChoiceID)
             Task { [coldStart, boxedRoot, boxedReply, videoURL, cachedStill, selector, key, choiceConfiguration] in
                 let renderer: VideoRenderer
                 do {

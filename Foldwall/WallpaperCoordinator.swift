@@ -82,6 +82,14 @@ final class WallpaperCoordinator {
     @ObservationIgnored private var forceVideoSync = false
     /// 螢幕剛亮起，這輪 refresh 要順便換一批影片。
     @ObservationIgnored private var rotateVideosOnNextRefresh = false
+    /// 這些螢幕該往前一支了：影片播完，或使用者按了「下一片」。
+    /// 存螢幕 UUID 而不是直接換片，是因為換哪一支要看整批的計畫（避開別台正在播的）。
+    @ObservationIgnored private var pendingVideoAdvance: Set<String> = []
+    /// 隨機模式的 seed 來源。從時間起跳，否則每次重開都從同一支開始隨機。
+    @ObservationIgnored private var videoAdvanceNonce = UInt64(Date().timeIntervalSince1970)
+    /// 最近一次 refresh 算出來的影片候選。換片不必重跑整條蒙太奇管線——
+    /// 影片可能每幾分鐘就播完一支，每次都重合成一輪是白花的。
+    @ObservationIgnored private var lastVideoIndex: FolderIndex.Snapshot?
     @ObservationIgnored private var cycleNonce = UInt64(Date().timeIntervalSince1970)
 
     init(settings: AppSettings, bookmarks: BookmarkStore = BookmarkStore()) {
@@ -120,6 +128,10 @@ final class WallpaperCoordinator {
             self.playbackCooldown.recordFailure(url, now: .now)
             self.status.sourceError = "影片播放失敗：\(url.lastPathComponent)－\(reason)"
             self.refreshNow("影片播放失敗")
+        }
+        // 一支播完了 → 依播放模式排下一支。單片循環不會走到這裡（那條路無縫接回開頭）。
+        desktopVideo.onVideoEnded = { [weak self] uuid, url in
+            self?.videoDidEnd(screen: uuid, url: url)
         }
         // 三個池補到貨就補一輪合成：它們不再擋著 refresh，抓完得有人來收。
         let refill: () -> Void = { [weak self] in self?.refreshSoon("網路／相簿補貨落地") }
@@ -248,6 +260,56 @@ final class WallpaperCoordinator {
     // MARK: - 使用者動作
 
     func next() { dispatch(.userNext(now: .now)) }
+
+    /// 手動下一片：所有正在播影片的螢幕都立刻換下一支。
+    ///
+    /// **跟「下一張」是兩件事。** 那個換的是蒙太奇，這個換的是影片；
+    /// 兩條管線節奏不同（見 VideoPlaybackPlan.keeping），共用一個按鈕會互相打斷。
+    func nextVideo() {
+        guard settings.videoWallpaperEnabled else { return }
+        guard !settings.videoEngine.needsDeployment else {
+            // 系統 extension 那條的當前片由 extension 自己持有，app 這邊指揮不動。
+            // 發個 Darwin 通知請它跳下一支（只有選 Shuffle All 時它才有得跳）。
+            VideoLibrary.requestExtensionSkip()
+            return
+        }
+        let marked = ScreenBridge.currentDisplays()
+            .filter { settings.videoScreens.contains($0.uuid) }
+            .map(\.uuid)
+        guard !marked.isEmpty else { return }
+        pendingVideoAdvance.formUnion(marked)
+        applyDesktopVideoNow("使用者按下一片")
+    }
+
+    /// 改了播放模式。循環方式是建 player 當下決定的，得讓引擎重建一次才會生效。
+    func videoPlaybackModeDidChange() {
+        guard settings.videoWallpaperEnabled, !settings.videoEngine.needsDeployment else { return }
+        applyDesktopVideoNow("改播放模式")
+    }
+
+    /// 一支播完了：排下一支。
+    private func videoDidEnd(screen uuid: String, url: URL) {
+        Log.video.info("播畢，排下一支：\(url.lastPathComponent, privacy: .public)")
+        pendingVideoAdvance.insert(uuid)
+        applyDesktopVideoNow("影片播畢")
+    }
+
+    /// 只重排影片，**不重跑蒙太奇**。
+    ///
+    /// 走 refreshNow 的話，每播完一支就要重抽、重合成、重寫每一台螢幕的桌布——
+    /// 一支三十秒的影片會把靜態桌布的間隔設定整個蓋掉。
+    /// 手上沒有候選清單（還沒跑過第一輪 refresh）時才退回完整那條。
+    private func applyDesktopVideoNow(_ reason: StaticString) {
+        guard let index = lastVideoIndex else {
+            refreshNow(reason)
+            return
+        }
+        Log.video.info("重排影片（\(reason, privacy: .public)）")
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.applyDesktopVideo(candidates: index, effects: self.status.activeEffects)
+        }
+    }
 
     func togglePause() {
         dispatch(status.isPaused ? .resume(now: .now) : .pause)
@@ -444,6 +506,9 @@ final class WallpaperCoordinator {
         }.value
         status.videoCount = forVideo.videos.count
 
+        // 換片那條路要重用這份候選，不必為了換一支影片再跑一次整條管線
+        lastVideoIndex = forVideo
+
         if settings.videoEngine.needsDeployment {
             if !effects.contains(.pauseVideo) { syncVideosInBackground(forVideo) }
         } else {
@@ -639,7 +704,7 @@ final class WallpaperCoordinator {
         // 其餘時候正在播的那支只要還在池裡就繼續播。
         // 少了這道，池一有風吹草動（下載落地、快取淘汰、重掃）影片就被換掉重播。
         let screens = marked.map(\.uuid)
-        let plan: [String: URL]
+        var plan: [String: URL]
         if rotateVideosOnNextRefresh {
             rotateVideosOnNextRefresh = false
             settings.videoRotationCursor &+= 1
@@ -650,7 +715,27 @@ final class WallpaperCoordinator {
                 current: desktopVideo.playingURLs, screens: screens,
                 videos: pool, cycle: settings.videoRotationCursor)
         }
-        desktopVideo.apply(plan: plan, layer: settings.desktopVideoLayer, screens: displays)
+
+        // 播完了、或使用者按了「下一片」的那幾台，在這裡才往前一步。
+        // 放在 keeping 之後：先讓沒事的螢幕定下來，換片的那台才知道要避開哪幾支。
+        let advancing = pendingVideoAdvance.intersection(screens)
+        if !advancing.isEmpty {
+            // 整個清空而不只扣掉這批：沒被勾影片的螢幕（拔掉的、取消勾選的）
+            // 留在裡面也永遠等不到，只會一直佔著。
+            pendingVideoAdvance = []
+            for uuid in advancing.sorted() {
+                videoAdvanceNonce &+= 1
+                let busy = Set(plan.filter { $0.key != uuid }.map(\.value))
+                guard let next = VideoPlaybackPlan.next(
+                    after: desktopVideo.playingURLs[uuid], screen: uuid, videos: pool,
+                    busy: busy, mode: settings.videoPlaybackMode, nonce: videoAdvanceNonce)
+                else { continue }
+                plan[uuid] = next
+            }
+        }
+
+        desktopVideo.apply(plan: plan, layer: settings.desktopVideoLayer, screens: displays,
+                           mode: settings.videoPlaybackMode)
         desktopVideo.setPaused(currentTier() == .paused)
 
         // 池裡的片單影片不夠讓每台螢幕各播一支 → 補抓一支。
@@ -838,6 +923,7 @@ final class WallpaperCoordinator {
             videoWallpaperEnabled: settings.videoWallpaperEnabled,
             videoEngine: settings.videoEngine,
             desktopVideoLayer: settings.desktopVideoLayer,
+            videoPlaybackMode: settings.videoPlaybackMode,
             videoScreens: Array(settings.videoScreens).sorted(),
             launchAtLogin: settings.launchAtLogin
         )
@@ -878,6 +964,7 @@ final class WallpaperCoordinator {
         settings.montagePieceCount = snapshot.montagePieceCount
         settings.videoEngine = snapshot.videoEngine
         settings.desktopVideoLayer = snapshot.desktopVideoLayer
+        settings.videoPlaybackMode = snapshot.videoPlaybackMode
         settings.videoScreens = Set(snapshot.videoScreens)
         settings.launchAtLogin = snapshot.launchAtLogin
         settings.photoAlbums = Self.matchAlbums(snapshot.albums, against: albums)

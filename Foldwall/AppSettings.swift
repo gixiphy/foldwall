@@ -24,6 +24,7 @@ final class AppSettings {
         static let folderUsage = "folderUsage"
         static let videoEngine = "videoEngine"
         static let desktopVideoLayer = "desktopVideoLayer"
+        static let videoPlaybackMode = "videoPlaybackMode"
         static let montagePieceCount = "montagePieceCount"
         static let showCredits = "showCredits"
         static let iCloudSyncEnabled = "iCloudSyncEnabled"
@@ -100,6 +101,15 @@ final class AppSettings {
         didSet { defaults.set(desktopVideoLayer.rawValue, forKey: Key.desktopVideoLayer) }
     }
 
+    /// 一支播完之後怎麼辦：單片循環／全部循環／隨機。只有桌面視窗那條路吃這個設定
+    /// （系統 extension 的輪替在「系統設定 → 桌布」裡設，見 ShuffleController）。
+    ///
+    /// **預設全部循環。** 0.6.0 以前只有「單片循環」一種行為，等於整個片庫只有一支
+    /// 在用；缺 key 讀出來的 nil 走這個預設，舊使用者升上來會看到影片開始輪動。
+    var videoPlaybackMode: VideoPlaybackMode {
+        didSet { defaults.set(videoPlaybackMode.rawValue, forKey: Key.videoPlaybackMode) }
+    }
+
     /// 影片輪替走到哪了。存起來才能跨重啟繼續輪，不會每次都從頭那幾支開始。
     var videoRotationCursor: Int {
         didSet { defaults.set(videoRotationCursor, forKey: Key.videoRotationCursor) }
@@ -174,6 +184,8 @@ final class AppSettings {
             .flatMap(VideoEngine.init(rawValue:))) ?? .desktopWindow
         self.desktopVideoLayer = (defaults.string(forKey: Key.desktopVideoLayer)
             .flatMap(DesktopVideoLayer.init(rawValue:))) ?? .belowIcons
+        self.videoPlaybackMode = (defaults.string(forKey: Key.videoPlaybackMode)
+            .flatMap(VideoPlaybackMode.init(rawValue:))) ?? .repeatAll
         self.videoRotationCursor = defaults.integer(forKey: Key.videoRotationCursor)   // 缺 key = 0
         self.videoRemoteCursor = defaults.integer(forKey: Key.videoRemoteCursor)
         // 以系統實際狀態為準，不信 defaults：使用者可能在系統設定裡關掉

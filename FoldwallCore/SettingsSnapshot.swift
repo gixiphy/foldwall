@@ -54,6 +54,8 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
     public var videoWallpaperEnabled: Bool
     public var videoEngine: VideoEngine
     public var desktopVideoLayer: DesktopVideoLayer
+    /// 一支播完之後怎麼辦。只影響桌面視窗那條路。
+    public var videoPlaybackMode: VideoPlaybackMode
     /// 顯示器 UUID。同一台外接螢幕在兩台 Mac 上通常一致（來自 EDID），
     /// 內建螢幕則否——對不上就是那台沒被標記，不會壞掉。
     public var videoScreens: [String]
@@ -76,6 +78,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         videoWallpaperEnabled: Bool,
         videoEngine: VideoEngine,
         desktopVideoLayer: DesktopVideoLayer,
+        videoPlaybackMode: VideoPlaybackMode = .repeatAll,
         videoScreens: [String],
         launchAtLogin: Bool
     ) {
@@ -94,6 +97,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         self.videoWallpaperEnabled = videoWallpaperEnabled
         self.videoEngine = videoEngine
         self.desktopVideoLayer = desktopVideoLayer
+        self.videoPlaybackMode = videoPlaybackMode
         self.videoScreens = videoScreens
         self.launchAtLogin = launchAtLogin
     }
@@ -105,6 +109,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         case remoteSources, playlistSources, sourceRules
         case intervalMinutes, effect, montagePieceCount
         case videoWallpaperEnabled, videoEngine, desktopVideoLayer, videoScreens
+        case videoPlaybackMode
         case launchAtLogin
     }
 
@@ -133,6 +138,9 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         // 後加的欄位用 decodeIfPresent：舊備份沒有它，那不是損壞。
         // （移除的欄位不必處理——JSONDecoder 本來就會忽略不認得的鍵。）
         playlistSources = try c.decodeIfPresent([PlaylistSource].self, forKey: .playlistSources) ?? []
+        // 舊備份沒有播放模式：套 .repeatAll 這個預設，與全新安裝一致。
+        videoPlaybackMode = try c.decodeIfPresent(
+            VideoPlaybackMode.self, forKey: .videoPlaybackMode) ?? .repeatAll
     }
 
     /// 內容是否等價——**不看 `savedAt` 與 `deviceName`**。

@@ -21,6 +21,7 @@ final class SettingsSnapshotTests: XCTestCase {
             videoWallpaperEnabled: true,
             videoEngine: .desktopWindow,
             desktopVideoLayer: .belowIcons,
+            videoPlaybackMode: .shuffle,
             videoScreens: ["UUID-A"],
             launchAtLogin: true
         )
@@ -55,6 +56,19 @@ final class SettingsSnapshotTests: XCTestCase {
         snapshot.montagePieceCount = nil
         let auto = try SettingsSnapshotCodec.decode(SettingsSnapshotCodec.encode(snapshot))
         XCTAssertNil(auto.montagePieceCount, "自動不能在往返後變成某個數字")
+    }
+
+    /// 舊版寫下的備份沒有 `videoPlaybackMode`。那不是損壞——套新安裝的預設值。
+    func testOlderBackupWithoutPlaybackModeStillDecodes() throws {
+        let encoded = try SettingsSnapshotCodec.encode(sample())
+        var json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        json.removeValue(forKey: "videoPlaybackMode")
+        let stripped = try JSONSerialization.data(withJSONObject: json)
+
+        let decoded = try SettingsSnapshotCodec.decode(stripped)
+        XCTAssertEqual(decoded.videoPlaybackMode, .repeatAll)
+        XCTAssertEqual(decoded.folders, sample().folders, "其他欄位不受影響")
     }
 
     /// 比較內容時不看時間戳與機器名，否則自動同步會兩台互相寫檔寫不停。

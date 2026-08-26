@@ -33,6 +33,8 @@ final class VideoLibrary {
 
     static let extensionBundleID = "app.foldwall.extension"
     private static let libraryChangedNotification = "app.foldwall.libraryChanged"
+    /// 「下一片」：請 extension 跳到下一支。名稱兩側必須一致（見 PhospheneExtension）。
+    private static let skipVideoNotification = "app.foldwall.skipVideo"
 
     private let ledgerURL: URL
 
@@ -169,6 +171,19 @@ final class VideoLibrary {
             at: ledgerURL.deletingLastPathComponent(), withIntermediateDirectories: true
         )
         try? JSONEncoder().encode(ledger).write(to: ledgerURL, options: .atomic)
+    }
+
+    /// 手動下一片（系統 extension 那條）。
+    ///
+    /// **只能用發通知的**：當前播的是哪一支由 extension 自己持有（沙盒、另一個行程），
+    /// app 這邊沒有把手可以直接指揮。只有在系統設定選了 **Shuffle All** 時它才有得跳；
+    /// 選了固定某一支的話這個通知會被忽略——那正是「單片循環」的意思。
+    static func requestExtensionSkip() {
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName(skipVideoNotification as CFString),
+            nil, nil, true
+        )
     }
 
     /// Darwin notification：讓 extension 重新掃描它的影片庫（名稱兩側必須一致）。

@@ -442,6 +442,34 @@ private struct VideoSettings: View {
                         }
                         .onChange(of: settings.desktopVideoLayer) { _, _ in onEngineChange() }
                     }
+
+                    controlRow("播完之後") {
+                        Picker("", selection: $settings.videoPlaybackMode) {
+                            ForEach(VideoPlaybackMode.allCases, id: \.self) { mode in
+                                Text(mode.displayName).tag(mode)
+                            }
+                        }
+                        .onChange(of: settings.videoPlaybackMode) { _, _ in
+                            coordinator.videoPlaybackModeDidChange()
+                        }
+                    }
+
+                    Text(settings.videoPlaybackMode.summary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text(Self.extensionRotationNote)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                HStack {
+                    Button("下一片影片") { coordinator.nextVideo() }
+                    Text("選單列也有，⇧⌘N")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Text(Self.markdown(settings.videoEngine.summary))
@@ -519,6 +547,14 @@ private struct VideoSettings: View {
     private static func markdown(_ source: String) -> AttributedString {
         (try? AttributedString(markdown: source)) ?? AttributedString(source)
     }
+
+    /// 系統 extension 那條的輪替不歸這一頁管，講清楚它在哪裡設。
+    private static let extensionRotationNote = markdown(
+        "系統 extension 的輪替由**系統設定 → 桌布**決定："
+        + "選 **Shuffle All** 才會輪播，並在它的「Change Video」選單挑頻率"
+        + "（含**每播完一支**）。選了固定某一支就是單片循環。"
+        + "「下一片影片」在那裡也有效。"
+    )
 
     private static let sleepExplainer = markdown(
         "影片在**螢幕睡著時**（螢保啟動、鎖定、休眠）預先換好下一批，"

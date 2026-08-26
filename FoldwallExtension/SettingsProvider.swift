@@ -129,6 +129,9 @@ let shuffleChoiceID = "shuffle-all"
 /// Item ids for the shuffle frequency picker. The ids and their interpretation are
 /// Phosphene's own; the system only stores and returns the selected id.
 enum ShuffleFrequencyID: String, CaseIterable {
+    /// Advance at the end of every clip: the renderer asks for the next URL at each
+    /// loop boundary, so the swap is gapless (see `VideoRenderer.variantSelector`).
+    case afterEachVideo
     case onWakeup
     case onLogin
     case fiveMinutes
@@ -139,6 +142,7 @@ enum ShuffleFrequencyID: String, CaseIterable {
 
     var localizedName: String {
         switch self {
+        case .afterEachVideo: "After Each Video"
         case .onWakeup: "On Wake"
         case .onLogin: "On Login"
         case .fiveMinutes: "Every 5 Minutes"
@@ -152,7 +156,7 @@ enum ShuffleFrequencyID: String, CaseIterable {
     /// Rotation period for the timed frequencies; nil for the event-driven ones.
     var interval: TimeInterval? {
         switch self {
-        case .onWakeup, .onLogin: nil
+        case .afterEachVideo, .onWakeup, .onLogin: nil
         case .fiveMinutes: 5 * 60
         case .fifteenMinutes: 15 * 60
         case .thirtyMinutes: 30 * 60

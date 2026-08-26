@@ -27,6 +27,14 @@ struct MenuBarView: View {
             intervalMenu
             effectMenu
 
+            if settings.videoWallpaperEnabled {
+                Divider()
+                // 影片跟蒙太奇是兩條節奏，「下一張」不會動到影片，所以自己一個按鈕。
+                Button("下一片影片") { coordinator.nextVideo() }
+                    .keyboardShortcut("n", modifiers: [.command, .shift])
+                playbackModeMenu
+            }
+
             Divider()
 
             displayMenu
@@ -122,6 +130,27 @@ struct MenuBarView: View {
         }
     }
 
+
+    /// 一支播完之後怎麼辦。系統 extension 那條不吃這個設定——它的輪替頻率
+    /// 在「系統設定 → 桌布 → Shuffle All」裡設，那份 UI 不歸我們畫。
+    private var playbackModeMenu: some View {
+        Menu("影片播放方式") {
+            if settings.videoEngine.needsDeployment {
+                Text("系統 extension：輪替頻率在「系統設定 → 桌布」選 Shuffle All 之後設定")
+                    .font(.caption)
+            } else {
+                ForEach(VideoPlaybackMode.allCases, id: \.self) { mode in
+                    Button {
+                        settings.videoPlaybackMode = mode
+                        coordinator.videoPlaybackModeDidChange()
+                    } label: {
+                        Label(mode.displayName,
+                              systemImage: settings.videoPlaybackMode == mode ? "checkmark" : "")
+                    }
+                }
+            }
+        }
+    }
 
     /// 每螢一項：勾起來代表那台改播影片，靜態管線跳過。
     private var displayMenu: some View {

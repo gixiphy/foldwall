@@ -142,6 +142,9 @@ final class ShuffleController: @unchecked Sendable {
                 return (true, "wake")
             case .onLogin:
                 return (false, "")
+            case .afterEachVideo:
+                // The renderer drives this one at its own loop boundaries.
+                return (false, "")
             default:
                 if state.pendingAdvance { return (true, "pending tick") }
                 if let interval = state.frequency.interval,
@@ -157,12 +160,47 @@ final class ShuffleController: @unchecked Sendable {
         }
     }
 
-    /// Host asked to skip to the next item (the system shuffle affordance).
-    /// Returns false when shuffle isn't active.
+    /// Host asked to skip to the next item (the system shuffle affordance), or the
+    /// main app posted `app.foldwall.skipVideo` for its "next video" command.
+    /// Returns false when shuffle isn't active — with a fixed choice there is
+    /// nothing to skip to, which is exactly what "repeat one" means.
+    @discardableResult
     func skip() -> Bool {
         guard isActive else { return false }
         queue.async { [self] in advance(reason: "skip") }
         return true
+    }
+
+    /// The renderer reached a loop boundary and is asking which video to load next.
+    /// nil = stay on the current one.
+    ///
+    /// Only `afterEachVideo` answers with a different video; every other frequency
+    /// leaves the clip alone and lets the timer / wake path do the switching. The
+    /// swap is gapless because the renderer preloads whatever we return here.
+    ///
+    /// **The answer lands one clip early.** `prepareNextReader` runs right after a
+    /// swap, so we are picking the successor of the clip that just STARTED, not of
+    /// the one that is about to end. That makes the recorded pick (and the "now
+    /// playing" name the app reads) one clip ahead for the duration of a clip.
+    /// Correcting it would need a swap callback threaded back through
+    /// `VideoRenderer` — not worth touching that file for a display string.
+    func videoIDForLoopBoundary(current: String) -> String? {
+        let advancing = lock.withLock { $0.active && $0.frequency == .afterEachVideo }
+        guard advancing else { return nil }
+
+        let library = VideoLibrary.shared.entries.map(\.id)
+        // One video in the library IS repeat-one; nothing to advance to.
+        guard library.count >= 2 else { return nil }
+        var next = library.randomElement() ?? library[0]
+        if next == current {
+            let index = library.firstIndex(of: next) ?? 0
+            next = library[(index + 1) % library.count]
+        }
+        setPick(next)
+        WallpaperState.shared.currentVideoID = next
+        WallpaperPrefs.shared.updateCurrentVideo()
+        extensionLog("[Shuffle] loop boundary → \(next)")
+        return next
     }
 
     // MARK: - Private
@@ -238,7 +276,8 @@ final class ShuffleController: @unchecked Sendable {
 
         let renderers = WallpaperState.shared.renderers(forVideoID: shuffleChoiceID)
         for renderer in renderers {
-            renderer.variantSelector = makeVariantSelector(choice: next, fallback: url)
+            renderer.variantSelector = makeVariantSelector(choice: next, fallback: url,
+                                                           isShuffle: true)
             renderer.switchVideo(to: url)
         }
         // switchVideo restarts the pipeline running; immediately re-assert the
