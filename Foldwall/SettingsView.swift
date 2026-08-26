@@ -1388,7 +1388,15 @@ private struct MontageSettings: View {
                         }
                     }
 
-                    controlRow("同時抽取張數") {
+                    controlRow("顯示來源與作者") {
+                        Toggle("", isOn: Binding(
+                            get: { settings.showCredits },
+                            set: { coordinator.setShowCredits($0) }
+                        ))
+                        .toggleStyle(.switch)
+                    }
+
+                    controlRow("張數上限") {
                         Picker("", selection: Binding(
                             get: { settings.montagePieceCount },
                             set: { coordinator.setPieceCount($0) }
@@ -1396,7 +1404,8 @@ private struct MontageSettings: View {
                             Text("自動").tag(Int?.none)
                             Divider()
                             ForEach(Array(MontageComposer.pieceCountRange), id: \.self) { count in
-                                Text("\(count) 張").tag(Int?.some(count))
+                                Text(count == 1 ? "固定 1 張" : "最多 \(count) 張")
+                                    .tag(Int?.some(count))
                             }
                         }
                     }
@@ -1404,11 +1413,11 @@ private struct MontageSettings: View {
                 .padding(4)
             }
 
-            GroupBox("每台螢幕實際張數") {
+            GroupBox("每台螢幕張數上限") {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(coordinator.displays, id: \.uuid) { display in
                         let longSide = max(display.canvas.width, display.canvas.height)
-                        let count = StillPipeline.pieceCount(
+                        let ceiling = StillPipeline.pieceCountCeiling(
                             longSide: longSide, tier: .full,
                             override: settings.montagePieceCount
                         )
@@ -1419,12 +1428,17 @@ private struct MontageSettings: View {
                                 .foregroundStyle(.secondary)
                                 .monospacedDigit()
                             Spacer(minLength: 8)
-                            Text("\(count) 張")
+                            Text(ceiling == 1 ? "1 張" : "1–\(ceiling) 張")
                                 .foregroundStyle(.secondary)
                                 .monospacedDigit()
                         }
                         .font(.caption)
                     }
+                    Text(creditNote)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 2)
                     Text(pieceCountNote)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -1452,12 +1466,23 @@ private struct MontageSettings: View {
         }
     }
 
+    private var creditNote: String {
+        settings.showCredits
+            ? "作者印在每張照片的相紙下緣；相紙太小放不下的，收到右下角一起列。"
+            : "已關閉。Unsplash 與 Pexels 的授權要求標註作者——關掉之後這些來源的圖只適合自己看。"
+    }
+
     private var pieceCountNote: String {
+        let shared = "每輪實際幾張是在 1 到上限之間隨機決定的——有時一張大圖、有時鋪滿十幾張。"
+            + "每台螢幕各自抽圖、各自合成，同一時間兩台不會是同一張。降載時上限封頂 6 張。"
         if settings.montagePieceCount == nil {
-            return "自動：依螢幕長邊決定，每台螢幕各自抽圖、各自合成——同一時間兩台不會是同一張。"
-                + "降載時封頂 6 張。"
+            return "自動：上限依螢幕長邊決定。" + shared
         }
-        return "指定張數對所有螢幕一體適用；每台仍各自抽圖、各自合成。降載時一樣封頂 6 張。"
+        if settings.montagePieceCount == 1 {
+            return "上限 1 張＝每輪固定單張大圖，不再隨機。"
+                + "每台螢幕各自抽圖。降載時一樣是 1 張。"
+        }
+        return "指定的上限對所有螢幕一體適用。" + shared
     }
 
     /// 只列會產出圖的網路來源；Pexels 影片那種歸影片分頁。

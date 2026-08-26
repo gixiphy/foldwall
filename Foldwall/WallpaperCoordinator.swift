@@ -269,6 +269,12 @@ final class WallpaperCoordinator {
         refreshNow("改抽取張數")
     }
 
+    /// 改了立刻重抽：這是看得見的改動，等下一輪才生效會以為沒作用。
+    func setShowCredits(_ show: Bool) {
+        settings.showCredits = show
+        refreshNow("改標註顯示")
+    }
+
     func addFolders() async {
         do {
             _ = try await bookmarks.addFolders()
@@ -473,7 +479,8 @@ final class WallpaperCoordinator {
             let outcome = try await pipeline.refresh(
                 displays: displays, skipIDs: skipIDs, pool: pool,
                 effect: settings.effect, tier: tier, cycleNonce: cycleNonce,
-                pieceCountOverride: settings.montagePieceCount
+                pieceCountOverride: settings.montagePieceCount,
+                showCredits: settings.showCredits
             )
             status.poolWasEmpty = outcome.poolWasEmpty
             // os.Logger 的字串是 OSLogMessage 字面量，不能用 + 串

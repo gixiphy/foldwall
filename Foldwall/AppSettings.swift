@@ -25,6 +25,7 @@ final class AppSettings {
         static let videoEngine = "videoEngine"
         static let desktopVideoLayer = "desktopVideoLayer"
         static let montagePieceCount = "montagePieceCount"
+        static let showCredits = "showCredits"
         static let iCloudSyncEnabled = "iCloudSyncEnabled"
         static let playlistSources = "playlistSources"
     }
@@ -39,10 +40,19 @@ final class AppSettings {
         didSet { defaults.set(effect.rawValue, forKey: Key.effect) }
     }
 
-    /// 每輪同時抽幾張。`nil`＝自動（依螢幕長邊，見 `StillPipeline.pieceCount`）。
+    /// 每輪最多抽幾張（**上限**，實際張數每輪在 1...上限之間抽，見
+    /// `StillPipeline.drawnPieceCount`）。`nil`＝自動（依螢幕長邊）。
     /// 存 0 代表自動——UserDefaults 沒有 optional Int，缺 key 讀出來也是 0，兩種情況同義。
     var montagePieceCount: Int? {
         didSet { defaults.set(montagePieceCount ?? 0, forKey: Key.montagePieceCount) }
+    }
+
+    /// 要不要把來源與作者印在蒙太奇上。**預設開**：Unsplash 與 Pexels 的授權
+    /// 都要求標註，關掉之後責任在使用者身上。
+    /// 存的是反向鍵（`hideCredits`）——UserDefaults 缺 key 讀出來是 false，
+    /// 反過來存才能讓「沒設定過」自然等於「開著」。
+    var showCredits: Bool {
+        didSet { defaults.set(!showCredits, forKey: Key.showCredits) }
     }
 
     /// 每個來源資料夾要餵給哪條管線（蒙太奇／影片）。
@@ -156,6 +166,7 @@ final class AppSettings {
         self.montagePieceCount = MontageComposer.pieceCountRange.contains(storedPieces)
             ? storedPieces
             : nil
+        self.showCredits = !defaults.bool(forKey: Key.showCredits)   // 缺 key = false = 開著
         self.videoScreens = Set(defaults.stringArray(forKey: Key.videoScreens) ?? [])
         self.videoWallpaperEnabled = defaults.bool(forKey: Key.videoWallpaperEnabled)   // 缺 key = false
         self.iCloudSyncEnabled = defaults.bool(forKey: Key.iCloudSyncEnabled)           // 缺 key = false

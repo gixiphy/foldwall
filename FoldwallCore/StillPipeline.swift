@@ -58,6 +58,24 @@ public struct StillPipeline: Sendable {
     /// 每要一張圖，最多試幾次（壞檔／離線／短邊不足都算一次）。
     public static let attemptsPerPiece = 6
 
+    /// 解碼上限要為「橫幅」留的餘裕，見 `decodeMaxPixel`。
+    ///
+    /// 一片的**長邊** ＝ 短邊 × `maxPieceScale` × 該張的長寬比，而比例要解開才知道。
+    /// 這裡按 16:9（1.78，桌布來源最常見的比例）抓、進位到 1.8：常見的橫幅圖在這個
+    /// 上限下仍是原尺寸貼上，更寬的全景會被多縮一點——那是少數，不值得為它把每張
+    /// 圖都解大一倍。
+    public static let pieceAspectAllowance: CGFloat = 1.8
+
+    /// 背景那張允許被放大幾倍，見 `decodeMaxPixel`。
+    ///
+    /// 背景走 `aspectFill` 鋪滿整張畫布，真正需要的是畫布**長邊**——但它是 0.22 alpha
+    /// 疊在近黑底上的一層，放大一點看不出來（原始設計寫的本來就是「模糊鋪滿」）。
+    /// 所以不按長邊解，只保證放大不超過這個倍數。
+    ///
+    /// **只擋得住橫幅背景。** 直式照片要鋪滿超寬畫布，`aspectFill` 本來就得放到更大，
+    /// 那是 aspectFill 的本質，不是這個地板能解的。
+    public static let backdropMaxUpscale: CGFloat = 2
+
     private let composer: any MontageComposing
     private let desktop: any DesktopSetting
     private let paths: AppPaths
@@ -80,12 +98,17 @@ public struct StillPipeline: Sendable {
         self.credits = credits
     }
 
-    /// 依螢幕長邊決定抽幾張；`reduced` 封頂 6。門檻定死，改了要連測試一起改。
+    /// 依螢幕長邊決定張數**上限**；`reduced` 封頂 6。門檻定死，改了要連測試一起改。
     ///
-    /// `override` 是使用者在設定裡指定的張數（nil＝自動）。指定值一樣要過
+    /// 這是上限不是實際張數——實際幾片每輪由 `drawnPieceCount` 在 `1...上限` 之間抽。
+    ///
+    /// 門檻比早期高（原本 10／8／6）：`MontageComposer.densityScale` 會讓片數多時
+    /// 每片跟著縮小，總墨量不變，所以高張數不再是一團糊。
+    ///
+    /// `override` 是使用者在設定裡指定的上限（nil＝自動）。指定值一樣要過
     /// `MontageComposer.pieceCountRange` 的夾擠與降載封頂——合成端本來就會夾，
     /// 在這裡先夾一次，UI 顯示的數字才會跟實際畫出來的一致。
-    public static func pieceCount(
+    public static func pieceCountCeiling(
         longSide: CGFloat, tier: PowerTier, override: Int? = nil
     ) -> Int {
         let requested: Int
@@ -94,12 +117,51 @@ public struct StillPipeline: Sendable {
                             MontageComposer.pieceCountRange.upperBound)
         } else {
             switch longSide {
-            case 5120...: requested = 10
-            case 3456...: requested = 8
-            default: requested = 6
+            case 5120...: requested = 16
+            case 3456...: requested = 12
+            default: requested = 8
             }
         }
         return tier == .reduced ? min(6, requested) : requested
+    }
+
+    /// 這一輪這台螢幕實際要畫幾片：`1...ceiling` 均勻抽。
+    ///
+    /// 固定張數的蒙太奇看久了會發現「每次都差不多密」。讓張數自己變動，才會有時
+    /// 只有一張大圖、有時鋪滿十幾張——這個變化本身就是效果的一部分。
+    ///
+    /// 用**獨立**的 RNG 串流（seed 再攪一次）而不是跟合成共用：構圖那條串流一旦
+    /// 多抽少抽一個數，張數就會跟著變，兩件事會綁死在一起難以各自調整。
+    public static func drawnPieceCount(ceiling: Int, seed: UInt64) -> Int {
+        let top = min(max(ceiling, MontageComposer.pieceCountRange.lowerBound),
+                      MontageComposer.pieceCountRange.upperBound)
+        guard top > 1 else { return top }
+        var rng = SeededGenerator(seed: seed ^ 0x5EED_C0DE_5EED_C0DE)
+        return Int.random(in: 1...top, using: &rng)
+    }
+
+    /// 每張來源圖要解到多大（長邊像素）。
+    ///
+    /// **不是畫布長邊。** 一片最大只佔短邊 `MontageComposer.maxPieceScale`，按畫布
+    /// 長邊解等於每張多解好幾倍面積——而 `loadPieces` 會把整輪的圖同時留在記憶體裡
+    /// 直到合成結束：5K 畫布 × 11 張（10 片＋背景）原本是 ~770MB 的峰值，這個常駐
+    /// 在選單列的 app 沒有理由付。
+    ///
+    /// 背景那張共用同一個上限，但有 `backdropMaxUpscale` 的地板墊著——它鋪滿整張
+    /// 畫布，解太小會被放大到看得出來。超寬螢幕（短邊小、長邊大）就是靠這條地板。
+    ///
+    /// 只影響解析度，不影響構圖：同一個 seed 抽到的片、位置、背景都跟以前一樣。
+    public static func decodeMaxPixel(canvas: CGSize, pieceCount: Int) -> Int {
+        let shortSide = min(canvas.width, canvas.height)
+        let longSide = max(canvas.width, canvas.height)
+        // 片數多時每片會被 densityScale 縮小，該解的也跟著少——20 片的記憶體
+        // 峰值才不會比 6 片高上三倍
+        let piece = shortSide * MontageComposer.maxPieceScale
+            * MontageComposer.densityScale(pieceCount: pieceCount) * pieceAspectAllowance
+        let backdropFloor = longSide / backdropMaxUpscale
+        // 直式或接近正方的畫布上這個式子會超過長邊——那時解到長邊就到頂了
+        let capped = min(max(piece, backdropFloor), longSide)
+        return max(1, Int(capped.rounded()))
     }
 
     @discardableResult
@@ -110,7 +172,8 @@ public struct StillPipeline: Sendable {
         effect: PostProcess,
         tier: PowerTier,
         cycleNonce: UInt64,
-        pieceCountOverride: Int? = nil
+        pieceCountOverride: Int? = nil,
+        showCredits: Bool = true
     ) async throws -> Outcome {
         var outcome = Outcome()
         guard tier != .paused else { return outcome }
@@ -128,14 +191,17 @@ public struct StillPipeline: Sendable {
 
         for display in targets {
             let longSide = max(display.canvas.width, display.canvas.height)
-            let count = Self.pieceCount(longSide: longSide, tier: tier,
-                                        override: pieceCountOverride)
             let seed = SeededGenerator.seed(cycleNonce: cycleNonce, displayUUID: display.uuid)
+            let ceiling = Self.pieceCountCeiling(longSide: longSide, tier: tier,
+                                                 override: pieceCountOverride)
+            let count = Self.drawnPieceCount(ceiling: ceiling, seed: seed)
 
             // 多要一張給背景：背景是低透明度鋪滿的那層，用掉一張片就會重複。
             // 池不夠時 loadImages 自然會少給，合成端會退回用第一張。
-            let pieces = await loadPieces(from: pool, count: count + 1,
-                                          seed: seed, maxPixel: Int(longSide))
+            let pieces = await loadPieces(
+                from: pool, count: count + 1, seed: seed,
+                maxPixel: Self.decodeMaxPixel(canvas: display.canvas, pieceCount: count),
+                includeCredits: showCredits)
             guard !pieces.isEmpty else {
                 // 這台沒圖可用 → 保留現桌布，不寫黑圖
                 outcome.poolWasEmpty = true
@@ -145,7 +211,8 @@ public struct StillPipeline: Sendable {
             let composite = try composer.compose(
                 pieces: pieces,
                 canvas: display.canvas,
-                recipe: MontageRecipe(pieceCount: count, seed: seed),
+                recipe: MontageRecipe(pieceCount: count, seed: seed,
+                                      showCredits: showCredits),
                 effect: effect
             )
             let url = try write(composite, uuid: display.uuid, nonce: cycleNonce)
@@ -166,7 +233,10 @@ public struct StillPipeline: Sendable {
     /// 所以池裡會混著 icon 等雜訊圖，由這個迴圈當場換掉。
     ///
     /// **輪流抽而不是攤平隨機抽**：見 SourcePool。攤平的話張數多的來源會吃掉整張圖。
-    private func loadPieces(from pool: SourcePool, count: Int, seed: UInt64, maxPixel: Int) async -> [MontagePiece] {
+    private func loadPieces(
+        from pool: SourcePool, count: Int, seed: UInt64, maxPixel: Int,
+        includeCredits: Bool = true
+    ) async -> [MontagePiece] {
         guard !pool.isEmpty else { return [] }
         var rotation = SourceRotation(pool: pool, seed: seed)
         var images: [MontagePiece] = []
@@ -185,8 +255,11 @@ public struct StillPipeline: Sendable {
             if let image = try? ImageLoader.load(
                 local, maxPixel: maxPixel, minimumShortSide: MediaIndexer.minimumShortSide
             ) {
-                // 出處要查**原始**的 url，不是物化後的本機副本
-                images.append(MontagePiece(image: image, credit: credits?.credit(for: url)))
+                // 出處要查**原始**的 url，不是物化後的本機副本。
+                // 關掉標註時連查都不必查——省掉每片一次的表查詢。
+                images.append(MontagePiece(
+                    image: image,
+                    credit: includeCredits ? credits?.credit(for: url) : nil))
             }
         }
         return images
