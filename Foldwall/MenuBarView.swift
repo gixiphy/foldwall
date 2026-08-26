@@ -1,5 +1,10 @@
 //  MenuBarView.swift
 //  選單列內容。沒有多螢模式開關（「此螢幕改用影片」是影片佔用標記，不是模式）。
+//
+//  分三區：**照片｜影片｜通用**。分區是照「這顆按鈕會動到什麼」切的，不是照類型——
+//  「暫停」只停蒙太奇輪換（影片照播），所以它在照片區；「此螢幕改用影片」是
+//  影片的佔用標記，所以它在影片區，雖然它的效果是讓照片管線跳過那台螢幕。
+//  沒有分區的時候這兩顆最常被誤解成全域開關。
 
 import SwiftUI
 import FoldwallCore
@@ -18,50 +23,50 @@ struct MenuBarView: View {
                 SettingsLink { Text("…或在設定裡加照片相簿／網路來源") }
             }
 
-            Divider()
-
-            Button("下一張") { coordinator.next() }
-                .keyboardShortcut("n")
-            Button(coordinator.status.isPaused ? "繼續" : "暫停") { coordinator.togglePause() }
-
-            intervalMenu
-            effectMenu
-
-            if settings.videoWallpaperEnabled {
-                Divider()
-                // 影片跟蒙太奇是兩條節奏，「下一張」不會動到影片，所以自己一個按鈕。
-                Button("下一片影片") { coordinator.nextVideo() }
-                    .keyboardShortcut("n", modifiers: [.command, .shift])
-                playbackModeMenu
+            Section("照片") {
+                Button("下一張") { coordinator.next() }
+                    .keyboardShortcut("n")
+                // 只停蒙太奇輪換，影片不受影響——所以它屬於這一區。
+                Button(coordinator.status.isPaused ? "繼續" : "暫停") { coordinator.togglePause() }
+                intervalMenu
+                effectMenu
             }
 
-            Divider()
-
-            displayMenu
-            SettingsLink { Text("設定（來源・影片・規則）…") }
-                .keyboardShortcut(",")
-
-            if let reason = coordinator.status.activeRuleReason {
-                Text("狀態規則生效中：\(reason)")
-                    .font(.caption)
-            }
-
-            if let error = coordinator.status.sourceError {
-                Text("網路來源異常：\(error)")
-                    .font(.caption)
-            }
-
-            if coordinator.status.offlineCount > 0 {
-                Button("來源離線／無權限（\(coordinator.status.offlineCount)）…") {
-                    openPrivacySettings()
+            Section("影片") {
+                if settings.videoWallpaperEnabled {
+                    // 影片跟蒙太奇是兩條節奏，「下一張」不會動到影片，所以自己一個按鈕。
+                    Button("下一片影片") { coordinator.nextVideo() }
+                        .keyboardShortcut("n", modifiers: [.command, .shift])
+                    playbackModeMenu
                 }
+                displayMenu
             }
 
-            Divider()
+            Section("通用") {
+                SettingsLink { Text("設定（來源・影片・規則）…") }
+                    .keyboardShortcut(",")
 
-            Toggle("登入時啟動", isOn: $settings.launchAtLogin)
-            Button("在 Finder 顯示快取") { revealCache() }
+                if let reason = coordinator.status.activeRuleReason {
+                    Text("狀態規則生效中：\(reason)")
+                        .font(.caption)
+                }
 
+                if let error = coordinator.status.sourceError {
+                    Text("網路來源異常：\(error)")
+                        .font(.caption)
+                }
+
+                if coordinator.status.offlineCount > 0 {
+                    Button("來源離線／無權限（\(coordinator.status.offlineCount)）…") {
+                        openPrivacySettings()
+                    }
+                }
+
+                Toggle("登入時啟動", isOn: $settings.launchAtLogin)
+                Button("在 Finder 顯示快取") { revealCache() }
+            }
+
+            // 結束單獨落在最後：macOS 的慣例是它自己一格，不跟設定項擠在一起。
             Divider()
 
             Button("結束 Foldwall") { NSApplication.shared.terminate(nil) }
