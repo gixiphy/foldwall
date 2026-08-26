@@ -29,6 +29,10 @@ final class WallpaperCoordinator {
         var isIndexing = false
         /// 被 VideoBudget 上限擋下的影片支數。
         var videosOverBudget = 0
+        /// 已經拷進 extension container 的支數。
+        /// 由這裡公布而不是讓設定視窗自己去數目錄：那份 UI 開著的時候
+        /// 背景還在拷，自己數一次就永遠停在開窗那一刻的數字。
+        var deployedVideoCount = 0
         /// 網路影片來源（Pexels 影片）目前快取到幾支。
         var remoteVideoCount = 0
         /// 目前生效中的狀態規則效果，以及觸發它的原因（給選單顯示）。
@@ -523,10 +527,12 @@ final class WallpaperCoordinator {
         // container 被清空，但 videoScreens 標記還在，靜態管線照樣跳過那台螢幕——
         // 沒有影片可播、也沒有蒙太奇蓋上去。再開啟時兩者就疊在一起。
         // 判斷條件跟畫面上實際有什麼綁在一起，就沒有中間狀態。
+        let deployed = videoLibrary.deployedCount
+        status.deployedVideoCount = deployed
         let videoReady = settings.videoWallpaperEnabled
             && !effects.contains(.pauseVideo)
             && (settings.videoEngine.needsDeployment
-                ? videoLibrary.deployedCount > 0
+                ? deployed > 0
                 : desktopVideo.activeCount > 0)
         let skipIDs = videoReady
             ? Set(displays.filter { settings.videoScreens.contains($0.uuid) }.map(\.id))

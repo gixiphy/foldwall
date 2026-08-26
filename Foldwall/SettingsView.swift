@@ -303,8 +303,12 @@ private struct VideoSettings: View {
         )
     }
 
-    @State private var deployedCount = 0
     @State private var libraryPath = VideoLibrary.documentsURL
+
+    /// 由 coordinator 公布，不是自己去數目錄——這扇窗開著的時候背景還在拷，
+    /// 自己數一次就永遠停在開窗那一刻（實測開著窗看到「目前沒有影片」，
+    /// 而 container 裡其實已經有三支）。
+    private var deployedCount: Int { coordinator.status.deployedVideoCount }
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
@@ -325,7 +329,6 @@ private struct VideoSettings: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .onAppear(perform: refresh)
     }
 
     // MARK: - 左欄：來源
@@ -383,7 +386,6 @@ private struct VideoSettings: View {
                 Toggle("啟用影片桌布", isOn: $settings.videoWallpaperEnabled)
                     .onChange(of: settings.videoWallpaperEnabled) { _, _ in
                         onVideoToggle()
-                        refresh()
                     }
                 Text(Self.markdown(Self.budgetExplainer))
                     .font(.caption)
@@ -585,11 +587,6 @@ private struct VideoSettings: View {
         }
     }
 
-    private func refresh() {
-        let videos = libraryPath.appending(path: "videos")
-        let entries = (try? FileManager.default.contentsOfDirectory(atPath: videos.path)) ?? []
-        deployedCount = entries.count
-    }
 }
 
 // MARK: - 網路來源
