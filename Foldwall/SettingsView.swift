@@ -474,6 +474,8 @@ private struct VideoSettings: View {
                         .foregroundStyle(.secondary)
                 }
 
+                forceRotationRow
+
                 Text(Self.markdown(settings.videoEngine.summary))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -483,6 +485,42 @@ private struct VideoSettings: View {
             .padding(4)
         }
         .disabled(!settings.videoWallpaperEnabled)
+    }
+
+    /// 「下一片影片」是在當下這份池裡往前一支；這個是把池換掉再整批重抽。
+    /// 兩條引擎的「池」不是同一回事，忙碌狀態與說明都跟著引擎走（見 forceVideoRotation）。
+    ///
+    /// 拆成獨立屬性：直接串進 playbackBox 會讓型別檢查器超時（同 budgetExplainer）。
+    @ViewBuilder
+    private var forceRotationRow: some View {
+        HStack(spacing: 8) {
+            Button("強制更換片源") { coordinator.forceVideoRotation() }
+                .disabled(isRotating)
+            if isRotating {
+                ProgressView().controlSize(.small)
+                Text(settings.videoEngine.needsDeployment ? "拷貝中…" : "掃描中…")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text(rotationHint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// extension 那條在拷貝，桌面視窗那條在重掃——都是「按了、還沒好」。
+    private var isRotating: Bool {
+        settings.videoEngine.needsDeployment
+            ? coordinator.status.isDeployingVideos
+            : coordinator.status.isIndexing
+    }
+
+    private var rotationHint: String {
+        settings.videoEngine.needsDeployment
+            ? "不等螢幕睡著，現在就換一批進 extension"
+            : "重掃來源資料夾，然後整批重抽——剛丟進來的新片會在這時候出現"
     }
 
     /// 標籤靠左、控制項靠右——與蒙太奇分頁同一條右緣。
@@ -561,7 +599,8 @@ private struct VideoSettings: View {
     private static let sleepExplainer = markdown(
         "影片在**螢幕睡著時**（螢保啟動、鎖定、休眠）預先換好下一批，"
         + "最少間隔 30 分鐘，不跟著桌布輪換——拷貝一次可能是好幾百 MB，"
-        + "放在你剛回到電腦前那一刻做會卡。關掉開關會把已拷進去的影片清乾淨。"
+        + "放在你剛回到電腦前那一刻做會卡。等不及就按下面的**強制更換片源**。"
+        + "關掉開關會把已拷進去的影片清乾淨。"
     )
 
     /// 拆成常數：直接串在 View builder 裡會讓型別檢查器超時。

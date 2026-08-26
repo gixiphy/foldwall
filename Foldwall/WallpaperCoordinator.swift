@@ -33,6 +33,9 @@ final class WallpaperCoordinator {
         /// 由這裡公布而不是讓設定視窗自己去數目錄：那份 UI 開著的時候
         /// 背景還在拷，自己數一次就永遠停在開窗那一刻的數字。
         var deployedVideoCount = 0
+        /// 正在把影片拷進 container。走 SMB 一批可能要好幾分鐘，
+        /// 「強制更換片源」按下去若沒有這個旗標，UI 會整段時間看起來沒反應。
+        var isDeployingVideos = false
         /// 網路影片來源（Pexels 影片）目前快取到幾支。
         var remoteVideoCount = 0
         /// 目前生效中的狀態規則效果，以及觸發它的原因（給選單顯示）。
@@ -283,6 +286,41 @@ final class WallpaperCoordinator {
         guard !marked.isEmpty else { return }
         pendingVideoAdvance.formUnion(marked)
         applyDesktopVideoNow("使用者按下一片")
+    }
+
+    /// 強制換片源：把**池本身**換掉，不是在現有的池裡往前走。
+    ///
+    /// **跟「下一片影片」是兩件事。** 那個是在當下這份池裡往前一支；
+    /// 這個是先讓池重新生成，再整批重抽。兩條引擎「池」的意思不同，做法也不同：
+    ///
+    /// - **系統 extension**：池就是 container 裡那 1–3 支。想看片庫裡其他的片，
+    ///   非得重跑一輪輪替把它們拷進去不可。平時只在螢幕睡著時做（最少隔 30 分鐘，
+    ///   見 VideoSyncPolicy），因為走 SMB 一批是好幾百 MB——使用者明講「我現在就要換」，
+    ///   那道節流就讓開。
+    /// - **桌面視窗**：不拷貝，池就是資料夾索引。索引有自己的重掃週期，
+    ///   所以剛丟進來源資料夾的新片、剛掛回來的 NAS 不一定在池裡。
+    ///   強制重掃一次再整批重抽，那些才會出現。
+    ///
+    /// 兩邊都**不強制網路來源補貨**：那會打免費 API 的額度，而使用者要的是換片，
+    /// 不是刷新那幾支網路影片。網路池照它自己的節奏補（見 RemoteVideoPool）。
+    func forceVideoRotation() {
+        guard settings.videoWallpaperEnabled else { return }
+
+        guard settings.videoEngine.needsDeployment else {
+            // rotateVideosOnNextRefresh 讓 applyDesktopVideo 改走 assign 而不是 keeping——
+            // 少了它，重掃完正在播的那支只要還在池裡就會繼續播，等於什麼都沒換。
+            rotateVideosOnNextRefresh = true
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                await self.reloadFolders()
+                await self.folderIndex.invalidate(roots: self.folders)
+                self.refreshNow("使用者強制換片源")
+            }
+            return
+        }
+
+        forceVideoSync = true
+        refreshNow("使用者強制換片源")
     }
 
     /// 改了播放模式。循環方式是建 player 當下決定的，得讓引擎重建一次才會生效。
@@ -598,6 +636,7 @@ final class WallpaperCoordinator {
     private func runVideoRotation(folderVideos: [URL]) {
         videoSyncID += 1
         let generation = videoSyncID
+        status.isDeployingVideos = true
         videoSyncTask = Task { @MainActor [weak self] in
             guard let self else { return }
 
@@ -646,6 +685,7 @@ final class WallpaperCoordinator {
             await self.videoLibrary.sync(videos: selected)
             guard self.videoSyncID == generation else { return }
             self.videoSyncTask = nil
+            self.status.isDeployingVideos = false
             // container 內容變了 → 重評哪些螢幕該由蒙太奇接管
             self.refreshNow("影片同步完成")
         }
@@ -674,6 +714,7 @@ final class WallpaperCoordinator {
     private func runVideoSync(videos: [URL], after previous: Task<Void, Never>? = nil) {
         videoSyncID += 1
         let generation = videoSyncID
+        status.isDeployingVideos = true
         videoSyncTask = Task { @MainActor [weak self] in
             await previous?.value   // 等前一輪收手，別兩邊同時動 container
             guard let self else { return }
@@ -681,6 +722,7 @@ final class WallpaperCoordinator {
             guard self.videoSyncID == generation else { return }   // 已被新的取代
             if videos.isEmpty { self.status.videosOverBudget = 0 }
             self.videoSyncTask = nil
+            self.status.isDeployingVideos = false
             // 清空 container 之後，那些螢幕要立刻由蒙太奇接管，不能留白
             self.refreshNow("影片同步完成")
         }
