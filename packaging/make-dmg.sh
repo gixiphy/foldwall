@@ -47,12 +47,27 @@ fi
 echo "==> 產生專案"
 xcodegen generate >/dev/null
 
+# 公證的兩個硬性要求，都是 `xcodebuild build`（非 archive）不會自己做對的：
+# - 簽名要帶安全時間戳（--timestamp），少了會被退件「does not include a secure timestamp」
+# - 不得注入 get-task-allow（那是掛除錯器用的），build 動作預設會注入、archive 才會關
+# 開發憑證那條維持原樣：--timestamp 要連網，本機開發簽名沒必要多這個依賴。
+SIGN_FLAGS=""
+INJECT_BASE_ENTITLEMENTS="YES"
+case "$IDENTITY" in
+  "Developer ID Application"*)
+    SIGN_FLAGS="--timestamp"
+    INJECT_BASE_ENTITLEMENTS="NO"
+    ;;
+esac
+
 echo "==> Release 建置（${IDENTITY}）"   # 一定要加大括號：zh_TW.UTF-8 下 bash 會把全形「）」吃進變數名
 echo "    建置目錄：$BUILD"
 rm -rf "$BUILD"
 xcodebuild -scheme Foldwall -configuration Release -destination 'platform=macOS' \
   -derivedDataPath "$BUILD" \
   CODE_SIGN_IDENTITY="$IDENTITY" CODE_SIGN_STYLE=Manual \
+  OTHER_CODE_SIGN_FLAGS="$SIGN_FLAGS" \
+  CODE_SIGN_INJECT_BASE_ENTITLEMENTS="$INJECT_BASE_ENTITLEMENTS" \
   build >/dev/null
 
 APP="$BUILD/Build/Products/Release/Foldwall.app"
@@ -91,7 +106,8 @@ hdiutil create -volname "Foldwall $VERSION" -srcfolder "$STAGE" \
   -ov -format UDZO "$DMG" >/dev/null
 
 echo "==> 簽 DMG"
-codesign --sign "$IDENTITY" "$DMG"
+# shellcheck disable=SC2086 — SIGN_FLAGS 是刻意的字組展開（空字串時展開成無）
+codesign --sign "$IDENTITY" $SIGN_FLAGS "$DMG"
 
 # 把建置產物從 LaunchServices 取消登錄。
 # 否則 build-release 裡的 .appex 會被系統當成一個「已安裝」的桌布 extension，

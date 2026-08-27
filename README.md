@@ -100,7 +100,7 @@ Foldwall 不實作任何串流解析或簽章繞過——那是規避技術保�
 | **網路來源有速率上限** | 免費 API 額度有限（例如 Unsplash 每小時 50 次）。Foldwall 會快取抓下來的圖當池用，不會每 5 分鐘打一次 API。 |
 | **專注模式規則可能失效** | macOS 沒有可靠的方式查得到「目前是哪個專注模式」。查不到就當沒開、規則靜默失效，桌布不受影響。 |
 | **影片快取會自動汰舊** | 網路來源與片單抓下來的影片共用一份 2 GB 上限，超過從最舊的開始刪。 |
-| **Gatekeeper** | app 未經 Apple 公證，裝到任何機器都要先 `xattr -dr com.apple.quarantine /Applications/Foldwall.app`。 |
+| **Gatekeeper** | 0.6.0 起的 DMG 已經 Apple 公證，直接打開安裝即可。更舊的版本要先 `xattr -dr com.apple.quarantine /Applications/Foldwall.app`。 |
 
 鎖屏：macOS 14 起鎖屏預設顯示桌布，所以靜態蒙太奇會**免費出現在鎖屏**。
 
@@ -109,7 +109,6 @@ Foldwall 不實作任何串流解析或簽章繞過——那是規避技術保�
 - **YouTube 內建支援**。三條路全不通：Data API 是 Google API；官方 IFrame 嵌入要求播放器可見、不被遮蔽、顯示廣告，桌布定義上就違反；抽 `googlevideo` 串流網址是規避技術保護措施。**串流不比下載寬鬆。** 你要對哪個站用自己的 yt-dlp 是你的決定，那條界線在你手上，不在這個 app 裡。
 - **OAuth 來源**（SmugMug、Flickr 私人相簿）。Flickr 只支援公開搜尋。
 - **App Sandbox 與 Mac App Store**。
-- **公證**。
 
 ## 授權
 
