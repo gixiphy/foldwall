@@ -252,9 +252,13 @@ public struct StillPipeline: Sendable {
                 guard let prepared = try? await preparer.prepare(url) else { continue }
                 local = prepared
             }
-            if let image = try? ImageLoader.load(
-                local, maxPixel: maxPixel, minimumShortSide: MediaIndexer.minimumShortSide
-            ) {
+            // autoreleasepool：ImageIO 的屬性字典等暫存物件是 autorelease 的，
+            // 一輪最多 21 張 × 6 次嘗試，不排掉會堆到整輪合成結束。
+            let loaded = autoreleasepool {
+                try? ImageLoader.load(
+                    local, maxPixel: maxPixel, minimumShortSide: MediaIndexer.minimumShortSide)
+            }
+            if let image = loaded {
                 // 出處要查**原始**的 url，不是物化後的本機副本。
                 // 關掉標註時連查都不必查——省掉每片一次的表查詢。
                 images.append(MontagePiece(

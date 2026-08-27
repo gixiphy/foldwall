@@ -47,6 +47,13 @@ final class PlaylistService {
 
     /// 需要的話在背景重新解析片單。**不阻塞呼叫端。**
     func refreshIfNeeded(_ sources: [PlaylistSource]) {
+        // 被刪掉的片單留在這些表裡永遠等不到人查，順手清掉——
+        // 這個行程一開就是好幾週，慢性堆積也是堆積。
+        let known = Set(sources.map(\.id))
+        entries = entries.filter { known.contains($0.key) }
+        lastRefresh = lastRefresh.filter { known.contains($0.key) }
+        resolvedTitles = resolvedTitles.filter { known.contains($0.key) }
+
         for source in sources where source.isEnabled && source.url != nil {
             let stale = lastRefresh[source.id]
                 .map { Date.now.timeIntervalSince($0) > Self.refreshInterval } ?? true
@@ -68,9 +75,8 @@ final class PlaylistService {
 
     /// 這條片單有幾支已經在磁碟上了。
     func downloadedCount(for source: PlaylistSource) -> Int {
-        (entries[source.id] ?? []).count {
-            VideoDownloadTool.localFile(for: $0.id, in: directory) != nil
-        }
+        let downloaded = VideoDownloadTool.localFileMap(in: directory)
+        return (entries[source.id] ?? []).count { downloaded[$0.id] != nil }
     }
 
     private func resolve(_ source: PlaylistSource) {
@@ -155,20 +161,23 @@ final class PlaylistService {
     // MARK: - 按需下載
 
     /// 目前**已經在磁碟上**的片單影片。這些才進得了播放池。
+    ///
+    /// 用 `localFileMap` 一次建表：逐支呼叫 `localFile` 是每支重列一次目錄，
+    /// 幾百支的片單在每輪 refresh、每次影片播畢都要問一遍。
     func candidates(for sources: [PlaylistSource]) -> [URL] {
-        sources.filter(\.isEnabled).flatMap { source in
-            (entries[source.id] ?? []).compactMap {
-                VideoDownloadTool.localFile(for: $0.id, in: directory)
-            }
+        let downloaded = VideoDownloadTool.localFileMap(in: directory)
+        return sources.filter(\.isEnabled).flatMap { source in
+            (entries[source.id] ?? []).compactMap { downloaded[$0.id] }
         }
     }
 
     /// 還沒抓、也不在冷卻中的那些。
     func pending(for sources: [PlaylistSource]) -> [PlaylistEntry] {
         let now = Date.now
+        let downloaded = VideoDownloadTool.localFileMap(in: directory)
         return sources.filter(\.isEnabled).flatMap { source in
             (entries[source.id] ?? []).filter { entry in
-                guard VideoDownloadTool.localFile(for: entry.id, in: directory) == nil,
+                guard downloaded[entry.id] == nil,
                       !downloading.contains(entry.id)
                 else { return false }
                 if let failedAt = failed[entry.id],

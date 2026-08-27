@@ -54,9 +54,13 @@ public struct MediaIndexer: MediaIndexing {
                     unreadable.append(root)
                 }
             }
-            // 固定順序：讓同一 seed 的蒙太奇可重現
+            // 固定順序：讓同一 seed 的蒙太奇可重現。
+            // 排序鍵先算好：`URL.path` 每次取用都配置一個新 String，
+            // 直接放進比較器等於 90 萬項 × log n 次的重複配置。
+            var keyed = all.map { (key: $0.url.path, item: $0) }
+            keyed.sort { $0.key < $1.key }
             return MediaScan(
-                items: all.sorted { $0.url.path < $1.url.path },
+                items: keyed.map(\.item),
                 unreadableRoots: unreadable.sorted { $0.path < $1.path })
         }
     }
@@ -82,10 +86,21 @@ public struct MediaIndexer: MediaIndexing {
             return nil
         }
 
+        // 分批包 autoreleasepool：列舉器吐的是 autorelease 的 Foundation 物件，
+        // 這個同步迴圈中途不會讓出，不排掉的話 90 萬檔（4 分鐘）的暫存物件
+        // 會全部堆到走完才釋放。
         var items: [IndexedItem] = []
-        for case let url as URL in walker {
-            guard let kind = classify(url) else { continue }
-            items.append(IndexedItem(url: url, kind: kind))
+        var finished = false
+        while !finished {
+            autoreleasepool {
+                var step = 0
+                while step < 4096, let element = walker.nextObject() {
+                    step += 1
+                    guard let url = element as? URL, let kind = classify(url) else { continue }
+                    items.append(IndexedItem(url: url, kind: kind))
+                }
+                if step < 4096 { finished = true }
+            }
         }
         return items
     }

@@ -144,6 +144,25 @@ extension VideoDownloadTool {
         }
     }
 
+    /// 一次把目錄裡「entry id → 已下載檔案」的對照表建好。
+    ///
+    /// **逐支呼叫 `localFile` 是 O(片單數 × 目錄檔數)**：每次都重列整個目錄。
+    /// 幾百支的片單在每輪 refresh、每次影片播畢都要問一遍，那是幾十萬次系統呼叫。
+    /// 這裡只列一次，之後查表。id 取檔名最後一組 `[…]`——輸出樣板
+    /// `%(title).80B [%(id)s].%(ext)s` 保證它在結尾。
+    public static func localFileMap(in directory: URL) -> [String: URL] {
+        let entries = (try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: nil)) ?? []
+        var map: [String: URL] = [:]
+        for file in entries where videoExtensions.contains(file.pathExtension.lowercased()) {
+            let stem = file.deletingPathExtension().lastPathComponent
+            guard stem.hasSuffix("]"), let open = stem.lastIndex(of: "[") else { continue }
+            let id = String(stem[stem.index(after: open)..<stem.index(before: stem.endIndex)])
+            if !id.isEmpty { map[id] = file }
+        }
+        return map
+    }
+
     /// 下載後可能是哪些副檔名。
     static let videoExtensions: Set<String> = ["mp4", "mov", "m4v", "webm", "mkv"]
 }

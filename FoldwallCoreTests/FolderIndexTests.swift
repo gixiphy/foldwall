@@ -309,6 +309,32 @@ final class FolderIndexTests: XCTestCase {
         XCTAssertEqual(indexer.scanCount, 2, "夠久了就在背景補一次")
     }
 
+    /// 有根目錄離線時 isComplete 永遠是 false——不能因此每輪 current 都全量重掃：
+    /// 一個離線的 NAS 會把好端端的幾十萬檔本機根目錄也一起拖下水。
+    /// 提早重試可以，但要有下限（incompleteRetryInterval）。
+    func testIncompleteIndexRetriesWithBackoffNotEveryCall() async {
+        let clock = Clock()
+        let indexer = FakeIndexer()
+        indexer.put(root: rootA, images: ["a.jpg"])
+        indexer.markUnreadable(rootB)
+        let index = FolderIndex(indexer: indexer, now: clock.now)
+
+        _ = await index.current(roots: [rootA, rootB])
+        await index.waitForScan()
+        XCTAssertEqual(indexer.scanCount, 1)
+
+        // 下一輪 refresh（間隔內）：清單不完整，但不准立刻又全量重掃
+        clock.advance(60)
+        _ = await index.current(roots: [rootA, rootB])
+        XCTAssertEqual(indexer.scanCount, 1, "離線根目錄不該讓每輪 refresh 都變成全量重掃")
+
+        // 過了重試下限就補一次——NAS 掛回來要在這時候被發現
+        clock.advance(FolderIndex.incompleteRetryInterval + 1)
+        _ = await index.current(roots: [rootA, rootB])
+        await index.waitForScan()
+        XCTAssertEqual(indexer.scanCount, 2)
+    }
+
     // MARK: - 落地
 
     /// 這條是持久化的重點：冷啟動第一次問就要有圖，不必等全量重掃跑完。

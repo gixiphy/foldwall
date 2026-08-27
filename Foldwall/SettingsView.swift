@@ -93,6 +93,10 @@ private struct FolderSourceSettings: View {
     @Bindable var coordinator: WallpaperCoordinator
     @Bindable var settings: AppSettings
 
+    /// 路徑 → 可否讀取。**在背景算好**再給列表用：isReadableFile 對未掛載的
+    /// SMB 路徑是一次網路往返，放在 body 裡等於每次重繪都在主執行緒上等它。
+    @State private var readable: [String: Bool] = [:]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("本機、SMB，以及 Box／pCloud／Dropbox／OneDrive／Google Drive 等雲端硬碟的"
@@ -128,7 +132,7 @@ private struct FolderSourceSettings: View {
                                     .buttonStyle(.borderless)
                             }
                             HStack(spacing: 6) {
-                                let usable = FileManager.default.isReadableFile(atPath: folder.path)
+                                let usable = readable[folder.path] ?? true
                                 Image(systemName: usable ? "checkmark.circle.fill" : "xmark.circle.fill")
                                     .foregroundStyle(usable ? Color.green : Color.red)
                                 Text(usable ? "可讀取" : "讀不到（未掛載或無權限）")
@@ -171,6 +175,14 @@ private struct FolderSourceSettings: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
+        .task(id: coordinator.folders) {
+            let folders = coordinator.folders
+            readable = await Task.detached(priority: .utility) {
+                Dictionary(uniqueKeysWithValues: folders.map {
+                    ($0.path, FileManager.default.isReadableFile(atPath: $0.path))
+                })
+            }.value
+        }
     }
 }
 
@@ -259,7 +271,13 @@ private struct PhotosAlbumSettings: View {
         status = PhotosAlbumSource.authorizationStatus
         Log.sources.info("照片相簿分頁：\(PhotosAlbumSource.describe(status), privacy: .public)")
         guard status == .authorized || status == .limited else { return }
-        albums = PhotosAlbumSource.albums()
+        // 走遍整個照片圖庫（十萬張要好幾秒），跟 coordinator.reloadAlbums 一樣放背景，
+        // 別讓開這個分頁的那一刻整個視窗凍住。
+        Task {
+            albums = await Task.detached(priority: .utility) {
+                PhotosAlbumSource.albums()
+            }.value
+        }
     }
 }
 
@@ -841,7 +859,8 @@ private struct PlaylistSourceDetail: View {
 /// 「版本」分頁另有一段講**為什麼**是外部工具（那是專案的界線，不是操作說明）。
 private struct YtDlpNotice: View {
 
-    private var isInstalled: Bool { VideoDownloadTool.locate() != nil }
+    /// 開頁時查一次就好，不必每次重繪都去磁碟上找一遍執行檔。
+    @State private var isInstalled = VideoDownloadTool.locate() != nil
 
     var body: some View {
         if isInstalled {

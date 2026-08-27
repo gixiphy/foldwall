@@ -175,6 +175,14 @@ final class DesktopVideoEngine {
     /// 降載／睡眠時暫停，但不拆視窗——重新開始時不必再解一次碼。
     func setPaused(_ paused: Bool) {
         isPolicyPaused = paused
+        // 暫停時看門狗本來就閉嘴（checkHealth 開頭就 return），那就連計時器一起停：
+        // 螢幕睡一整晚，沒理由每 10 秒喚醒行程一次去做一個空檢查。
+        if paused {
+            watchdog?.invalidate()
+            watchdog = nil
+        } else if !playing.isEmpty {
+            startWatchdogIfNeeded()
+        }
         for uuid in playing.keys {
             if paused {
                 playing[uuid]?.player.pause()

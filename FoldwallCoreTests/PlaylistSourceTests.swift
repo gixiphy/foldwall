@@ -115,6 +115,28 @@ final class PlaylistSourceTests: XCTestCase {
         XCTAssertNil(VideoDownloadTool.localFile(for: "aaa111", in: directory.appending(path: "無")))
     }
 
+    /// 批次版：只列一次目錄就把整份「id → 檔案」的表建好。
+    /// 逐支呼叫 localFile 是 O(片單數 × 目錄檔數)，幾百支的片單每輪都要問。
+    func testLocalFileMapFindsAllDownloadsInOnePass() throws {
+        let directory = URL(filePath: NSTemporaryDirectory())
+            .appending(path: "foldwall-playlist-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        try Data("x".utf8).write(to: directory.appending(path: "某支影片 [aaa111].mp4"))
+        // 標題自己帶方括號也不能認錯：id 是**最後**一組
+        try Data("x".utf8).write(to: directory.appending(path: "標題[有括號] [bbb222].webm"))
+        try Data("x".utf8).write(to: directory.appending(path: "aaa111.txt"))           // 不是影片
+        try Data("x".utf8).write(to: directory.appending(path: "沒有標記.mp4"))          // 沒有 [id]
+
+        let map = VideoDownloadTool.localFileMap(in: directory)
+        XCTAssertEqual(map.count, 2)
+        XCTAssertEqual(map["aaa111"]?.lastPathComponent, "某支影片 [aaa111].mp4")
+        XCTAssertEqual(map["bbb222"]?.lastPathComponent, "標題[有括號] [bbb222].webm")
+        XCTAssertNil(map["nope"])
+        XCTAssertTrue(VideoDownloadTool.localFileMap(in: directory.appending(path: "無")).isEmpty)
+    }
+
     /// 副檔名要是影片。同名的 .txt／.json（yt-dlp 的 sidecar）不算。
     func testNonVideoFilesAreNotMistakenForDownloads() throws {
         let directory = URL(filePath: NSTemporaryDirectory())

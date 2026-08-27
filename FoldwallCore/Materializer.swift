@@ -26,8 +26,15 @@ public struct Materializer: MediaPreparing, Sendable {
     }
 
     /// 網路磁碟區（Finder 掛的 SMB／AFP）讀取慢又會斷，合成前先拷本機。
+    ///
+    /// 本機外接磁碟（USB／Thunderbolt）也掛在 `/Volumes/` 底下，但直接讀就好——
+    /// 拷一份只是白佔快取額度、把 2GB 的 LRU 提早擠爆。查不到磁碟區屬性
+    ///（路徑不存在、磁碟剛拔掉）就當網路磁碟處理，走拷貝那條保守路。
     public static func needsLocalCopy(_ url: URL) -> Bool {
-        url.standardizedFileURL.path.hasPrefix("/Volumes/")
+        guard url.standardizedFileURL.path.hasPrefix("/Volumes/") else { return false }
+        guard let isLocal = (try? url.resourceValues(forKeys: [.volumeIsLocalKey]))?.volumeIsLocal
+        else { return true }
+        return !isLocal
     }
 
     /// 來源路徑 → 快取路徑。同一來源永遠對到同一份，副檔名保留給 ImageIO 認格式。

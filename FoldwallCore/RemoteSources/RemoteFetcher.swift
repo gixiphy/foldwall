@@ -73,9 +73,19 @@ public struct RemoteFetcher: Sendable {
         }
 
         let image = try await resolve(image, from: source)
-        let (data, response) = try await session.data(for: source.downloadRequest(for: image))
-        try Self.validate(response)
-        try data.write(to: destination, options: .atomic)
+        // 串流落地，不整檔吃進記憶體：原圖一張可能 10–30MB，一批 12 張
+        // 用 data(for:) 等於平白多一份整檔的暫存峰值。
+        let (temp, response) = try await session.download(for: source.downloadRequest(for: image))
+        do {
+            try Self.validate(response)
+            if FileManager.default.fileExists(atPath: destination.path) {
+                try FileManager.default.removeItem(at: destination)
+            }
+            try FileManager.default.moveItem(at: temp, to: destination)
+        } catch {
+            try? FileManager.default.removeItem(at: temp)
+            throw error
+        }
 
         // 授權要求標註作者，而現在是唯一知道作者是誰的時候——快取裡只剩檔案。
         credits.record(image.attribution, for: destination)

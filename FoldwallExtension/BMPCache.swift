@@ -80,6 +80,11 @@ func writeBMPSnapshot(videoURL: URL, videoID: String? = nil, displayPixelWidth: 
     let asset = AVURLAsset(url: videoURL)
     let generator = AVAssetImageGenerator(asset: asset)
     generator.appliesPreferredTrackTransform = true
+    // Cap the decode at the display size: without this a 4K+ clip yields a
+    // native-resolution frame, and every buffer below (BGRA render, BGR24
+    // conversion, BMP payload) scales with it — ~85MB of transient memory in a
+    // memory-limited appex, for pixels the display can never show.
+    generator.maximumSize = CGSize(width: displayPixelWidth, height: displayPixelHeight)
 
     let cgImage: CGImage
     do {
@@ -181,12 +186,41 @@ func writeBMPSnapshot(videoURL: URL, videoID: String? = nil, displayPixelWidth: 
         traceLog("  [BMPCache] Write failed: \(error)")
     }
 
+    // Evict snapshots for videos that are no longer in the library. Each
+    // rotation deploys videos under fresh UUIDs, so every cycle mints new
+    // hashes — without a cap the uncompressed BMPs (tens of MB each)
+    // accumulate forever. Keep the newest few; the current video's file was
+    // just written so it always survives.
+    evictStaleSnapshots(in: cacheDir, keeping: 8)
+
     // Write cacheVersion.db
     let versionURL = cacheDir.appendingPathComponent("cacheVersion.db")
     do {
         try Data("{\"version\":2}".utf8).write(to: versionURL, options: .atomic)
     } catch {
         traceLog("  [BMPCache] cacheVersion.db failed: \(error)")
+    }
+}
+
+/// Delete all but the newest `keeping` BMP snapshots (by modification date).
+private func evictStaleSnapshots(in cacheDir: URL, keeping: Int) {
+    guard let contents = try? FileManager.default.contentsOfDirectory(
+        at: cacheDir, includingPropertiesForKeys: [.contentModificationDateKey]
+    ) else { return }
+
+    let bmps = contents
+        .filter { $0.pathExtension == "bmp" }
+        .sorted { lhs, rhs in
+            let l = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]))?
+                .contentModificationDate ?? .distantPast
+            let r = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]))?
+                .contentModificationDate ?? .distantPast
+            return l > r
+        }
+    guard bmps.count > keeping else { return }
+    for stale in bmps.dropFirst(keeping) {
+        try? FileManager.default.removeItem(at: stale)
+        traceLog("  [BMPCache] Evicted stale snapshot: \(stale.lastPathComponent)")
     }
 }
 

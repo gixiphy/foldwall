@@ -37,6 +37,10 @@ final class VideoLibrary {
     private static let skipVideoNotification = "app.foldwall.skipVideo"
 
     private let ledgerURL: URL
+    /// 帳本與拒絕名單的記憶體快取。唯一的寫入者就是這個型別（@MainActor），
+    /// 沒必要每次 `deployedCount`（每輪 refresh 至少問兩次）都重讀＋解一次 JSON。
+    private var ledgerCache: [Deployment]?
+    private var rejectsCache: [String: Int64]?
 
     init(paths: AppPaths = .standard()) {
         self.ledgerURL = paths.applicationSupport.appending(path: "video-deployments.json")
@@ -208,24 +212,36 @@ final class VideoLibrary {
     }
 
     private func loadRejects() -> [String: Int64] {
+        if let rejectsCache { return rejectsCache }
         guard let data = try? Data(contentsOf: rejectsURL),
               let map = try? JSONDecoder().decode([String: Int64].self, from: data)
-        else { return [:] }
+        else {
+            rejectsCache = [:]
+            return [:]
+        }
+        rejectsCache = map
         return map
     }
 
     private func saveRejects(_ rejects: [String: Int64]) {
+        rejectsCache = rejects
         try? JSONEncoder().encode(rejects).write(to: rejectsURL, options: .atomic)
     }
 
     private func loadLedger() -> [Deployment] {
+        if let ledgerCache { return ledgerCache }
         guard let data = try? Data(contentsOf: ledgerURL),
               let ledger = try? JSONDecoder().decode([Deployment].self, from: data)
-        else { return [] }
+        else {
+            ledgerCache = []
+            return []
+        }
+        ledgerCache = ledger
         return ledger
     }
 
     private func saveLedger(_ ledger: [Deployment]) {
+        ledgerCache = ledger
         try? FileManager.default.createDirectory(
             at: ledgerURL.deletingLastPathComponent(), withIntermediateDirectories: true
         )

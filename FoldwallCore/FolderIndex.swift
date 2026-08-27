@@ -35,6 +35,14 @@ public actor FolderIndex {
     /// 兩次背景重掃的最短間隔。桌布最快 5 分鐘換一次，沒必要每輪重走磁碟。
     public static let rescanInterval: TimeInterval = 15 * 60
 
+    /// 清單不完整（有根目錄讀不到）時的重試間隔。
+    ///
+    /// 不能用 `rescanInterval`——NAS 掛回來要等 15 分鐘才被發現太久；
+    /// 但也不能每輪 current 都重掃：一個離線的 NAS 會讓 isComplete 永遠是 false，
+    /// 沒有這道下限就等於**每次 refresh 都全量重走所有根目錄**（含好端端的
+    /// 幾十萬檔本機資料夾），而 refresh 的觸發點有二十幾個。
+    public static let incompleteRetryInterval: TimeInterval = 5 * 60
+
     private let indexer: any MediaIndexing
     private let now: @Sendable () -> Date
     private let onScanCompleted: (@Sendable () -> Void)?
@@ -68,8 +76,12 @@ public actor FolderIndex {
         hydrate()
         applyRootChange(roots)
 
-        let stale = lastScan.map { now().timeIntervalSince($0) > Self.rescanInterval } ?? true
-        if stale || !snapshot.isComplete {
+        let sinceLast = lastScan.map { now().timeIntervalSince($0) } ?? .infinity
+        let stale = sinceLast > Self.rescanInterval
+        // 清單不完整就提早重試，但要有下限——否則一個離線的 NAS 會讓每輪
+        // refresh 都變成全量重掃（見 incompleteRetryInterval）。
+        let retryIncomplete = !snapshot.isComplete && sinceLast > Self.incompleteRetryInterval
+        if stale || retryIncomplete {
             startScan(roots: roots)
         }
         return snapshot
@@ -114,13 +126,21 @@ public actor FolderIndex {
         // 只存掃得完整的那份。有根目錄讀不到時存下去，下次冷啟動 hydrate
         // 會把它當成完整清單——磁碟上留著上一份好的比較安全。
         guard let store, snapshot.isComplete else { return }
-        let payload = PersistedFolderIndex(
-            roots: scannedRoots.map { $0.path(percentEncoded: false) },
-            scannedAt: lastScan ?? now(),
-            images: snapshot.images.map { $0.path(percentEncoded: false) },
-            videos: snapshot.videos.map { $0.path(percentEncoded: false) }
-        )
-        Task.detached(priority: .utility) { store.save(payload) }
+        // URL → 路徑字串的轉換（90 萬項就是 90 萬次字串配置）也要移出 actor：
+        // [URL] 是 CoW 的 Sendable，capture 本身不拷貝。
+        let roots = scannedRoots
+        let scannedAt = lastScan ?? now()
+        let images = snapshot.images
+        let videos = snapshot.videos
+        Task.detached(priority: .utility) {
+            let payload = PersistedFolderIndex(
+                roots: roots.map { $0.path(percentEncoded: false) },
+                scannedAt: scannedAt,
+                images: images.map { $0.path(percentEncoded: false) },
+                videos: videos.map { $0.path(percentEncoded: false) }
+            )
+            store.save(payload)
+        }
     }
 
     /// 根目錄變動時先就地修正快取，別讓已移除的資料夾還留在池裡。
@@ -134,8 +154,11 @@ public actor FolderIndex {
         }
 
         let removedOnly = Set(roots).isSubset(of: Set(scannedRoots))
-        snapshot.images = snapshot.images.filter { isUnder(roots, $0) }
-        snapshot.videos = snapshot.videos.filter { isUnder(roots, $0) }
+        // RootMatcher 把根目錄路徑先算好：逐項重新 standardize 的寫法在 68 萬筆上
+        // 實測要 4.39 秒，而這裡佔著 actor，會讓下一輪 current 排隊等。
+        let matcher = RootMatcher(roots)
+        snapshot.images = snapshot.images.filter { matcher.root(of: $0) != nil }
+        snapshot.videos = snapshot.videos.filter { matcher.root(of: $0) != nil }
 
         // 只移除的話，篩過的清單仍然是完整的——影片同步可以立刻把該刪的刪掉。
         // 只要新增了根目錄，清單就不完整，同步得等重掃。
@@ -152,15 +175,6 @@ public actor FolderIndex {
         urls.map { url in
             let path = url.standardizedFileURL.path(percentEncoded: false)
             return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
-        }
-    }
-
-    private func isUnder(_ roots: [URL], _ url: URL) -> Bool {
-        let path = url.standardizedFileURL.path
-        return roots.contains { root in
-            let base = root.standardizedFileURL.path
-            // 比到路徑分隔為止：/Volumes/Arch 不該吃掉 /Volumes/Archive
-            return path == base || path.hasPrefix(base.hasSuffix("/") ? base : base + "/")
         }
     }
 
@@ -196,8 +210,14 @@ public actor FolderIndex {
             return
         }
 
-        var images = scan.items.filter { $0.kind == .image }.map(\.url)
-        var videos = scan.items.filter { $0.kind == .video }.map(\.url)
+        // 一趟分流，不走兩遍 filter+map——這串在大型來源上是 90 萬項，而且佔著 actor。
+        var images: [URL] = []
+        var videos: [URL] = []
+        images.reserveCapacity(scan.items.count)
+        for item in scan.items {
+            if item.kind == .image { images.append(item.url) }
+            else if item.kind == .video { videos.append(item.url) }
+        }
 
         // 有根目錄打不開（NAS 沒掛、磁碟拔掉）：**留著上一輪掃到的東西**，
         // 並且不准宣稱清單完整。
@@ -206,8 +226,9 @@ public actor FolderIndex {
         // → 影片差異同步認定所有影片都被移除 → 把 extension container 裡的全刪掉。
         // 檔案還好端端在 NAS 上，只是這一刻讀不到而已。
         if !scan.unreadableRoots.isEmpty {
-            images += snapshot.images.filter { isUnder(scan.unreadableRoots, $0) }
-            videos += snapshot.videos.filter { isUnder(scan.unreadableRoots, $0) }
+            let matcher = RootMatcher(scan.unreadableRoots)
+            images += snapshot.images.filter { matcher.root(of: $0) != nil }
+            videos += snapshot.videos.filter { matcher.root(of: $0) != nil }
             Self.log.notice(
                 "\(scan.unreadableRoots.count) 個根目錄讀不到，沿用上一輪清單、不標記完整")
         }

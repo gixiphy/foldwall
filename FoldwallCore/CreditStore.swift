@@ -52,11 +52,35 @@ public struct CreditStore: CreditLookup {
 
     // MARK: - 私有
 
+    /// 讀過的表留在記憶體裡。合成時**每一片**都要查一次出處，
+    /// 沒有這層就是每片一次「讀檔＋解 JSON」，乘上片數×螢幕數×每 5 分鐘一輪。
+    /// 寫入都經過 `save`（同程序內沒有別人動這個檔），所以快取只在 save 時更新。
+    private final class TableCache: @unchecked Sendable {
+        private let lock = NSLock()
+        private var tables: [String: [String: String]] = [:]
+
+        func table(at url: URL, loader: () -> [String: String]) -> [String: String] {
+            let key = url.path
+            if let cached = lock.withLock({ tables[key] }) { return cached }
+            let loaded = loader()
+            lock.withLock { tables[key] = loaded }
+            return loaded
+        }
+
+        func update(_ table: [String: String], at url: URL) {
+            lock.withLock { tables[url.path] = table }
+        }
+    }
+
+    private static let cache = TableCache()
+
     private func load() -> [String: String] {
-        guard let data = try? Data(contentsOf: indexURL),
-              let table = try? JSONDecoder().decode([String: String].self, from: data)
-        else { return [:] }
-        return table
+        Self.cache.table(at: indexURL) {
+            guard let data = try? Data(contentsOf: indexURL),
+                  let table = try? JSONDecoder().decode([String: String].self, from: data)
+            else { return [:] }
+            return table
+        }
     }
 
     private func save(_ table: [String: String]) {
@@ -65,6 +89,7 @@ public struct CreditStore: CreditLookup {
         guard let data = try? encoder.encode(table) else { return }
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try? data.write(to: indexURL, options: .atomic)
+        Self.cache.update(table, at: indexURL)
     }
 }
 
