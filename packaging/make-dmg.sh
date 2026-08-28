@@ -92,6 +92,29 @@ TEAM="$(printf '%s\n' "$SIGN_INFO" | sed -n 's/^TeamIdentifier=//p')"
   exit 1
 }
 echo "    Team $TEAM ✓"
+
+# appex 的 entitlements 一定要驗產物。零 entitlement 的 appex 照樣建置成功、
+# 照樣過 codesign --verify，但系統不會把它登錄成桌布 extension——「系統設定 →
+# 桌布」就默默少一塊 Foldwall。0.6.1／0.6.2 就是這樣壞掉的：公證那條路關掉
+# CODE_SIGN_INJECT_BASE_ENTITLEMENTS，把 ENABLE_APP_SANDBOX 生成的 .xcent
+# 一起關掉了。
+APPEX="$APP/Contents/Extensions/FoldwallExtension.appex"
+APPEX_ENTS="$(codesign -d --entitlements - "$APPEX" 2>/dev/null || true)"
+case "$APPEX_ENTS" in
+  *com.apple.security.app-sandbox*) ;;
+  *)
+    echo "✗ appex 沒有 app-sandbox entitlement，系統不會登錄成桌布 extension"
+    echo "  實際簽到的 entitlements：${APPEX_ENTS:-（空）}"
+    exit 1
+    ;;
+esac
+case "$APPEX_ENTS" in
+  *get-task-allow*)
+    echo "✗ appex 帶著 get-task-allow，公證會被退件"
+    exit 1
+    ;;
+esac
+echo "    appex sandbox ✓"
 ARCHS="$(lipo -archs "$APP/Contents/MacOS/Foldwall")"
 [ "$ARCHS" = "arm64" ] || { echo "架構不是純 arm64：$ARCHS"; exit 1; }
 echo "    arm64 only ✓"

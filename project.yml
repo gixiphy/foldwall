@@ -89,8 +89,12 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Foldwall
         SWIFT_OBJC_BRIDGING_HEADER: FoldwallExtension/WallpaperExtension-Bridging-Header.h
         # extension 本身是沙盒的（與 app 不同）：所以 app 只能用「拷貝進 container」
-        # 這條契約，不能用 bookmark-link
+        # 這條契約，不能用 bookmark-link。
+        # 沙盒必須寫在明檔裡：公證那條路會關 CODE_SIGN_INJECT_BASE_ENTITLEMENTS，
+        # 只靠 ENABLE_APP_SANDBOX 生成的話會一起被關掉，appex 簽成零 entitlement
+        # 就不再被登錄成桌布 extension（見 FoldwallExtension.entitlements）。
         ENABLE_APP_SANDBOX: YES
+        CODE_SIGN_ENTITLEMENTS: FoldwallExtension/FoldwallExtension.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         SKIP_INSTALL: YES
         CODE_SIGN_IDENTITY: "-"

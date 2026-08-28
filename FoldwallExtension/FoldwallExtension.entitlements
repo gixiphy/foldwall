@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 這份檔案存在的理由：不要讓 extension 的 entitlements 靠 Xcode「注入」。
+	     公證那條路關掉 CODE_SIGN_INJECT_BASE_ENTITLEMENTS（為了不注入
+	     get-task-allow），連帶把 ENABLE_APP_SANDBOX 生成的那份 .xcent 也一起
+	     沒了——appex 於是簽成「零 entitlement」，系統就不再把它登錄成桌布
+	     extension（`pluginkit -p com.apple.wallpaper` 查無此人，系統設定 →
+	     桌布 也就沒有 Foldwall 區塊）。寫成明檔就與注入開關脫鉤。 -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+</dict>
+</plist>
