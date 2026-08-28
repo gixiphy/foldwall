@@ -133,7 +133,7 @@ enum SourceProbe {
 @MainActor
 final class RemoteVideoPool {
 
-    /// 池低於這個數量就補貨。輪替一次只用 1–3 支，備著十來支就夠輪很久。
+    /// 池低於這個數量就補貨。有資料夾來源時輪替一次只用 1 支網路片，備著十來支就夠輪很久。
     private static let minimumPoolSize = 12
     /// 兩次補貨的最短間隔。影片檔大，比照片保守得多。
     private static let refillInterval: TimeInterval = 6 * 60 * 60

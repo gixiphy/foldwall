@@ -76,7 +76,7 @@ func buildSettingsViewModelsXPC() async -> AnyObject? {
     }
 
     // Offer the shuffle tile whenever there is anything at all, not only at two or
-    // more. The library CHURNS by design — the app rotates 1-3 videos through the
+    // more. The library CHURNS by design — the app rotates a fresh batch through the
     // container every time the display sleeps — so gating on the current count
     // makes the tile vanish whenever a rotation happens to land on a single video,
     // and with it the user's selection. Shuffle All is a standing intent ("rotate

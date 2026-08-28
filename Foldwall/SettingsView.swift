@@ -623,13 +623,13 @@ private struct VideoSettings: View {
 
     /// 拆成常數：直接串在 View builder 裡會讓型別檢查器超時。
     private static let budgetExplainer: String = {
-        let perFileMB = VideoBudget.maxFileBytes / (1024 * 1024)
-        let rotationMB = VideoBudget.rotationBytes / (1024 * 1024)
+        let perFileGB = VideoBudget.maxFileBytes / (1024 * 1024 * 1024)
+        let rotationGB = VideoBudget.rotationBytes / (1024 * 1024 * 1024)
         return "沙盒 extension 讀不到 app 的來源資料夾，影片必須**實體拷貝**一份進去。"
             + "來源若是 NAS，那會是幾十 GB——所以預設關閉，而且採**輪替**而非囤積："
-            + "一次只帶 1–3 支（視大小，單輪上限 \(rotationMB) MB），下次螢幕亮起再換一批，"
-            + "整個片庫照樣輪得到。單檔超過 \(perFileMB) MB 一律不收——"
-            + "那是片庫內容，不是桌布循環素材。"
+            + "一次帶到**填滿 \(rotationGB) GB** 為止（幾支視大小而定），"
+            + "下次螢幕亮起再換一批，整個片庫照樣輪得到。"
+            + "單檔超過 \(perFileGB) GB 一律不收——那是片庫內容，不是桌布循環素材。"
     }()
 
     private func step(_ number: Int, _ text: String) -> some View {

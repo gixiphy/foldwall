@@ -11,33 +11,51 @@ final class VideoBudgetTests: XCTestCase {
         { pairs[$0.lastPathComponent] }
     }
 
-    /// 小檔就帶滿三支。
-    func testSmallClipsFillTheRotation() {
-        let videos = ["a", "b", "c", "d"].map { url("\($0).mp4") }
+    /// 決定帶幾支的是額度，不是支數。10 MB 的短片庫整批都塞得進 2 GB。
+    func testSmallClipsAreLimitedByBytesNotByCount() {
+        let videos = (0..<60).map { url("v\(String(format: "%02d", $0)).mp4") }
         let rotation = VideoBudget.rotate(videos, cursor: 0) { _ in 10 * self.mb }
 
-        XCTAssertEqual(rotation.selected.map(\.lastPathComponent), ["a.mp4", "b.mp4", "c.mp4"])
-        XCTAssertEqual(rotation.nextCursor, 3, "下一輪從第 4 支接著走")
+        XCTAssertEqual(rotation.selected.count, 60, "600 MB 遠在 2 GB 額度內，全部帶走")
+        XCTAssertEqual(rotation.usedBytes, 600 * mb)
+        XCTAssertEqual(rotation.nextCursor, 0, "整庫都帶到了，游標繞回原點")
     }
 
-    /// 一支大的就只帶一支——「1~3 支視影片大小而定」。
-    func testOneLargeClipTakesTheWholeRotation() {
-        let videos = [url("big.mp4"), url("small.mp4")]
+    /// 大檔就少帶幾支——「幾支視影片大小而定」由額度決定。
+    func testLargeClipsExhaustTheByteBudget() {
+        let videos = ["a", "b", "c"].map { url("\($0).mp4") }
         let rotation = VideoBudget.rotate(
             videos, cursor: 0,
-            size: sizes(["big.mp4": 500 * mb, "small.mp4": 100 * mb])
+            size: sizes(["a.mp4": 1024 * mb, "b.mp4": 1024 * mb, "c.mp4": 100 * mb])
         )
-        XCTAssertEqual(rotation.selected.map(\.lastPathComponent), ["big.mp4"],
-                       "500MB 已經吃掉整輪額度")
+        XCTAssertEqual(rotation.selected.map(\.lastPathComponent), ["a.mp4", "b.mp4"],
+                       "兩支就把 2 GB 用完了，第三支留給下一輪")
+        XCTAssertEqual(rotation.usedBytes, 2048 * mb)
+    }
+
+    /// 額度用完時卡在門口的那一支，下一輪要第一個輪到。
+    ///
+    /// 舊寫法在 break 之前就把游標推過它了：支數上限還在的時候看不太出來，
+    /// 改成純額度驅動之後，每輪都會固定漏掉「剛好塞不下」的那一支——
+    /// 九支 900 MB 的片庫連續輪五輪只碰得到六支。
+    func testClipThatOverflowsTheBudgetLeadsTheNextRotation() {
+        let videos = ["a", "b", "c"].map { url("\($0).mp4") }
+        let first = VideoBudget.rotate(videos, cursor: 0) { _ in 900 * self.mb }
+        XCTAssertEqual(first.selected.map(\.lastPathComponent), ["a.mp4", "b.mp4"])
+        XCTAssertEqual(first.nextCursor, 2, "游標停在塞不下的 c 身上，不是推過它")
+
+        let second = VideoBudget.rotate(videos, cursor: first.nextCursor) { _ in 900 * self.mb }
+        XCTAssertEqual(second.selected.first?.lastPathComponent, "c.mp4")
     }
 
     /// 游標會繞回開頭，整個片庫才輪得到。
     func testCursorWrapsAround() {
         let videos = ["a", "b", "c", "d"].map { url("\($0).mp4") }
-        let rotation = VideoBudget.rotate(videos, cursor: 3) { _ in 10 * self.mb }
+        let rotation = VideoBudget.rotate(videos, cursor: 3) { _ in 900 * self.mb }
 
-        XCTAssertEqual(rotation.selected.map(\.lastPathComponent), ["d.mp4", "a.mp4", "b.mp4"])
-        XCTAssertEqual(rotation.nextCursor, 2)
+        XCTAssertEqual(rotation.selected.map(\.lastPathComponent), ["d.mp4", "a.mp4"],
+                       "1800 MB 之後再一支就超過 2 GB")
+        XCTAssertEqual(rotation.nextCursor, 1)
     }
 
     /// 連續輪替走遍全庫，不會卡在同一批。
@@ -45,12 +63,12 @@ final class VideoBudgetTests: XCTestCase {
         let videos = (0..<9).map { url("v\($0).mp4") }
         var cursor = 0
         var seen: Set<String> = []
-        for _ in 0..<3 {
-            let rotation = VideoBudget.rotate(videos, cursor: cursor) { _ in 10 * self.mb }
+        for _ in 0..<5 {
+            let rotation = VideoBudget.rotate(videos, cursor: cursor) { _ in 900 * self.mb }
             seen.formUnion(rotation.selected.map(\.lastPathComponent))
             cursor = rotation.nextCursor
         }
-        XCTAssertEqual(seen.count, 9, "三輪之後九支都輪過了")
+        XCTAssertEqual(seen.count, 9, "一輪兩支，五輪之後九支都輪過了")
     }
 
     /// GB 級長片是片庫內容，不是桌布素材：直接跳過，繼續看後面的。
@@ -103,7 +121,7 @@ final class VideoBudgetTests: XCTestCase {
     // MARK: - 網路來源的名額
 
     /// 實測：資料夾 4596 支、網路 6 支。混在一起排序輪替的話，游標要繞完 4602 支
-    /// 才碰得到網路那 6 支——一次 3 支等於一千多輪，加了來源卻永遠看不到。
+    /// 才碰得到網路那 6 支——加了來源卻永遠看不到。
     func testRemoteAlwaysGetsASlotWhenFolderLibraryIsHuge() {
         XCTAssertEqual(VideoBudget.remoteSlots(remoteCount: 6, folderCount: 4596), 1)
     }
@@ -123,9 +141,10 @@ final class VideoBudgetTests: XCTestCase {
         XCTAssertEqual(rotation.usedBytes, 60 * mb, "混合來源要靠這個算剩餘額度")
     }
 
-    func testDefaultsAreConservative() {
-        XCTAssertEqual(VideoBudget.rotationCount, 3)
-        XCTAssertEqual(VideoBudget.rotationBytes, 512 * 1024 * 1024)
-        XCTAssertEqual(VideoBudget.maxFileBytes, 512 * 1024 * 1024)
+    /// 煞車只剩額度這一道，所以額度本身要鎖死。
+    func testBudgetIsTheOnlyBrake() {
+        XCTAssertEqual(VideoBudget.rotationCount, Int.max, "支數不設限，帶幾支由額度算")
+        XCTAssertEqual(VideoBudget.rotationBytes, 2 * 1024 * 1024 * 1024)
+        XCTAssertEqual(VideoBudget.maxFileBytes, 1024 * 1024 * 1024)
     }
 }

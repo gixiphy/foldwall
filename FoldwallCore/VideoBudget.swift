@@ -11,17 +11,24 @@ import Foundation
 
 public enum VideoBudget {
 
-    /// 一輪最多帶幾支。影片是**輪替**的：每次螢幕重新亮起換一批，不是一次囤滿。
-    public static let rotationCount = 3
-    /// 一輪的總量上限。一支大的就只帶一支，小的才帶到三支——
-    /// 「1~3 支視影片大小而定」就是由這個數字決定的。
-    public static let rotationBytes: Int64 = 512 * 1024 * 1024
+    /// 一輪最多帶幾支——**不設支數上限**，由 `rotationBytes` 決定帶幾支。
+    ///
+    /// 影片仍是**輪替**的（每次螢幕重新亮起換一批，不是一次囤滿），只是「一批」
+    /// 有多少支交給額度算：全是 40 MB 短片就是幾十支，全是 500 MB 長片就是四支。
+    /// 支數固定成 3 的時候，短片庫每輪只帶得走 120 MB，額度形同虛設。
+    ///
+    /// 仍是可傳入的參數：網路來源要的是「保留 1 個名額」，見 `remoteSlots`。
+    public static let rotationCount = Int.max
+    /// 一輪的總量上限，也是這條管線唯一的煞車。
+    public static let rotationBytes: Int64 = 2 * 1024 * 1024 * 1024
     /// **單檔上限**。這道關卡最有效：桌布循環素材是幾十 MB，不是幾 GB。
     ///
     /// 實測（2026-08-25）沒有這道關卡時，路徑排序最前面的 5 支完整長片
     /// （1.3–2.4 GB）就吃掉 10 GB 額度的 9.7 GB，而真正像桌布的 13 支短片
     /// 加起來只有 300 MB。擋掉巨檔，額度才會花在對的東西上。
-    public static let maxFileBytes: Int64 = 512 * 1024 * 1024
+    ///
+    /// 訂在 1 GB：2 GB 額度下最少仍收得到 2 支，不會一支長片獨佔整輪。
+    public static let maxFileBytes: Int64 = 1024 * 1024 * 1024
 
     public struct Rotation: Sendable, Equatable {
         /// 這一輪要放進 container 的（其餘一律移除）。
@@ -38,11 +45,11 @@ public enum VideoBudget {
         }
     }
 
-    /// 從 `cursor` 位置往後挑 1–3 支，挑完把游標推到下一輪的起點（會繞回開頭）。
+    /// 從 `cursor` 位置往後挑到額度用完為止，挑完把游標推到下一輪的起點（會繞回開頭）。
     ///
-    /// 為什麼要輪替而不是囤滿：container 是實體拷貝，囤 12 支就是幾 GB 長期佔著磁碟。
-    /// 桌布一次只播得到一支，帶三支就夠系統的 Shuffle 用了；下次螢幕亮起再換一批，
-    /// 整個片庫照樣輪得到。
+    /// 為什麼要輪替而不是囤滿：container 是實體拷貝，一座 NAS 全拷過去就是幾百 GB。
+    /// 額度花完就收手，下次螢幕亮起再換一批，整個片庫照樣輪得到。
+    /// 片庫總量小於額度時整庫都會帶進去，游標繞回原點——那本來就該是全部。
     public static func rotate(
         _ videos: [URL],
         cursor: Int,
@@ -61,15 +68,24 @@ public enum VideoBudget {
         // 最多繞一圈：整批都超過單檔上限時才不會空轉
         for step in 0..<ordered.count {
             let index = (start + step) % ordered.count
-            rotation.nextCursor = (index + 1) % ordered.count
 
-            guard let bytes = size(ordered[index]), bytes <= maxFileBytes else { continue }
+            // 讀不到大小（離線／壞檔）或超過單檔上限：這支永遠進不來，游標推過去。
+            guard let bytes = size(ordered[index]), bytes <= maxFileBytes else {
+                rotation.nextCursor = (index + 1) % ordered.count
+                continue
+            }
             // 第一支一定收（否則遇到接近上限的檔會整輪空手）
-            guard rotation.selected.isEmpty || usedBytes + bytes <= totalBytes else { break }
+            guard rotation.selected.isEmpty || usedBytes + bytes <= totalBytes else {
+                // 額度不夠這支——不是它的錯。游標**停在它身上**，下一輪從它接著走；
+                // 推過去的話它每輪都剛好在額度用完的那個位置被跳過，永遠輪不到。
+                rotation.nextCursor = index
+                break
+            }
 
             rotation.selected.append(ordered[index])
             usedBytes += bytes
             rotation.usedBytes = usedBytes
+            rotation.nextCursor = (index + 1) % ordered.count
             if rotation.selected.count >= count { break }
         }
         return rotation
@@ -78,8 +94,8 @@ public enum VideoBudget {
     /// 網路影片在整個輪替裡該分到幾個名額。
     ///
     /// 為什麼要保留名額：實測資料夾有 4596 支、網路只有 6 支，混在一起排序輪替的話，
-    /// 游標要繞完 4602 支才會碰到網路那 6 支——一次走 3 支等於要一千多輪，
-    /// 實際上永遠輪不到。加了來源卻看不到，等於沒加。
+    /// 游標要繞完 4602 支才會碰到網路那 6 支——實際上永遠輪不到。
+    /// 加了來源卻看不到，等於沒加。
     public static func remoteSlots(
         remoteCount: Int,
         folderCount: Int,
