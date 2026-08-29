@@ -206,8 +206,13 @@ final class FolderIndexTests: XCTestCase {
         XCTAssertFalse(snapshot.isComplete)
     }
 
-    /// 讀不到時那份殘缺清單不准落地，否則下次冷啟動 hydrate 會把它當成完整的。
-    func testIncompleteScanIsNotPersisted() async {
+    /// 讀不到時**照樣落地**，但要記下「這份不完整」。
+    ///
+    /// 舊規則是不准落地——理由是 hydrate 會把存下來的當成完整清單。代價是只要有
+    /// 一個來源長期離線，索引就永遠不落地，每次冷啟動都全量重掃四分鐘。hydrate
+    /// 改成照抄旗標之後這個理由不成立了，而清單本身不會殘缺：commit 會把讀不到
+    /// 的那個根上一輪掃到的東西沿用下來。
+    func testIncompleteScanIsPersistedButMarkedIncomplete() async {
         let store = FakeStore()
         let indexer = FakeIndexer()
         indexer.put(root: rootA, images: ["a.jpg"])
@@ -226,8 +231,11 @@ final class FolderIndexTests: XCTestCase {
         await index.waitForScan()
         try? await Task.sleep(for: .milliseconds(300))
 
-        XCTAssertEqual(store.saveCount, savesAfterGoodScan, "殘缺的那份不准蓋掉磁碟上完整的索引")
-        XCTAssertEqual(store.current?.images, [rootA.appending(path: "a.jpg").path])
+        XCTAssertGreaterThan(store.saveCount, savesAfterGoodScan,
+                             "不落地的話，來源長期離線的人每次冷啟動都要重掃四分鐘")
+        XCTAssertEqual(store.current?.isComplete, false, "存了就得記下它不完整")
+        XCTAssertEqual(store.current?.images, [rootA.appending(path: "a.jpg").path],
+                       "沿用上一輪的清單，落地的內容不該因為讀不到就少一截")
     }
 
     // MARK: - 根目錄變動
@@ -360,7 +368,7 @@ final class FolderIndexTests: XCTestCase {
 
     /// **這條是這次修法的重點。** 離線 ≠ 使用者移除：
     /// 當成移除的話，那顆碟的整份清單會被篩掉並落地，掛回來得再付一次全量重掃。
-    func testOfflineRootKeepsItsFilesAndDoesNotOverwriteTheStoredIndex() async {
+    func testOfflineRootKeepsItsFilesInTheStoredIndex() async {
         let store = FakeStore()
         let indexer = FakeIndexer()
         indexer.put(root: rootA, images: ["a.jpg"])
@@ -386,8 +394,11 @@ final class FolderIndexTests: XCTestCase {
         XCTAssertEqual(snapshot.videos.map(\.lastPathComponent), ["b.mp4"],
                        "影片更不能掉：上層會把它當成已移除，去刪 extension container 裡的拷貝")
         XCTAssertFalse(snapshot.isComplete)
-        XCTAssertEqual(store.saveCount, savesWhileHealthy,
-                       "殘缺的那份不准蓋掉磁碟上完整的索引")
+        XCTAssertGreaterThan(store.saveCount, savesWhileHealthy,
+                             "離線期間也要落地，否則碟一直沒掛就永遠不存")
+        XCTAssertEqual(store.current?.isComplete, false)
+        XCTAssertEqual(store.current?.videos, [rootB.appending(path: "b.mp4").path],
+                       "落地的那份也要留著離線根的影片")
     }
 
     /// 已知離線就不必用計時器輪詢：重試也只是再撞一次逾時。
@@ -575,5 +586,45 @@ final class FolderIndexTests: XCTestCase {
         await index.invalidate(roots: [rootA])
         await index.waitForScan()
         XCTAssertEqual(indexer.scanCount, 2, "使用者改了來源就該立刻重掃，不等節流")
+    }
+
+    // MARK: - 順序不是變動
+
+    /// 同一組根換個順序不是「換了來源」。
+    ///
+    /// 呼叫端給的是 `folders + offlineFolders`：一個根離線就會從原位移到尾巴。
+    /// 比有序陣列的話，NAS 每掉一次線就把 70 萬檔全量重掃一次。
+    func testReorderingTheSameRootsDoesNotForceARescan() async {
+        let clock = Clock()
+        let indexer = FakeIndexer()
+        indexer.put(root: rootA, images: ["a.jpg"])
+        indexer.put(root: rootB, images: ["b.jpg"])
+        let index = FolderIndex(indexer: indexer, now: clock.now)
+
+        _ = await index.current(roots: [rootA, rootB])
+        await index.waitForScan()
+        XCTAssertEqual(indexer.scanCount, 1)
+
+        clock.advance(60)
+        _ = await index.current(roots: [rootB, rootA])
+        await index.waitForScan()
+        XCTAssertEqual(indexer.scanCount, 1, "順序變了不是來源變了，不該重掃")
+    }
+
+    /// 冷啟動撈回不完整的那份，就得繼續當它不完整。
+    func testHydrateKeepsTheStoredIncompleteFlag() async {
+        let store = FakeStore(PersistedFolderIndex(
+            roots: [rootA.path],
+            scannedAt: Date(timeIntervalSince1970: 0),
+            images: [rootA.appending(path: "a.jpg").path],
+            videos: [],
+            isComplete: false
+        ))
+        let clock = Clock()
+        let index = FolderIndex(indexer: FakeIndexer(), now: clock.now, store: store)
+
+        let snapshot = await index.current(roots: [rootA])
+        XCTAssertFalse(snapshot.isComplete,
+                       "當成完整的話，影片差異同步會把那顆碟上已部署的影片全刪掉")
     }
 }

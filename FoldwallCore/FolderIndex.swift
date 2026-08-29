@@ -128,9 +128,10 @@ public actor FolderIndex {
         guard let persisted = store?.load() else { return }
         snapshot.images = persisted.images.map { URL(filePath: $0, directoryHint: .notDirectory) }
         snapshot.videos = persisted.videos.map { URL(filePath: $0, directoryHint: .notDirectory) }
-        // 存下來的清單當時是掃完整的；根目錄如果變了，接下來的
-        // applyRootChange 會把它降級成不完整。
-        snapshot.isComplete = true
+        // 完整性照抄，不要一律當成完整：磁碟上那份可能是「有根離線時存下的」，
+        // 硬當成完整的話影片差異同步會把那顆碟上已部署的影片全當成「已移除」刪掉。
+        // 根目錄如果變了，接下來的 applyRootChange 會再把它降級一次。
+        snapshot.isComplete = persisted.isComplete
         scannedRoots = persisted.roots.map { URL(filePath: $0, directoryHint: .isDirectory) }
         lastScan = persisted.scannedAt
     }
@@ -138,21 +139,27 @@ public actor FolderIndex {
     /// 編碼與寫檔丟到 actor 外面做：一份 90 萬路徑的清單編起來不便宜，
     /// 佔著 actor 會讓下一輪 current 排在後面等。
     private func persist() {
-        // 只存掃得完整的那份。有根目錄讀不到時存下去，下次冷啟動 hydrate
-        // 會把它當成完整清單——磁碟上留著上一份好的比較安全。
-        guard let store, snapshot.isComplete else { return }
+        // **不完整的也要存**，把完整性一起寫進去。
+        //
+        // 之前是「只存完整的那份」，理由是 hydrate 會把存下來的當成完整清單。
+        // 代價是：只要有一個來源長期離線（NAS 關著、外接碟沒插），索引就永遠
+        // 不落地，每次冷啟動都全量重掃——90 萬檔 4.2 分鐘，而那顆碟的內容
+        // 明明還在清單裡。hydrate 改成照抄旗標之後，這個理由就不成立了。
+        guard let store else { return }
         // URL → 路徑字串的轉換（90 萬項就是 90 萬次字串配置）也要移出 actor：
         // [URL] 是 CoW 的 Sendable，capture 本身不拷貝。
         let roots = scannedRoots
         let scannedAt = lastScan ?? now()
         let images = snapshot.images
         let videos = snapshot.videos
+        let isComplete = snapshot.isComplete
         Task.detached(priority: .utility) {
             let payload = PersistedFolderIndex(
                 roots: roots.map { $0.path(percentEncoded: false) },
                 scannedAt: scannedAt,
                 images: images.map { $0.path(percentEncoded: false) },
-                videos: videos.map { $0.path(percentEncoded: false) }
+                videos: videos.map { $0.path(percentEncoded: false) },
+                isComplete: isComplete
             )
             store.save(payload)
         }
@@ -160,7 +167,7 @@ public actor FolderIndex {
 
     /// 根目錄變動時先就地修正快取，別讓已移除的資料夾還留在池裡。
     private func applyRootChange(_ roots: [URL]) {
-        guard Self.pathList(roots) != Self.pathList(scannedRoots) else {
+        guard Self.changed(roots, from: scannedRoots) else {
             // 路徑一樣但**表示法**可能不同：從磁碟撈回來的根目錄帶結尾斜線，
             // 書籤解出來的沒有，直接比 URL 會判成「換了根目錄」而每次冷啟動都重掃。
             // 統一成呼叫端給的那份，後面 commit 的比對才對得上。
@@ -214,6 +221,15 @@ public actor FolderIndex {
         urls.map(normalized)
     }
 
+    /// 這兩份根目錄清單是不是**不同的一組**。
+    ///
+    /// 比集合而不是比有序陣列。呼叫端給的順序是會變的——`folders + offlineFolders`
+    /// 在某個根離線時會把它從原位移到尾巴，同一組根換個順序就被判成「換了根目錄」，
+    /// 於是 `lastScan = nil`、70 萬檔全量重掃一次。NAS 每掉一次線就是四分鐘。
+    private static func changed(_ lhs: [URL], from rhs: [URL]) -> Bool {
+        Set(pathList(lhs)) != Set(pathList(rhs))
+    }
+
     private func startScan(roots: [URL]) {
         guard scanTask == nil else { return }   // 上一輪還在走就別疊上去
 
@@ -251,7 +267,8 @@ public actor FolderIndex {
         lastScan = now()
 
         // 掃到一半使用者又改了來源 → 這批結果不算數，直接重來。
-        guard Self.pathList(roots) == Self.pathList(scannedRoots) else {
+        // 同樣比集合：順序變了不代表來源變了（見 changed(_:from:)）。
+        guard !Self.changed(roots, from: scannedRoots) else {
             startScan(roots: scannedRoots)
             return
         }

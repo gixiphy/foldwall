@@ -23,16 +23,37 @@ public struct PersistedFolderIndex: Codable, Sendable, Equatable {
     public var scannedAt: Date
     public var images: [String]
     public var videos: [String]
+    /// 這份清單掃到了每一個根，還是有根當時讀不到（NAS 沒掛、磁碟拔掉）。
+    ///
+    /// **不完整的也要存。** 之前是「只存完整的」，於是有一個來源長期離線的人
+    /// 索引就永遠不落地，每次冷啟動都全量重掃——90 萬檔 4.2 分鐘。存了就得記下
+    /// 這件事：不然下次 hydrate 會把不完整的清單當成完整的，影片差異同步會把
+    /// 那顆碟上已部署的影片全當成「已移除」刪掉。
+    public var isComplete: Bool
 
     public init(
         version: Int = FolderIndexStore.currentVersion,
-        roots: [String], scannedAt: Date, images: [String], videos: [String]
+        roots: [String], scannedAt: Date, images: [String], videos: [String],
+        isComplete: Bool = true
     ) {
         self.version = version
         self.roots = roots
         self.scannedAt = scannedAt
         self.images = images
         self.videos = videos
+        self.isComplete = isComplete
+    }
+
+    /// 舊檔沒有 `isComplete` 這個鍵。當時的規則是「只存完整的那份」，
+    /// 所以缺鍵一律當成完整——不必為了加一個欄位讓所有人重掃四分鐘。
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try c.decode(Int.self, forKey: .version)
+        roots = try c.decode([String].self, forKey: .roots)
+        scannedAt = try c.decode(Date.self, forKey: .scannedAt)
+        images = try c.decode([String].self, forKey: .images)
+        videos = try c.decode([String].self, forKey: .videos)
+        isComplete = try c.decodeIfPresent(Bool.self, forKey: .isComplete) ?? true
     }
 }
 
