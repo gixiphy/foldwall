@@ -378,7 +378,9 @@ final class PlaylistService {
                 at: destination, withIntermediateDirectories: true)
             let process = Process()
             process.executableURL = tool
-            process.arguments = VideoDownloadTool.arguments(url: url, destination: destination)
+            // ffmpeg 有就用：YouTube 現在幾乎只給分離軌，不合併就一支也抓不下來。
+            process.arguments = VideoDownloadTool.arguments(
+                url: url, destination: destination, ffmpeg: VideoDownloadTool.locateFFmpeg())
             let pipe = Pipe()
             process.standardOutput = pipe
             process.standardError = pipe
@@ -386,7 +388,14 @@ final class PlaylistService {
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
             guard process.terminationStatus != 0 else { return nil }
-            return explain(String(decoding: data, as: UTF8.self))
+            var reason = explain(String(decoding: data, as: UTF8.self))
+            // 這個錯配上「沒裝 ffmpeg」幾乎一定是同一件事，直接把解法講出來。
+            if reason.contains("Requested format is not available"),
+               VideoDownloadTool.locateFFmpeg() == nil {
+                reason += "（這個站只提供分離的視訊／音訊軌，合併需要 ffmpeg："
+                    + "`brew install ffmpeg`）"
+            }
+            return reason
         } catch {
             return error.localizedDescription
         }

@@ -36,21 +36,53 @@ public enum VideoDownloadTool {
     /// 桌布影片不需要 4K：檔案大好幾倍、解碼更吃電，縮到螢幕尺寸也看不出差別。
     public static let maximumHeight = 1080
 
-    /// - Parameter destination: 存放目錄。
+    /// ffmpeg 在哪。yt-dlp 要靠它把分離的視訊／音訊軌合起來。
+    ///
+    /// 找法跟 yt-dlp 一樣（GUI app 不繼承 shell 的 PATH），常見的安裝位置也一樣。
+    public static func locateFFmpeg(
+        home: URL = URL.homeDirectory,
+        exists: (String) -> Bool = { FileManager.default.isExecutableFile(atPath: $0) }
+    ) -> URL? {
+        let candidates = searchPaths.map { "\($0)/ffmpeg" }
+            + [home.appending(path: ".local/bin/ffmpeg").path]
+        return candidates.first(where: exists).map { URL(filePath: $0) }
+    }
+
+    /// - Parameters:
+    ///   - destination: 存放目錄。
+    ///   - ffmpeg: 找得到 ffmpeg 就傳它，會多要「分離軌 ＋ 合併」那條路。
     /// - Returns: 傳給 yt-dlp 的參數。
     ///
-    /// 刻意**只取單一檔案**（不用 `bv+ba` 那種需要合併的格式）：
-    /// 合併要 ffmpeg，使用者不見得裝了，失敗訊息又很難懂。
-    public static func arguments(url: String, destination: URL) -> [String] {
-        [
+    /// **為什麼要分兩種格式選擇**：原本刻意只取單一檔案（不用 `bv+ba` 那種要
+    /// 合併的），理由是合併需要 ffmpeg 而使用者不見得裝了。代價是 2026 年的
+    /// YouTube 幾乎不再提供 muxed 格式——實測整張格式表只有 DASH 的分離軌，
+    /// 於是每一支都以 `Requested format is not available` 收場，片單一支也抓不下來。
+    ///
+    /// 所以：有 ffmpeg 就走分離軌＋合併，沒有才退回單一檔案（對還提供 muxed
+    /// 的站仍然有效）。判斷放在呼叫端，這裡只負責照著組參數。
+    public static func arguments(url: String, destination: URL, ffmpeg: URL? = nil) -> [String] {
+        let singleFile = "b[height<=\(maximumHeight)][ext=mp4]/b[ext=mp4]"
+            + "/b[height<=\(maximumHeight)]/b"
+        var arguments = [
             "--no-playlist",              // 貼到播放清單網址時只抓那一支
             "--no-part",                  // 不留 .part 半成品在來源目錄裡
             "--no-progress",
             "--newline",
-            "-f", "b[height<=\(maximumHeight)][ext=mp4]/b[ext=mp4]/b[height<=\(maximumHeight)]/b",
+        ]
+        if let ffmpeg {
+            arguments += [
+                "--ffmpeg-location", ffmpeg.deletingLastPathComponent().path,
+                "--merge-output-format", "mp4",
+                "-f", "bv*[height<=\(maximumHeight)]+ba/\(singleFile)",
+            ]
+        } else {
+            arguments += ["-f", singleFile]
+        }
+        arguments += [
             "-o", destination.appending(path: "%(title).80B [%(id)s].%(ext)s").path,
             url,
         ]
+        return arguments
     }
 
     // MARK: - 版本

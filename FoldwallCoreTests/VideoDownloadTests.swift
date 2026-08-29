@@ -36,13 +36,32 @@ final class VideoDownloadTests: XCTestCase {
         XCTAssertTrue(args.contains("--no-playlist"))
     }
 
-    /// 只取單一檔案：合併要 ffmpeg，使用者不見得裝了，失敗訊息又很難懂。
-    func testFormatAvoidsFormatsThatNeedMerging() throws {
+    /// 沒有 ffmpeg 就只敢要單一檔案：帶 `+` 的格式合併不了。
+    func testFormatAvoidsMergingWhenFFmpegIsMissing() throws {
         let args = VideoDownloadTool.arguments(url: "https://example.com/v",
                                                destination: URL(filePath: "/tmp/out"))
         let format = try XCTUnwrap(args.firstIndex(of: "-f").map { args[$0 + 1] })
         XCTAssertFalse(format.contains("+"), "帶 + 的格式需要 ffmpeg 合併")
         XCTAssertTrue(format.contains("height<=1080"), "桌布不需要 4K")
+        XCTAssertFalse(args.contains("--ffmpeg-location"))
+    }
+
+    /// 有 ffmpeg 就要分離軌。
+    ///
+    /// 2026 年的 YouTube 幾乎不再給 muxed 格式——實測整張格式表只有 DASH
+    /// 分離軌，只要單一檔案的話每一支都以「Requested format is not available」
+    /// 收場，片單一支也抓不下來。
+    func testFormatUsesSeparateTracksWhenFFmpegIsAvailable() throws {
+        let args = VideoDownloadTool.arguments(
+            url: "https://example.com/v",
+            destination: URL(filePath: "/tmp/out"),
+            ffmpeg: URL(filePath: "/opt/homebrew/bin/ffmpeg"))
+        let format = try XCTUnwrap(args.firstIndex(of: "-f").map { args[$0 + 1] })
+        XCTAssertTrue(format.hasPrefix("bv*[height<=1080]+ba/"), "先要分離軌")
+        XCTAssertTrue(format.contains("/b"), "還是要留單一檔案的退路")
+        XCTAssertEqual(args.firstIndex(of: "--ffmpeg-location").map { args[$0 + 1] },
+                       "/opt/homebrew/bin", "yt-dlp 要的是目錄，不是執行檔")
+        XCTAssertTrue(args.contains("--merge-output-format"))
     }
 
     func testOutputGoesToTheGivenDirectory() throws {
