@@ -345,24 +345,34 @@ final class PlaylistService {
         let urlString = entry.urlString
         Log.video.info("片單按需下載：\(entry.title, privacy: .public)")
 
+        let title = entry.title
         Task { @MainActor [weak self] in
-            let ok = await Task.detached(priority: .utility) {
+            let failure = await Task.detached(priority: .utility) {
                 Self.runDownload(tool: tool, url: urlString, destination: destination)
             }.value
 
             guard let self else { return }
             self.downloading.remove(id)
-            if ok {
+            guard let failure else {
                 self.failed.removeValue(forKey: id)
                 self.onChanged?()
-            } else {
-                // 冷卻而不是永久剔除：失效多半是暫時的（限流、網路斷一下）
-                self.failed[id] = .now
+                return
             }
+            // 冷卻而不是永久剔除：失效多半是暫時的（限流、網路斷一下）
+            self.failed[id] = .now
+            self.lastError = "「\(title)」抓不下來：\(failure)"
+            Log.video.error(
+                "片單下載失敗：\(title, privacy: .public) — \(failure, privacy: .public)")
         }
     }
 
-    nonisolated private static func runDownload(tool: URL, url: String, destination: URL) -> Bool {
+    /// - Returns: 成功就是 nil；失敗回一句可以給使用者看的原因。
+    ///
+    /// 以前回 Bool，失敗只記進冷卻表——從外面看就是「片單一直在抓、一支也沒出現」，
+    /// 而真正的原因（extractor 壞掉、影片下架、要登入）就寫在 yt-dlp 的輸出裡。
+    nonisolated private static func runDownload(
+        tool: URL, url: String, destination: URL
+    ) -> String? {
         do {
             try FileManager.default.createDirectory(
                 at: destination, withIntermediateDirectories: true)
@@ -373,11 +383,12 @@ final class PlaylistService {
             process.standardOutput = pipe
             process.standardError = pipe
             try process.run()
-            _ = pipe.fileHandleForReading.readDataToEndOfFile()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
-            return process.terminationStatus == 0
+            guard process.terminationStatus != 0 else { return nil }
+            return explain(String(decoding: data, as: UTF8.self))
         } catch {
-            return false
+            return error.localizedDescription
         }
     }
 }
