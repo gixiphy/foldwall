@@ -68,13 +68,13 @@ final class VideoLibrary {
 
     func sync(videos: [URL]) async {
         var ledger = loadLedger()
-        sweepOrphans(ledger: ledger)
+        await sweepOrphans(ledger: ledger)
 
         let wanted = Set(videos.map(\.standardizedFileURL.path))
 
         // 移除：不在這輪清單裡的（來源刪了、資料夾被移除，或這輪輪到別支）
         for deployment in ledger where !wanted.contains(deployment.sourcePath) {
-            remove(entryID: deployment.entryID)
+            await remove(entryID: deployment.entryID)
         }
         ledger.removeAll { !wanted.contains($0.sourcePath) }
         saveLedger(ledger)
@@ -109,14 +109,14 @@ final class VideoLibrary {
 
     /// 把 container 裡帳本沒記到的目錄清掉。
     /// 同步跑到一半被中斷就會留下這種孤兒，不掃的話它們永遠不會被回收。
-    private func sweepOrphans(ledger: [Deployment]) {
+    private func sweepOrphans(ledger: [Deployment]) async {
         let known = Set(ledger.map(\.entryID))
         let contents = (try? FileManager.default.contentsOfDirectory(
             at: Self.videosURL, includingPropertiesForKeys: nil
         )) ?? []
 
         for dir in contents where !known.contains(dir.lastPathComponent) {
-            remove(entryID: dir.lastPathComponent)
+            await remove(entryID: dir.lastPathComponent)
         }
     }
 
@@ -159,7 +159,7 @@ final class VideoLibrary {
         do {
             try fm.createDirectory(at: dir, withIntermediateDirectories: true)
             let destination = dir.appending(path: url.lastPathComponent)
-            try fm.copyItem(at: url, to: destination)
+            try await Self.copyOffMainActor(url, to: destination)
 
             let probe = await probeVideo(destination)
             let metadata = Metadata(
@@ -177,17 +177,43 @@ final class VideoLibrary {
             Log.video.info("影片已部署：\(url.lastPathComponent, privacy: .public) → \(id, privacy: .public)")
             return id
         } catch {
-            try? fm.removeItem(at: dir)
+            await Self.deleteOffMainActor(dir)
             Log.video.error("影片部署失敗：\(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
 
-    private func remove(entryID: String) {
+    private func remove(entryID: String) async {
         // 只接受 UUID：帳本壞掉也不能讓 removeItem 走到 container 外
         guard UUID(uuidString: entryID) != nil else { return }
-        try? FileManager.default.removeItem(at: Self.videosURL.appending(path: entryID))
+        await Self.deleteOffMainActor(Self.videosURL.appending(path: entryID))
         Log.video.info("影片已從 container 移除：\(entryID, privacy: .public)")
+    }
+
+    // MARK: - 阻塞的檔案操作
+
+    /// 拷貝與刪除**一律丟背景**。
+    ///
+    /// 這個型別是 `@MainActor`（帳本要讓 UI 那條直接讀），而 `copyItem` 是同步呼叫——
+    /// 一支影片幾百 MB、走 SMB 要好幾分鐘，留在 main actor 上就是整個 app 凍住。
+    /// **`sync` 標了 `async`、呼叫端包了 `Task`，都不會讓它離開主執行緒**：
+    /// `Task { @MainActor in ... }` 跑的還是 main actor，`await` 只是讓出，
+    /// 中間的同步呼叫照樣在原地把主執行緒佔滿。要離開只有真的換一條線。
+    ///
+    /// 實測（2026-08-29，0.6.4，剛開機那輪）：84 秒內 dirty 了 2.1 GB，
+    /// 203 個取樣有 189 個停在這裡的 `copyItem`，QoS 全是 User Interactive
+    /// ——也就是主執行緒。Activity Monitor 記了 21 次 hang。
+    private static func copyOffMainActor(_ source: URL, to destination: URL) async throws {
+        try await Task.detached(priority: .utility) {
+            try FileManager.default.copyItem(at: source, to: destination)
+        }.value
+    }
+
+    /// 刪除同理：清掉的是剛拷進來的幾百 MB，不該在主執行緒上做。
+    private static func deleteOffMainActor(_ url: URL) async {
+        await Task.detached(priority: .utility) {
+            try? FileManager.default.removeItem(at: url)
+        }.value
     }
 
     private func probeVideo(_ url: URL) async -> (duration: Double, fps: Double, resolution: CGSize) {

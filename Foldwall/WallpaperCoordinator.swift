@@ -740,8 +740,12 @@ final class WallpaperCoordinator {
         runVideoRotation(folderVideos: videos)
     }
 
-    /// 選片與下載都在**這條背景線**上：網路影片一支幾十 MB，
-    /// 放進 performRefresh 就等於又把靜態管線擋住了。
+    /// 跟 performRefresh 分開的一條 Task：網路影片一支幾十 MB，
+    /// 放進合成路徑就等於又把靜態管線擋住了。
+    ///
+    /// **但這條 Task 本身是 main actor**（`videoSyncID`、`settings`、`status` 都在上面）。
+    /// 「另開一個 Task」不等於「到背景」——真正會阻塞的兩段（排片的 stat、拷貝）
+    /// 各自用 `Task.detached` 丟出去，見 VideoLibrary.copyOffMainActor。
     private func runVideoRotation(folderVideos: [URL]) {
         videoSyncID += 1
         let generation = videoSyncID
@@ -772,15 +776,25 @@ final class WallpaperCoordinator {
             let remoteBytes = VideoBudget.remoteBytes(
                 remoteCount: remote.count, folderCount: folderVideos.count
             )
-            let remoteRotation = VideoBudget.rotate(
-                remote, cursor: self.settings.videoRemoteCursor,
-                totalBytes: remoteBytes, size: Self.fileSize
-            )
-            let folderRotation = VideoBudget.rotate(
-                folderVideos, cursor: self.settings.videoRotationCursor,
-                totalBytes: VideoBudget.rotationBytes - remoteRotation.usedBytes,
-                size: Self.fileSize
-            )
+            // 排片本身是純函式，但 `size:` 要一支一支 stat：來源是 NAS 的話
+            // 每一支都是一趟網路往返，幾千支就是主執行緒上幾千次等待。
+            // 跟拷貝同一個理由——這條 Task 標了 @MainActor，不丟出去就是卡在 UI 上。
+            let remoteCursor = self.settings.videoRemoteCursor
+            let folderCursor = self.settings.videoRotationCursor
+            let (remoteRotation, folderRotation) = await Task.detached(priority: .utility) {
+                let remoteRotation = VideoBudget.rotate(
+                    remote, cursor: remoteCursor,
+                    totalBytes: remoteBytes, size: Self.fileSize
+                )
+                let folderRotation = VideoBudget.rotate(
+                    folderVideos, cursor: folderCursor,
+                    totalBytes: VideoBudget.rotationBytes - remoteRotation.usedBytes,
+                    size: Self.fileSize
+                )
+                return (remoteRotation, folderRotation)
+            }.value
+            // 排片中間讓出過，這輪可能已經被新的取代——別把游標寫回去。
+            guard self.videoSyncID == generation else { return }
 
             self.settings.videoRemoteCursor = remoteRotation.nextCursor
             self.settings.videoRotationCursor = folderRotation.nextCursor
@@ -799,7 +813,7 @@ final class WallpaperCoordinator {
         }
     }
 
-    private static func fileSize(_ url: URL) -> Int64? {
+    nonisolated private static func fileSize(_ url: URL) -> Int64? {
         guard let values = try? url.resourceValues(forKeys: [.fileSizeKey]),
               let size = values.fileSize
         else { return nil }
