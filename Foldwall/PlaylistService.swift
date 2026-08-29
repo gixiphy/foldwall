@@ -123,10 +123,18 @@ final class PlaylistService {
         lastRefresh = lastRefresh.filter { known.contains($0.key) }
         resolvedTitles = resolvedTitles.filter { known.contains($0.key) }
 
-        for source in sources where source.isEnabled && source.url != nil {
+        let usable = sources.filter { $0.isEnabled && $0.url != nil }
+        // 「明明加了片單卻什麼都沒發生」很難查：解析是背景的，失敗又只寫進
+        // lastError（要打開設定才看得到）。把「這一輪打算解析誰」記一筆。
+        if usable.isEmpty, !sources.isEmpty {
+            Log.video.notice(
+                "片單來源 \(sources.count, privacy: .public) 個，但沒有一個可用（沒啟用或網址無效）")
+        }
+        for source in usable {
             let stale = lastRefresh[source.id]
                 .map { Date.now.timeIntervalSince($0) > Self.refreshInterval } ?? true
             guard stale, !refreshing.contains(source.id) else { continue }
+            Log.video.info("片單開始解析：\(source.displayTitle, privacy: .public)")
             resolve(source)
         }
     }
@@ -151,6 +159,9 @@ final class PlaylistService {
     private func resolve(_ source: PlaylistSource) {
         guard let url = source.url, let tool = VideoDownloadTool.locate() else {
             lastError = "找不到 yt-dlp。用 `brew install yt-dlp` 安裝後再試。"
+            // 以前只寫進 lastError，而那要打開設定視窗才看得到——
+            // 從外面看就是「片單完全沒反應」。
+            Log.video.error("片單無法解析：找不到 yt-dlp")
             return
         }
         refreshing.insert(source.id)
