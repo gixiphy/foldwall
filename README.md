@@ -4,6 +4,12 @@ macOS 選單列 app：把你的資料夾、照片相簿與網路來源混成**�
 
 需要 macOS 26 以上、Apple Silicon。
 
+## 安裝
+
+到 [Releases](https://github.com/gixiphy/foldwall/releases/latest) 下載 `Foldwall-<版本>-arm64.dmg`，打開後把 Foldwall 拖進「應用程式」。
+
+DMG 已經 Apple 公證，不必解 quarantine。
+
 ## 怎麼用
 
 啟動後圖示在選單列，不進 Dock。**設定 → 來源**加來源，加好就會進同一個蒙太奇池：
