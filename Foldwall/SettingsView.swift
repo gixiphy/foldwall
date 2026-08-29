@@ -93,9 +93,21 @@ private struct FolderSourceSettings: View {
     @Bindable var coordinator: WallpaperCoordinator
     @Bindable var settings: AppSettings
 
-    /// 路徑 → 可否讀取。**在背景算好**再給列表用：isReadableFile 對未掛載的
-    /// SMB 路徑是一次網路往返，放在 body 裡等於每次重繪都在主執行緒上等它。
-    @State private var readable: [String: Bool] = [:]
+    private struct Source: Identifiable {
+        var url: URL
+        var isReadable: Bool
+        var id: URL { url }
+    }
+
+    /// 讀得到的 ＋ 讀不到的，讀不到的排在後面。
+    ///
+    /// 讀不到的也要列出來：它們仍然是設定裡的來源，不列的話使用者連移除都按不到。
+    /// 可讀性**不在這裡量**：coordinator 每輪 refresh 解析書籤時已經分好了，
+    /// 這裡再對每個路徑探一次，等於為了畫一顆紅點又去戳一顆沒掛載的網路磁碟。
+    private var sources: [Source] {
+        coordinator.folders.map { Source(url: $0, isReadable: true) }
+            + coordinator.offlineFolders.map { Source(url: $0, isReadable: false) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -105,7 +117,7 @@ private struct FolderSourceSettings: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if coordinator.folders.isEmpty {
+            if sources.isEmpty {
                 ContentUnavailableView(
                     "尚未加入資料夾",
                     systemImage: "folder.badge.plus",
@@ -114,7 +126,8 @@ private struct FolderSourceSettings: View {
                 .frame(maxHeight: 200)
             } else {
                 List {
-                    ForEach(coordinator.folders, id: \.self) { folder in
+                    ForEach(sources) { source in
+                        let folder = source.url
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
@@ -132,7 +145,7 @@ private struct FolderSourceSettings: View {
                                     .buttonStyle(.borderless)
                             }
                             HStack(spacing: 6) {
-                                let usable = readable[folder.path] ?? true
+                                let usable = source.isReadable
                                 Image(systemName: usable ? "checkmark.circle.fill" : "xmark.circle.fill")
                                     .foregroundStyle(usable ? Color.green : Color.red)
                                 Text(usable ? "可讀取" : "讀不到（未掛載或無權限）")
@@ -175,14 +188,6 @@ private struct FolderSourceSettings: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
-        .task(id: coordinator.folders) {
-            let folders = coordinator.folders
-            readable = await Task.detached(priority: .utility) {
-                Dictionary(uniqueKeysWithValues: folders.map {
-                    ($0.path, FileManager.default.isReadableFile(atPath: $0.path))
-                })
-            }.value
-        }
     }
 }
 

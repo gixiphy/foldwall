@@ -35,11 +35,12 @@ public actor FolderIndex {
     /// 兩次背景重掃的最短間隔。桌布最快 5 分鐘換一次，沒必要每輪重走磁碟。
     public static let rescanInterval: TimeInterval = 15 * 60
 
-    /// 清單不完整（有根目錄讀不到）時的重試間隔。
+    /// 清單不完整、而且**不知道是哪個根出問題**時的重試間隔。
     ///
-    /// 不能用 `rescanInterval`——NAS 掛回來要等 15 分鐘才被發現太久；
-    /// 但也不能每輪 current 都重掃：一個離線的 NAS 會讓 isComplete 永遠是 false，
-    /// 沒有這道下限就等於**每次 refresh 都全量重走所有根目錄**（含好端端的
+    /// 呼叫端明講哪幾個根離線時走的不是這條（見 `current(roots:offline:)`）：
+    /// 那幾個根要等它掛回來才值得重掃，用計時器輪詢只是對著沒掛載的網路磁碟
+    /// 一再撞逾時。這道下限留給「掃到一半才發現讀不到」的情況——
+    /// 沒有它就等於**每次 refresh 都全量重走所有根目錄**（含好端端的
     /// 幾十萬檔本機資料夾），而 refresh 的觸發點有二十幾個。
     public static let incompleteRetryInterval: TimeInterval = 5 * 60
 
@@ -51,6 +52,9 @@ public actor FolderIndex {
 
     private var snapshot = Snapshot()
     private var scannedRoots: [URL] = []
+    /// 呼叫端已經確認這一刻讀不到的根（NAS 沒掛、磁碟拔掉、雲端登出）。
+    /// 這些根**不送進索引器**，但仍留在 `scannedRoots` 裡——見 `applyOfflineChange`。
+    private var offlineRoots: [URL] = []
     private var lastScan: Date?
     private var scanTask: Task<Void, Never>?
     /// 磁碟上的索引只讀一次，而且是**第一次被問到的時候**才讀。
@@ -72,25 +76,36 @@ public actor FolderIndex {
     }
 
     /// 回傳當下快取，必要時在背景啟動重掃。**不等掃描。**
-    public func current(roots: [URL]) -> Snapshot {
+    ///
+    /// - Parameters:
+    ///   - roots: **所有**解析得出路徑的根，含這一刻讀不到的那些。少給的話
+    ///     索引會把離線的根當成「使用者移除了」——把那顆碟的整份清單刪掉並落地，
+    ///     磁碟掛回來就得再付一次全量重掃的錢（實測 90 萬檔 4.2 分鐘）。
+    ///   - offline: `roots` 裡這一刻讀不到的那幾個。它們不會被送進索引器。
+    public func current(roots: [URL], offline: [URL] = []) -> Snapshot {
         hydrate()
         applyRootChange(roots)
+        let cameBack = applyOfflineChange(offline)
 
         let sinceLast = lastScan.map { now().timeIntervalSince($0) } ?? .infinity
         let stale = sinceLast > Self.rescanInterval
-        // 清單不完整就提早重試，但要有下限——否則一個離線的 NAS 會讓每輪
-        // refresh 都變成全量重掃（見 incompleteRetryInterval）。
-        let retryIncomplete = !snapshot.isComplete && sinceLast > Self.incompleteRetryInterval
-        if stale || retryIncomplete {
+        // 提早重試只對「掃的時候才發現讀不到」有意義。已知離線的根不走這條：
+        // 它會讓 isComplete 永遠是 false，每 5 分鐘就把好端端的幾十萬檔本機根目錄
+        // 陪著全量重走一遍，而那顆碟仍然沒掛回來。掛回來時 offline 集合會變，
+        // cameBack 立刻補一次掃描——比輪詢準也比輪詢早。
+        let retryIncomplete = !snapshot.isComplete && offlineRoots.isEmpty
+            && sinceLast > Self.incompleteRetryInterval
+        if cameBack || stale || retryIncomplete {
             startScan(roots: roots)
         }
         return snapshot
     }
 
     /// 使用者按「下一張」或改了來源時強制重掃，同樣不阻塞。
-    public func invalidate(roots: [URL]) {
+    public func invalidate(roots: [URL], offline: [URL] = []) {
         hydrate()
         applyRootChange(roots)
+        applyOfflineChange(offline)
         lastScan = nil
         startScan(roots: roots)
     }
@@ -167,25 +182,56 @@ public actor FolderIndex {
         lastScan = nil
     }
 
+    /// 記下這一輪哪些根離線。
+    ///
+    /// 離線**不等於**被移除，兩者不能走同一條路：移除要把檔案從池裡篩掉並落地，
+    /// 離線只是這一刻讀不到——檔案還在那顆碟上，清單要留著。
+    ///
+    /// - Returns: 有沒有根目錄從離線回到線上。那才需要重掃：那顆碟拔掉的期間
+    ///   內容可能已經變了，而且掛回來的第一時間就該補，不必等節流到期。
+    @discardableResult
+    private func applyOfflineChange(_ offline: [URL]) -> Bool {
+        let before = Set(Self.pathList(offlineRoots))
+        let after = Set(Self.pathList(offline))
+        offlineRoots = offline
+        // 只要有根離線，這份清單就不涵蓋所有來源。這件事不能等掃描回報——
+        // 掃描根本不會去碰離線的根，而 isComplete 留著 true 的話，影片差異同步
+        // 會把那顆碟上已部署的影片全當成「已移除」刪掉（見 VideoLibrary.sync）。
+        if !offline.isEmpty { snapshot.isComplete = false }
+        return !before.subtracting(after).isEmpty
+    }
+
     /// 比對根目錄只看標準化後的路徑字串，不看 URL 本身。
     ///
     /// 還要自己剝掉結尾斜線：`path(percentEncoded:)` 會**保留**它
     /// （跟已棄用的 `.path` 不同），所以 `/a/` 與 `/a` 會比成兩個不同的根目錄。
+    private static func normalized(_ url: URL) -> String {
+        let path = url.standardizedFileURL.path(percentEncoded: false)
+        return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
+    }
+
     private static func pathList(_ urls: [URL]) -> [String] {
-        urls.map { url in
-            let path = url.standardizedFileURL.path(percentEncoded: false)
-            return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
-        }
+        urls.map(normalized)
     }
 
     private func startScan(roots: [URL]) {
         guard scanTask == nil else { return }   // 上一輪還在走就別疊上去
 
-        guard !roots.isEmpty else {
-            // 零資料夾不必開 task：清單就是空的，而且是完整的空。
-            snapshot.images = []
-            snapshot.videos = []
-            snapshot.isComplete = true
+        // 離線的根連問都不要問。呼叫端解析書籤時已經確認過列不出第一層，
+        // 再叫索引器走一趟，只是對著沒掛載的網路磁碟再等一次逾時。
+        let offlinePaths = Set(Self.pathList(offlineRoots))
+        let live = roots.filter { !offlinePaths.contains(Self.normalized($0)) }
+
+        guard !live.isEmpty else {
+            // 一個都掃不動時**不清空清單**：全部的根都離線的話，檔案還在那些碟上，
+            // 只是這一刻讀不到（理由同 commit 裡的沿用那段）。isComplete 已由
+            // applyOfflineChange 壓成 false。
+            if offlineRoots.isEmpty {
+                // 真的零資料夾：清單就是空的，而且是完整的空。
+                snapshot.images = []
+                snapshot.videos = []
+                snapshot.isComplete = true
+            }
             snapshot.isScanning = false
             lastScan = now()
             persist()
@@ -194,7 +240,7 @@ public actor FolderIndex {
 
         snapshot.isScanning = true
         scanTask = Task { [indexer] in
-            let scan = await indexer.scan(roots: roots)
+            let scan = await indexer.scan(roots: live)
             await self.commit(scan, roots: roots)
         }
     }
@@ -225,17 +271,20 @@ public actor FolderIndex {
         // 少了這段，把 NAS 拔掉再開 App 就會：掃描回空清單 → isComplete = true
         // → 影片差異同步認定所有影片都被移除 → 把 extension container 裡的全刪掉。
         // 檔案還好端端在 NAS 上，只是這一刻讀不到而已。
-        if !scan.unreadableRoots.isEmpty {
-            let matcher = RootMatcher(scan.unreadableRoots)
+        // 掃到才發現讀不到的，加上一開始就跳過的離線根——對這份清單的意義一樣：
+        // 那個根這一輪沒被走過。
+        let unreadable = scan.unreadableRoots + offlineRoots
+        if !unreadable.isEmpty {
+            let matcher = RootMatcher(unreadable)
             images += snapshot.images.filter { matcher.root(of: $0) != nil }
             videos += snapshot.videos.filter { matcher.root(of: $0) != nil }
             Self.log.notice(
-                "\(scan.unreadableRoots.count) 個根目錄讀不到，沿用上一輪清單、不標記完整")
+                "\(unreadable.count) 個根目錄讀不到，沿用上一輪清單、不標記完整")
         }
 
         snapshot.images = images
         snapshot.videos = videos
-        snapshot.isComplete = scan.unreadableRoots.isEmpty
+        snapshot.isComplete = unreadable.isEmpty
         persist()
         onScanCompleted?()
     }

@@ -11,6 +11,7 @@ protocol FolderBookmarking {
     func removeFolder(_ url: URL) throws
     func resolvedFolders() -> [URL]
     var offlineCount: Int { get }
+    var offlineFolders: [URL] { get }
 }
 
 /// UserDefaults key `folders`（見 HANDOFF 設定 schema，不要改）。
@@ -35,6 +36,11 @@ final class BookmarkStore: FolderBookmarking {
 
     private let store: FolderStore
     private(set) var offlineCount: Int = 0
+    /// 解析得出路徑、但這一刻讀不到的根（NAS 沒掛、磁碟拔掉、雲端登出）。
+    ///
+    /// 跟 `offlineCount` 分開留著是因為索引需要**路徑**：少了它，離線的根在
+    /// FolderIndex 眼裡就等於「使用者移除了」，那顆碟的整份索引會被刪掉並落地。
+    private(set) var offlineFolders: [URL] = []
 
     init(defaults: UserDefaults = .standard) {
         self.store = FolderStore(defaults: UserDefaultsBookmarks(defaults: defaults))
@@ -87,6 +93,7 @@ final class BookmarkStore: FolderBookmarking {
     func resolvedFolders() -> [URL] {
         let resolution = store.resolve()
         offlineCount = resolution.offlineCount
+        offlineFolders = resolution.offline
         return resolution.readable
     }
 
@@ -99,6 +106,7 @@ final class BookmarkStore: FolderBookmarking {
         let store = self.store
         let resolution = await Task.detached(priority: .userInitiated) { store.resolve() }.value
         offlineCount = resolution.offlineCount
+        offlineFolders = resolution.offline
         return resolution.readable
     }
 

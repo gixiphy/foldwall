@@ -53,6 +53,12 @@ final class WallpaperCoordinator {
 
     private(set) var status = Status()
     private(set) var folders: [URL] = []
+    /// 解析得出路徑、但這一刻讀不到的根。
+    ///
+    /// 跟 `folders` 分開：池不吃它們（讀不到的檔抽中也只會物化失敗），
+    /// 但索引要知道它們還在——當成「使用者移除了」會把那顆碟的整份索引刪掉，
+    /// 掛回來得再付一次全量重掃的錢。
+    private(set) var offlineFolders: [URL] = []
     /// 照片圖庫裡有內容的相簿。設定視窗要用它列勾選項，所以放在這裡而不是各自去抓。
     private(set) var albums: [PhotoAlbum] = []
 
@@ -224,17 +230,57 @@ final class WallpaperCoordinator {
             }
         }
 
+        // 磁碟掛上／卸下。NAS 掛回來要是只等下一輪 refresh 的可讀性檢查發現，
+        // 最慢是一個換圖間隔（設「每天」就是一天），而重掃本身還要幾分鐘——
+        // 早一步知道就早一步開始。
+        //
+        // 只有 `/Volumes/` 的磁碟區會發這個通知。雲端硬碟登出（File Provider、
+        // `~/Library/CloudStorage/*`）不會，那條路仍然靠每輪 refresh 的可讀性檢查。
+        for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification] {
+            NSWorkspace.shared.notificationCenter.addObserver(
+                forName: name, object: nil, queue: .main
+            ) { [weak self] note in
+                let volume = note.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL
+                Task { @MainActor in self?.volumeDidChange(volume) }
+            }
+        }
+
         center.addObserver(forName: BookmarkStore.didChangeNotification,
                            object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in
                 guard let self else { return }
                 await self.reloadFolders()
-                await self.folderIndex.invalidate(roots: self.folders)
+                await self.folderIndex.invalidate(
+                    roots: self.indexRoots, offline: self.offlineFolders)
                 // 移除資料夾要立刻把該來源的影片清掉，不等 30 分鐘節流
                 self.forceVideoSync = true
                 self.refreshNow("來源資料夾變動")
             }
         }
+    }
+
+    /// 磁碟掛上或卸下。
+    ///
+    /// **只有動到我們的來源才做事**——插一顆隨身碟、Time Machine 自己掛上備份磁碟區，
+    /// 都不該讓幾十萬檔的來源陪著重掃一遍。
+    ///
+    /// 這裡不必自己叫 `folderIndex.invalidate`：refresh 會重新解析書籤，
+    /// 索引看到離線集合變了就自己補掃（見 FolderIndex.applyOfflineChange）。
+    /// 卸下時更不能 invalidate——那顆碟本來就掃不動，強制重掃只是讓其他根陪跑。
+    private func volumeDidChange(_ volume: URL?) {
+        // 拿不到磁碟區路徑就保守處理，照樣跑一輪：漏掉一顆掛回來的 NAS
+        // 比多解析一次書籤貴得多。
+        if let volume, !affectsSources(volume) { return }
+        refreshSoon("磁碟掛載變動")
+    }
+
+    /// 這顆磁碟區底下有沒有我們的來源。
+    ///
+    /// 用 RootMatcher 是為了那條路徑邊界規則：`/Volumes/Arch` 不該吃掉
+    /// `/Volumes/Archive`。這裡把它反過來用——「根」是磁碟區，被比對的是來源。
+    private func affectsSources(_ volume: URL) -> Bool {
+        let matcher = RootMatcher([volume])
+        return indexRoots.contains { matcher.root(of: $0) != nil }
     }
 
     /// 螢幕睡著 → 趁沒人用，把下一批影片拷好。節流仍在（最少 30 分鐘），
@@ -331,7 +377,8 @@ final class WallpaperCoordinator {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 await self.reloadFolders()
-                await self.folderIndex.invalidate(roots: self.folders)
+                await self.folderIndex.invalidate(
+                    roots: self.indexRoots, offline: self.offlineFolders)
                 self.refreshNow("使用者強制換片源")
             }
             return
@@ -462,9 +509,14 @@ final class WallpaperCoordinator {
     /// 連帶把 extension container 裡的影片一起刪了。
     private func reloadFolders() async {
         folders = await bookmarks.resolvedFoldersInBackground()
+        offlineFolders = bookmarks.offlineFolders
         status.sourceCount = folders.count
         status.offlineCount = bookmarks.offlineCount
     }
+
+    /// 給索引看的根：**含離線的那些**。池只吃 `folders`，索引要吃全部——
+    /// 離線的根從清單裡消失，索引會當成使用者移除了它（見 offlineFolders）。
+    private var indexRoots: [URL] { folders + offlineFolders }
 
     /// 背景事件專用的合併版本。
     ///
@@ -524,7 +576,7 @@ final class WallpaperCoordinator {
         }
 
         // **不等掃描**：拿當下快取到的清單就走，背景掃完會自己回呼補一輪。
-        let index = await folderIndex.current(roots: folders)
+        let index = await folderIndex.current(roots: indexRoots, offline: offlineFolders)
         status.isIndexing = index.isScanning
         // 逐資料夾的用途勾選：只餵給有標記「蒙太奇」的
         let montageRoots = effects.contains(.disableFolders) ? [] : SourceUsageMap.allowedRoots(

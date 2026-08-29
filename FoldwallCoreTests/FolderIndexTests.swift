@@ -23,11 +23,14 @@ private final class FakeIndexer: MediaIndexing, @unchecked Sendable {
     private var storage: [String: [IndexedItem]] = [:]
     private var unreadable: Set<String> = []
     private var count = 0
+    private var lastRoots: [String] = []
     let gate: Gate?
 
     init(gate: Gate? = nil) { self.gate = gate }
 
     var scanCount: Int { lock.withLock { count } }
+    /// 最後一次掃描實際收到哪些根——離線的根不該出現在這裡。
+    var lastScannedRoots: [String] { lock.withLock { lastRoots } }
 
     func put(root: URL, images: [String], videos: [String] = []) {
         let items = images.map { IndexedItem(url: root.appending(path: $0), kind: .image) }
@@ -41,7 +44,10 @@ private final class FakeIndexer: MediaIndexing, @unchecked Sendable {
     }
 
     func scan(roots: [URL]) async -> MediaScan {
-        lock.withLock { count += 1 }
+        lock.withLock {
+            count += 1
+            lastRoots = roots.map(\.path).sorted()
+        }
         await gate?.wait()
         return lock.withLock {
             let dead = roots.filter { unreadable.contains($0.path) }
@@ -333,6 +339,131 @@ final class FolderIndexTests: XCTestCase {
         _ = await index.current(roots: [rootA, rootB])
         await index.waitForScan()
         XCTAssertEqual(indexer.scanCount, 2)
+    }
+
+    // MARK: - 已知離線的根
+
+    /// 呼叫端已經知道哪顆碟沒掛時，那個根連問都不要問——
+    /// 叫索引器走一趟只是對著沒掛載的網路磁碟再等一次逾時。
+    func testOfflineRootIsNeverHandedToTheIndexer() async {
+        let indexer = FakeIndexer()
+        indexer.put(root: rootA, images: ["a.jpg"])
+        let index = FolderIndex(indexer: indexer)
+
+        _ = await index.current(roots: [rootA, rootB], offline: [rootB])
+        await index.waitForScan()
+
+        XCTAssertEqual(indexer.lastScannedRoots, [rootA.path], "離線的根不該被送進索引器")
+        let snapshot = await index.current(roots: [rootA, rootB], offline: [rootB])
+        XCTAssertFalse(snapshot.isComplete, "有根沒掃到就不是完整清單——影片同步要據此跳過")
+    }
+
+    /// **這條是這次修法的重點。** 離線 ≠ 使用者移除：
+    /// 當成移除的話，那顆碟的整份清單會被篩掉並落地，掛回來得再付一次全量重掃。
+    func testOfflineRootKeepsItsFilesAndDoesNotOverwriteTheStoredIndex() async {
+        let store = FakeStore()
+        let indexer = FakeIndexer()
+        indexer.put(root: rootA, images: ["a.jpg"])
+        indexer.put(root: rootB, images: ["b.jpg"], videos: ["b.mp4"])
+        let index = FolderIndex(indexer: indexer, store: store)
+
+        _ = await index.current(roots: [rootA, rootB])
+        await index.waitForScan()
+        for _ in 0..<50 where store.saveCount == 0 {
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        let savesWhileHealthy = store.saveCount
+        XCTAssertGreaterThan(savesWhileHealthy, 0)
+
+        // rootB 那顆碟拔掉了
+        await index.invalidate(roots: [rootA, rootB], offline: [rootB])
+        await index.waitForScan()
+        try? await Task.sleep(for: .milliseconds(300))
+
+        let snapshot = await index.current(roots: [rootA, rootB], offline: [rootB])
+        XCTAssertEqual(Set(snapshot.images.map(\.lastPathComponent)), ["a.jpg", "b.jpg"],
+                       "檔案還在那顆碟上，只是這一刻讀不到")
+        XCTAssertEqual(snapshot.videos.map(\.lastPathComponent), ["b.mp4"],
+                       "影片更不能掉：上層會把它當成已移除，去刪 extension container 裡的拷貝")
+        XCTAssertFalse(snapshot.isComplete)
+        XCTAssertEqual(store.saveCount, savesWhileHealthy,
+                       "殘缺的那份不准蓋掉磁碟上完整的索引")
+    }
+
+    /// 已知離線就不必用計時器輪詢：重試也只是再撞一次逾時。
+    func testKnownOfflineRootDoesNotTriggerPeriodicFullRescans() async {
+        let clock = Clock()
+        let indexer = FakeIndexer()
+        indexer.put(root: rootA, images: ["a.jpg"])
+        let index = FolderIndex(indexer: indexer, now: clock.now)
+
+        _ = await index.current(roots: [rootA, rootB], offline: [rootB])
+        await index.waitForScan()
+        XCTAssertEqual(indexer.scanCount, 1)
+
+        // 撐過重試下限，再撐一輪——那顆碟還是沒掛回來。
+        // （只走兩輪：兩次 incompleteRetryInterval 加起來還沒到 rescanInterval，
+        // 不然下面那條「一般重掃照舊」會提早在這裡發生，測到的就不是這件事了。）
+        for _ in 0..<2 {
+            clock.advance(FolderIndex.incompleteRetryInterval + 1)
+            _ = await index.current(roots: [rootA, rootB], offline: [rootB])
+            await index.waitForScan()
+        }
+        XCTAssertEqual(indexer.scanCount, 1,
+                       "碟還離線著，不該每 5 分鐘就把本機那幾十萬檔陪著重走一遍")
+
+        // 但一般的重掃節流照舊：本機資料夾還是會定期更新
+        clock.advance(FolderIndex.rescanInterval)
+        _ = await index.current(roots: [rootA, rootB], offline: [rootB])
+        await index.waitForScan()
+        XCTAssertEqual(indexer.scanCount, 2)
+        XCTAssertEqual(indexer.lastScannedRoots, [rootA.path], "重掃也只走掃得動的那些")
+    }
+
+    /// 掛回來的第一時間就補一次掃描，不必等節流到期。
+    func testRootComingBackOnlineTriggersRescanImmediately() async {
+        let clock = Clock()
+        let indexer = FakeIndexer()
+        indexer.put(root: rootA, images: ["a.jpg"])
+        indexer.put(root: rootB, images: ["b.jpg"])
+        let index = FolderIndex(indexer: indexer, now: clock.now)
+
+        _ = await index.current(roots: [rootA, rootB], offline: [rootB])
+        await index.waitForScan()
+        XCTAssertEqual(indexer.scanCount, 1)
+
+        // 碟掛回來了，而且期間內容變了
+        indexer.put(root: rootB, images: ["b.jpg", "b2.jpg"])
+        clock.advance(60)   // 遠不到任何節流間隔
+        _ = await index.current(roots: [rootA, rootB])
+        await index.waitForScan()
+
+        XCTAssertEqual(indexer.scanCount, 2, "掛回來就該立刻補，不必等 15 分鐘")
+        let snapshot = await index.current(roots: [rootA, rootB])
+        XCTAssertEqual(Set(snapshot.images.map(\.lastPathComponent)), ["a.jpg", "b.jpg", "b2.jpg"])
+        XCTAssertTrue(snapshot.isComplete)
+    }
+
+    /// 每個根都離線時**不能**清空：那跟「零來源」長得一樣，
+    /// 但一個是使用者把資料夾都移掉了，一個只是碟沒掛。
+    func testAllRootsOfflineKeepsTheCacheInsteadOfClearingIt() async {
+        let indexer = FakeIndexer()
+        indexer.put(root: rootA, images: ["a.jpg"], videos: ["a.mp4"])
+        let index = FolderIndex(indexer: indexer)
+
+        _ = await index.current(roots: [rootA])
+        await index.waitForScan()
+        XCTAssertEqual(indexer.scanCount, 1)
+
+        await index.invalidate(roots: [rootA], offline: [rootA])
+        await index.waitForScan()
+
+        let snapshot = await index.current(roots: [rootA], offline: [rootA])
+        XCTAssertEqual(snapshot.images.map(\.lastPathComponent), ["a.jpg"], "不能退回空池")
+        XCTAssertEqual(snapshot.videos.map(\.lastPathComponent), ["a.mp4"])
+        XCTAssertFalse(snapshot.isComplete)
+        XCTAssertFalse(snapshot.isScanning)
+        XCTAssertEqual(indexer.scanCount, 1, "一個都掃不動就不必開掃描")
     }
 
     // MARK: - 落地
