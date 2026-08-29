@@ -919,10 +919,27 @@ final class WallpaperCoordinator {
     /// **一次只抓一支**（PlaylistService 自己也有同時下載上限）：桌布不急，
     /// 而片單可能有幾百支、幾十 GB。抓好的那支下一輪就會被選中，
     /// 不夠再抓下一支——磁碟用量跟「真的播過幾支」成正比。
+    ///
+    /// 「夠了沒」兩條引擎的算法不同，因為消費的單位不同：
+    ///
+    /// - **桌面視窗**：每台被標記的螢幕各播一支，螢幕數就是需求量。
+    /// - **系統 extension**：螢幕的選擇在系統設定裡做，`videoScreens` 是空的。
+    ///   拿它當需求量的話 `max(1, 0)` 永遠是 1——抓到第一支之後就再也不抓了，
+    ///   片單在這條路上等於只有一支。這裡真正的消費者是輪替批次，所以改看
+    ///   「網路那份額度填滿了沒」，跟資料夾影片同一套尺度。
     private func requestPlaylistDownloadIfNeeded(wanted: Int) {
         let sources = settings.playlistSources.filter(\.isEnabled)
         guard !sources.isEmpty else { return }
-        guard playlists.candidates(for: sources).count < max(1, wanted) else { return }
+
+        let candidates = playlists.candidates(for: sources)
+        if settings.videoEngine.needsDeployment {
+            let share = VideoBudget.rotationBytes / VideoBudget.remoteShareDivisor
+            let onDisk = candidates.reduce(Int64(0)) { $0 + (Self.fileSize($1) ?? 0) }
+            guard onDisk < share else { return }
+        } else {
+            guard candidates.count < max(1, wanted) else { return }
+        }
+
         guard let next = playlists.pending(for: sources).first else { return }
         playlists.requestDownload(next)
     }
