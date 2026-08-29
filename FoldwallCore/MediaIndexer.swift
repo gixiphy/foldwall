@@ -78,9 +78,11 @@ public struct MediaIndexer: MediaIndexing {
               isDirectory.boolValue
         else { return nil }
 
+        // **不預取任何 resource key。** `classify` 只看檔名，`.isRegularFileKey`
+        // 從來沒被讀過，但預取會讓列舉器把 file cache 掛在每個 URL 上（見下面）。
         guard let walker = fm.enumerator(
             at: root,
-            includingPropertiesForKeys: [.isRegularFileKey],
+            includingPropertiesForKeys: [],
             options: [.skipsHiddenFiles, .skipsPackageDescendants]
         ) else {
             return nil
@@ -97,7 +99,18 @@ public struct MediaIndexer: MediaIndexing {
                 while step < 4096, let element = walker.nextObject() {
                     step += 1
                     guard let url = element as? URL, let kind = classify(url) else { continue }
-                    items.append(IndexedItem(url: url, kind: kind))
+                    // 重建成純路徑 URL，不要留列舉器給的那個。
+                    //
+                    // 列舉器吐出來的 URL 每個都掛著一份 resource-value 快取：
+                    // 實測 71 萬個檔的堆疊裡有 71 萬個 `_FileCache`（320 B）、
+                    // 71 萬個 CFDictionary（64+32+32 B）、71 萬組 __NSFileSecurity
+                    // ＋ `_filesec`（16+64 B），CFString 更是 187 萬個——
+                    // 合計約 800 MB，而這份清單要在記憶體裡活到 App 關掉。
+                    // 快取對我們一點用都沒有（分類只看副檔名），但它跟著 URL 走。
+                    items.append(IndexedItem(
+                        url: URL(filePath: url.path(percentEncoded: false),
+                                 directoryHint: .notDirectory),
+                        kind: kind))
                 }
                 if step < 4096 { finished = true }
             }
