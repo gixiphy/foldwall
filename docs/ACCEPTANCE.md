@@ -1,6 +1,6 @@
 # Foldwall v1 驗收
 
-規格權威：iCloud `Hermes/App/foldwall/foldwall-design.md`
+規格權威：`~/Documents/Code/foldwall/research/foldwall-design.md`
 驗收機：MacBook Pro (M5)、macOS 26.6.2、Xcode 26.6 / Swift 6.3.3、arm64
 
 ## 自動化（CC 已勾）
