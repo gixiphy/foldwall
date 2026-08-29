@@ -640,6 +640,20 @@ final class WallpaperCoordinator {
         // 換片那條路要重用這份候選，不必為了換一支影片再跑一次整條管線
         lastVideoCandidates = videos
 
+        // 片單**在分岔之前**做：兩條引擎都要吃。
+        //
+        // 這兩行本來寫在 applyDesktopVideo 裡，於是選了「系統桌布 extension」的人
+        // 片單永遠不解析、也永遠不會被抓下來——設定裡看得到「N 支」（那是打開設定列
+        // 時 onAppear 順手解析的），但一支都進不了 container。
+        //
+        // 下好的檔案落在 remoteVideoCache，跟網址下載的影片同一個目錄，
+        // 兩條路的池都是從那裡撈（見 RemoteVideoPool.cachedFiles），所以只要
+        // 「解析」與「按需下載」有跑，播放端不必各接一次。
+        if !effects.contains(.pauseVideo) {
+            playlists.refreshIfNeeded(settings.playlistSources)
+            requestPlaylistDownloadIfNeeded(wanted: videoScreenCount())
+        }
+
         if settings.videoEngine.needsDeployment {
             if !effects.contains(.pauseVideo) {
                 syncVideosInBackground(videos: videos, isComplete: index.isComplete)
@@ -751,16 +765,15 @@ final class WallpaperCoordinator {
 
             // 兩邊分開輪：資料夾可能有幾千支、網路只有幾支，混在一起排序的話
             // 網路那幾支要繞完全庫才輪得到＝永遠不會播。
-            let remoteSlots = VideoBudget.remoteSlots(
+            let remoteBytes = VideoBudget.remoteBytes(
                 remoteCount: remote.count, folderCount: folderVideos.count
             )
             let remoteRotation = VideoBudget.rotate(
                 remote, cursor: self.settings.videoRemoteCursor,
-                count: remoteSlots, size: Self.fileSize
+                totalBytes: remoteBytes, size: Self.fileSize
             )
             let folderRotation = VideoBudget.rotate(
                 folderVideos, cursor: self.settings.videoRotationCursor,
-                count: VideoBudget.rotationCount - remoteRotation.selected.count,
                 totalBytes: VideoBudget.rotationBytes - remoteRotation.usedBytes,
                 size: Self.fileSize
             )
@@ -837,7 +850,7 @@ final class WallpaperCoordinator {
         let remote = remoteVideoPool.videos(configs: settings.remoteSources)
         // 片單：解析清單不下載，**抽到哪支才抓哪支**。這裡只放已經在磁碟上的；
         // 抽不到就代表還沒抓過，下面會挑一支去抓，抓好下一輪自然會被選中。
-        playlists.refreshIfNeeded(settings.playlistSources)
+        // 解析與按需下載已經在 refresh 裡做過了（兩條引擎共用），這裡只讀結果。
         // remote 已經涵蓋網址下載的那些（同一個快取目錄），不要再加一次。
         // playlists 的檔案也在那個目錄裡，所以用 Set 去重。
         var seen = Set<URL>()
@@ -889,10 +902,13 @@ final class WallpaperCoordinator {
         desktopVideo.apply(plan: plan, layer: settings.desktopVideoLayer, screens: displays,
                            mode: settings.videoPlaybackMode, scale: settings.videoScaleMode)
         desktopVideo.setPaused(currentTier() == .paused)
+    }
 
-        // 池裡的片單影片不夠讓每台螢幕各播一支 → 補抓一支。
-        // 這就是「抽到要顯示才下載」：需求量由螢幕數決定，不是把整個片單抓下來。
-        requestPlaylistDownloadIfNeeded(wanted: screens.count)
+    /// 有幾台螢幕被標記成播影片。片單的按需下載拿它當「要幾支」。
+    private func videoScreenCount() -> Int {
+        let marked = ScreenBridge.currentDisplays()
+            .filter { settings.videoScreens.contains($0.uuid) }
+        return marked.count
     }
 
     /// 片單有東西可播了嗎；不夠就抓一支。

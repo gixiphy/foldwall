@@ -91,20 +91,26 @@ public enum VideoBudget {
         return rotation
     }
 
-    /// 網路影片在整個輪替裡該分到幾個名額。
+    /// 網路來源（含片單下載）在這一輪的額度裡分到幾個位元組。
     ///
-    /// 為什麼要保留名額：實測資料夾有 4596 支、網路只有 6 支，混在一起排序輪替的話，
+    /// 為什麼要保留額度：實測資料夾有 4596 支、網路只有 6 支，混在一起排序輪替的話，
     /// 游標要繞完 4602 支才會碰到網路那 6 支——實際上永遠輪不到。
     /// 加了來源卻看不到，等於沒加。
-    public static func remoteSlots(
+    ///
+    /// **為什麼是位元組而不是「幾支」**：支數上限拿掉之後，一輪會帶幾十支資料夾影片，
+    /// 而網路仍然固定只有一支——比例上等於沒加。改成分額度，網路帶幾支就跟著
+    /// 檔案大小走，跟資料夾同一套規則。
+    public static let remoteShareDivisor: Int64 = 4
+
+    public static func remoteBytes(
         remoteCount: Int,
         folderCount: Int,
-        rotationCount: Int = rotationCount
-    ) -> Int {
+        totalBytes: Int64 = rotationBytes
+    ) -> Int64 {
         guard remoteCount > 0 else { return 0 }
         // 沒有資料夾影片時，整輪都給網路
-        guard folderCount > 0 else { return rotationCount }
-        return 1
+        guard folderCount > 0 else { return totalBytes }
+        return totalBytes / remoteShareDivisor
     }
 
 }

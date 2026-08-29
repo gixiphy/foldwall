@@ -118,21 +118,32 @@ final class VideoBudgetTests: XCTestCase {
                        "片庫縮小後游標超出範圍，要從頭開始而不是爆掉")
     }
 
-    // MARK: - 網路來源的名額
+    // MARK: - 網路來源的額度
 
     /// 實測：資料夾 4596 支、網路 6 支。混在一起排序輪替的話，游標要繞完 4602 支
     /// 才碰得到網路那 6 支——加了來源卻永遠看不到。
-    func testRemoteAlwaysGetsASlotWhenFolderLibraryIsHuge() {
-        XCTAssertEqual(VideoBudget.remoteSlots(remoteCount: 6, folderCount: 4596), 1)
+    func testRemoteKeepsAShareWhenFolderLibraryIsHuge() {
+        XCTAssertEqual(VideoBudget.remoteBytes(remoteCount: 6, folderCount: 4596),
+                       VideoBudget.rotationBytes / 4,
+                       "固定一支的話，一輪帶幾十支資料夾影片時比例上等於沒加")
     }
 
     func testRemoteTakesWholeRotationWhenNoFolderVideos() {
-        XCTAssertEqual(VideoBudget.remoteSlots(remoteCount: 6, folderCount: 0),
-                       VideoBudget.rotationCount)
+        XCTAssertEqual(VideoBudget.remoteBytes(remoteCount: 6, folderCount: 0),
+                       VideoBudget.rotationBytes)
     }
 
-    func testNoRemoteMeansNoSlot() {
-        XCTAssertEqual(VideoBudget.remoteSlots(remoteCount: 0, folderCount: 4596), 0)
+    func testNoRemoteMeansNoShare() {
+        XCTAssertEqual(VideoBudget.remoteBytes(remoteCount: 0, folderCount: 4596), 0)
+    }
+
+    /// 網路那份額度再小，第一支還是收得到——「一定看得到」是這條保證的重點。
+    func testRemoteStillGetsOneVideoWhenItsShareIsTooSmall() {
+        let share = VideoBudget.remoteBytes(remoteCount: 1, folderCount: 4596)
+        let rotation = VideoBudget.rotate(
+            [url("big-remote.mp4")], cursor: 0, totalBytes: share
+        ) { _ in 900 * self.mb }
+        XCTAssertEqual(rotation.selected.count, 1)
     }
 
     func testRotationReportsUsedBytesForMixedBudget() {
