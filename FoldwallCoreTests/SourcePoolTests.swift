@@ -7,6 +7,11 @@ final class SourcePoolTests: XCTestCase {
         (0..<n).map { URL(filePath: "/\(prefix)/\($0).jpg") }
     }
 
+    /// 池裡存的是路徑字串（見 SourcePool.Group.paths）。
+    private func paths(_ prefix: String, _ n: Int) -> [String] {
+        (0..<n).map { "/\(prefix)/\($0).jpg" }
+    }
+
     // MARK: - 分組
 
     func testEmptyGroupsAreDropped() {
@@ -20,27 +25,27 @@ final class SourcePoolTests: XCTestCase {
 
     func testSingleRootTakesTheShortcut() {
         let root = URL(filePath: "/Volumes/Archive/Tablescape")
-        let files = urls("Volumes/Archive/Tablescape", 5)
+        let files = paths("Volumes/Archive/Tablescape", 5)
         let groups = SourcePool.groupByRoot(files, roots: [root])
         XCTAssertEqual(groups.count, 1)
-        XCTAssertEqual(groups[0].urls.count, 5)
+        XCTAssertEqual(groups[0].paths.count, 5)
         XCTAssertEqual(groups[0].id, "Tablescape")
     }
 
     func testMultipleRootsSplitByOwnership() {
         let a = URL(filePath: "/Volumes/A")
         let b = URL(filePath: "/Volumes/B")
-        let files = urls("Volumes/A", 3) + urls("Volumes/B", 2)
+        let files = paths("Volumes/A", 3) + paths("Volumes/B", 2)
         let groups = SourcePool.groupByRoot(files, roots: [a, b])
         XCTAssertEqual(groups.map(\.id), ["A", "B"], "順序跟著 roots，讓同 seed 可重現")
-        XCTAssertEqual(groups.map(\.urls.count), [3, 2])
+        XCTAssertEqual(groups.map(\.paths.count), [3, 2])
     }
 
     /// `/Volumes/Arch` 不該吃掉 `/Volumes/Archive`。
     func testRootMatchingRespectsPathBoundary() {
         let arch = URL(filePath: "/Volumes/Arch")
         let archive = URL(filePath: "/Volumes/Archive")
-        let files = [URL(filePath: "/Volumes/Archive/x.jpg")]
+        let files = ["/Volumes/Archive/x.jpg"]
         let groups = SourcePool.groupByRoot(files, roots: [arch, archive])
         XCTAssertEqual(groups.map(\.id), ["Archive"])
     }

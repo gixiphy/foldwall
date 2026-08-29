@@ -15,11 +15,18 @@ public struct SourcePool: Sendable, Equatable {
     public struct Group: Sendable, Equatable {
         /// 診斷與記錄用，不參與抽樣。
         public var id: String
-        public var urls: [URL]
+        /// **路徑字串，不是 URL。** 資料夾那組實測 69 萬項，存 URL 比存路徑
+        /// 多花一倍以上的記憶體，而其中只有十幾項會真的被抽中組成 URL。
+        public var paths: [String]
 
-        public init(id: String, urls: [URL]) {
+        public init(id: String, paths: [String]) {
             self.id = id
-            self.urls = urls
+            self.paths = paths
+        }
+
+        /// 幾百項的小來源（相簿、網路快取）直接給 URL 也行。
+        public init(id: String, urls: [URL]) {
+            self.init(id: id, paths: urls.map { $0.path(percentEncoded: false) })
         }
     }
 
@@ -27,7 +34,7 @@ public struct SourcePool: Sendable, Equatable {
     public private(set) var groups: [Group]
 
     public init(groups: [Group]) {
-        self.groups = groups.filter { !$0.urls.isEmpty }
+        self.groups = groups.filter { !$0.paths.isEmpty }
     }
 
     /// 單一來源。測試與「沒有分組資訊」的呼叫端用。
@@ -36,32 +43,37 @@ public struct SourcePool: Sendable, Equatable {
     }
 
     public var isEmpty: Bool { groups.isEmpty }
-    public var count: Int { groups.reduce(0) { $0 + $1.urls.count } }
-    public var all: [URL] { groups.flatMap(\.urls) }
+    public var count: Int { groups.reduce(0) { $0 + $1.paths.count } }
+    public var all: [URL] { groups.flatMap(\.paths).map(Self.url) }
+
+    /// 路徑 → URL。抽中才呼叫。
+    static func url(_ path: String) -> URL {
+        URL(filePath: path, directoryHint: .notDirectory)
+    }
 
     /// 把一堆檔案依所屬根目錄拆成多組。**不屬於任何一個根目錄的直接丟掉**，
     /// 所以這個函式同時兼任「只留這些根目錄底下的檔案」的過濾工作——
     /// 呼叫端不必先 filter 一次再 group 一次，那是走兩趟幾十萬筆。
     ///
     /// **走過大量檔案時請在背景執行緒呼叫。**
-    public static func groupByRoot(_ urls: [URL], roots: [URL]) -> [Group] {
-        guard !roots.isEmpty, !urls.isEmpty else { return [] }
+    public static func groupByRoot(_ paths: [String], roots: [URL]) -> [Group] {
+        guard !roots.isEmpty, !paths.isEmpty else { return [] }
         // 單一根目錄：所有檔案都屬於它，不必逐一比對（最常見的情況）
         guard roots.count > 1 else {
-            return [Group(id: roots[0].lastPathComponent, urls: urls)]
+            return [Group(id: roots[0].lastPathComponent, paths: paths)]
         }
 
         let matcher = RootMatcher(roots)
-        var byRoot: [String: [URL]] = [:]
-        for url in urls {
-            guard let root = matcher.root(of: url) else { continue }
-            byRoot[root.path(percentEncoded: false), default: []].append(url)
+        var byRoot: [String: [String]] = [:]
+        for path in paths {
+            guard let root = matcher.root(ofPath: path) else { continue }
+            byRoot[root.path(percentEncoded: false), default: []].append(path)
         }
         // 固定順序：跟 roots 一致，讓同一 seed 的結果可重現
         return roots.compactMap { root in
-            guard let urls = byRoot[root.path(percentEncoded: false)], !urls.isEmpty
+            guard let paths = byRoot[root.path(percentEncoded: false)], !paths.isEmpty
             else { return nil }
-            return Group(id: root.lastPathComponent, urls: urls)
+            return Group(id: root.lastPathComponent, paths: paths)
         }
     }
 }
@@ -109,7 +121,7 @@ public struct SourceRotation {
         var rng = SeededGenerator(seed: seed)
         let shuffled = pool.groups.shuffled(using: &rng)
         self.groups = shuffled
-        self.draws = shuffled.map { Draw(total: $0.urls.count) }
+        self.draws = shuffled.map { Draw(total: $0.paths.count) }
         self.rng = rng
     }
 
@@ -130,8 +142,9 @@ public struct SourceRotation {
                 continue
             }
             consecutiveEmpty = 0
-            let url = groups[index].urls[pick]
-            if used.insert(url.absoluteString).inserted { return url }
+            // 抽中的才組 URL：池裡是路徑字串，一輪只會走到十幾項。
+            let path = groups[index].paths[pick]
+            if used.insert(path).inserted { return SourcePool.url(path) }
         }
         return nil
     }

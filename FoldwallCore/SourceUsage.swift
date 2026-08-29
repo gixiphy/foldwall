@@ -45,7 +45,15 @@ public struct RootMatcher: Sendable {
 
     /// 這個檔屬於哪個根目錄。都不屬於就回 nil。
     public func root(of url: URL) -> URL? {
-        let path = url.path(percentEncoded: false)
+        root(ofPath: url.path(percentEncoded: false))
+    }
+
+    /// 同上，但直接吃路徑字串。
+    ///
+    /// 索引存的就是路徑（見 FolderIndex.Snapshot），走幾十萬項時不必為了比對
+    /// 先把每一項組成 URL 再 `.path` 拆回來——那是每輪 refresh 幾十萬次的
+    /// 字串配置。
+    public func root(ofPath path: String) -> URL? {
         // 比到路徑分隔為止：`/Volumes/Arch` 不該吃掉 `/Volumes/Archive`
         for base in bases where path == base.path || path.hasPrefix(base.path + "/") {
             return base.root

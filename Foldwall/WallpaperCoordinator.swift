@@ -629,11 +629,14 @@ final class WallpaperCoordinator {
 
         // 影片清單小得多（實測 4,658 對 68 萬），但同一條路徑上保持一致：
         // 也不在主執行緒上走。
+        // 影片才在這裡組 URL：後面要拷貝、要餵 AVPlayer，本來就得是 URL，
+        // 而數量小得多（實測 5,114 對 70 萬）。圖那條路整路都走路徑字串。
         let allVideos = index.videos
         let videoRoots = folders
         let usage = settings.folderUsage
         let videos = await Task.detached(priority: .userInitiated) {
-            SourceUsageMap.filter(allVideos, roots: videoRoots, usage: usage, needing: .video)
+            let urls = allVideos.map { URL(filePath: $0, directoryHint: .notDirectory) }
+            return SourceUsageMap.filter(urls, roots: videoRoots, usage: usage, needing: .video)
         }.value
         status.videoCount = videos.count
 

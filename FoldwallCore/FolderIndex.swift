@@ -20,8 +20,17 @@ public actor FolderIndex {
 
 
     public struct Snapshot: Sendable, Equatable {
-        public var images: [URL] = []
-        public var videos: [URL] = []
+        /// **存路徑字串，不存 URL。**
+        ///
+        /// 這份清單是 App 生命週期裡最大的一塊常駐資料（實測 71 萬項），而
+        /// Swift 的 URL 一個要 ~691 B（StringStorage 293 ＋ URLParseInfo 224
+        /// ＋ _SwiftURL 80 ＋ 三個 32 B 的 box），路徑字串只要 ~309 B。
+        /// 抽到要用的那十幾張才組 URL。
+        ///
+        /// 附帶的好處：落地格式本來就是路徑字串，persist/hydrate 不必再把
+        /// 71 萬個 URL 與字串互轉一次；RootMatcher 比對也不必逐項 `.path`。
+        public var images: [String] = []
+        public var videos: [String] = []
         /// 目前的清單是否涵蓋了所有根目錄。
         ///
         /// 影片差異同步**必須**等這個為 true：清單不完整時同步會把還在來源裡的影片
@@ -126,8 +135,8 @@ public actor FolderIndex {
         didHydrate = true
 
         guard let persisted = store?.load() else { return }
-        snapshot.images = persisted.images.map { URL(filePath: $0, directoryHint: .notDirectory) }
-        snapshot.videos = persisted.videos.map { URL(filePath: $0, directoryHint: .notDirectory) }
+        snapshot.images = persisted.images
+        snapshot.videos = persisted.videos
         // 完整性照抄，不要一律當成完整：磁碟上那份可能是「有根離線時存下的」，
         // 硬當成完整的話影片差異同步會把那顆碟上已部署的影片全當成「已移除」刪掉。
         // 根目錄如果變了，接下來的 applyRootChange 會再把它降級一次。
@@ -146,8 +155,8 @@ public actor FolderIndex {
         // 不落地，每次冷啟動都全量重掃——90 萬檔 4.2 分鐘，而那顆碟的內容
         // 明明還在清單裡。hydrate 改成照抄旗標之後，這個理由就不成立了。
         guard let store else { return }
-        // URL → 路徑字串的轉換（90 萬項就是 90 萬次字串配置）也要移出 actor：
-        // [URL] 是 CoW 的 Sendable，capture 本身不拷貝。
+        // 清單本來就是路徑字串，這裡不必再轉一次（以前 90 萬項就是 90 萬次
+        // 字串配置）。[String] 是 CoW 的 Sendable，capture 本身不拷貝。
         let roots = scannedRoots
         let scannedAt = lastScan ?? now()
         let images = snapshot.images
@@ -157,8 +166,8 @@ public actor FolderIndex {
             let payload = PersistedFolderIndex(
                 roots: roots.map { $0.path(percentEncoded: false) },
                 scannedAt: scannedAt,
-                images: images.map { $0.path(percentEncoded: false) },
-                videos: videos.map { $0.path(percentEncoded: false) },
+                images: images,
+                videos: videos,
                 isComplete: isComplete
             )
             store.save(payload)
@@ -179,8 +188,8 @@ public actor FolderIndex {
         // RootMatcher 把根目錄路徑先算好：逐項重新 standardize 的寫法在 68 萬筆上
         // 實測要 4.39 秒，而這裡佔著 actor，會讓下一輪 current 排隊等。
         let matcher = RootMatcher(roots)
-        snapshot.images = snapshot.images.filter { matcher.root(of: $0) != nil }
-        snapshot.videos = snapshot.videos.filter { matcher.root(of: $0) != nil }
+        snapshot.images = snapshot.images.filter { matcher.root(ofPath: $0) != nil }
+        snapshot.videos = snapshot.videos.filter { matcher.root(ofPath: $0) != nil }
 
         // 只移除的話，篩過的清單仍然是完整的——影片同步可以立刻把該刪的刪掉。
         // 只要新增了根目錄，清單就不完整，同步得等重掃。
@@ -274,12 +283,13 @@ public actor FolderIndex {
         }
 
         // 一趟分流，不走兩遍 filter+map——這串在大型來源上是 90 萬項，而且佔著 actor。
-        var images: [URL] = []
-        var videos: [URL] = []
+        var images: [String] = []
+        var videos: [String] = []
         images.reserveCapacity(scan.items.count)
         for item in scan.items {
-            if item.kind == .image { images.append(item.url) }
-            else if item.kind == .video { videos.append(item.url) }
+            let path = item.url.path(percentEncoded: false)
+            if item.kind == .image { images.append(path) }
+            else if item.kind == .video { videos.append(path) }
         }
 
         // 有根目錄打不開（NAS 沒掛、磁碟拔掉）：**留著上一輪掃到的東西**，
@@ -293,8 +303,8 @@ public actor FolderIndex {
         let unreadable = scan.unreadableRoots + offlineRoots
         if !unreadable.isEmpty {
             let matcher = RootMatcher(unreadable)
-            images += snapshot.images.filter { matcher.root(of: $0) != nil }
-            videos += snapshot.videos.filter { matcher.root(of: $0) != nil }
+            images += snapshot.images.filter { matcher.root(ofPath: $0) != nil }
+            videos += snapshot.videos.filter { matcher.root(ofPath: $0) != nil }
             Self.log.notice(
                 "\(unreadable.count) 個根目錄讀不到，沿用上一輪清單、不標記完整")
         }

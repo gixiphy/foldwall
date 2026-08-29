@@ -1,6 +1,11 @@
 import XCTest
 @testable import FoldwallCore
 
+/// 索引存的是路徑字串（見 FolderIndex.Snapshot），但測試想看的還是檔名。
+private extension String {
+    var lastPathComponent: String { (self as NSString).lastPathComponent }
+}
+
 /// 可暫停的閘門：讓測試把掃描卡在中途，驗證呼叫端不會跟著卡住。
 private actor Gate {
     private var waiters: [CheckedContinuation<Void, Never>] = []
