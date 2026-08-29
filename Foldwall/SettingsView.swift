@@ -52,11 +52,19 @@ private struct SourceSettings: View {
     @Bindable var settings: AppSettings
     var onChange: () -> Void
 
+    /// rawValue 是**識別碼**，不是顯示文字：兩者黏在一起的話，切一次語言
+    /// 就等於換一組 id，Picker 的 selection 會對不上而跳回第一項。
     private enum Kind: String, CaseIterable, Identifiable {
-        case folders = "資料夾"
-        case albums = "照片授權"
-        case remote = "網路"
+        case folders, albums, remote
         var id: String { rawValue }
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .folders: "資料夾"
+            case .albums: "照片授權"
+            case .remote: "網路"
+            }
+        }
     }
 
     @State private var kind: Kind = .folders
@@ -64,7 +72,7 @@ private struct SourceSettings: View {
     var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: $kind) {
-                ForEach(Kind.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(Kind.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -111,8 +119,10 @@ private struct FolderSourceSettings: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("本機、SMB，以及 Box／pCloud／Dropbox／OneDrive／Google Drive 等雲端硬碟的"
-                 + "掛載點——裝了桌面版就是一般資料夾，不需要 OAuth。")
+            Text("""
+                本機、SMB，以及 Box／pCloud／Dropbox／OneDrive／Google Drive \
+                等雲端硬碟的掛載點——裝了桌面版就是一般資料夾，不需要 OAuth。
+                """)
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -181,8 +191,10 @@ private struct FolderSourceSettings: View {
                     .foregroundStyle(.orange)
             }
 
-            Text("這一頁只管來源設好了沒、讀不讀得到。"
-                 + "要拿哪些來源合成蒙太奇、哪些放影片，在「蒙太奇桌布」和「影片桌布」分頁決定。")
+            Text("""
+                這一頁只管來源設好了沒、讀不讀得到。要拿哪些來源合成蒙太奇、哪些放影片，\
+                在「蒙太奇桌布」和「影片桌布」分頁決定。
+                """)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -239,9 +251,10 @@ private struct PhotosAlbumSettings: View {
                 } description: {
                     // Foldwall 沒出現在系統設定清單裡是常見情況：app 要**送出過請求**
                     // 才會被登錄進去。所以這裡先給「再次請求」，不是只叫人去系統設定。
-                    Text("狀態：\(PhotosAlbumSource.describe(status))\n\n"
-                         + "如果系統設定的「照片」清單裡找不到 Foldwall，代表授權請求還沒送出過——"
-                         + "先按下面的「請求授權」。")
+                    Text("""
+                        狀態：\(PhotosAlbumSource.describe(status))\n\n如果系統設定的「照片」\
+                        清單裡找不到 Foldwall，代表授權請求還沒送出過——先按下面的「請求授權」。
+                        """)
                 } actions: {
                     Button("請求授權…") {
                         Task {
@@ -454,11 +467,16 @@ private struct VideoSettings: View {
                 if deployedCount > 0 {
                     Text("已備妥 **\(deployedCount)** 支影片")
                 } else if settings.videoWallpaperEnabled {
-                    Text("目前沒有影片。加入含 mp4／mov／m4v 的來源資料夾即可。"
-                         + "大型來源要等背景掃描與拷貝跑完。")
+                    Text("""
+                        目前沒有影片。加入含 mp4／mov／m4v 的來源資料夾即可。\
+                        大型來源要等背景掃描與拷貝跑完。
+                        """)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    Text("影片桌布未啟用。打開上面的開關才會把來源資料夾裡的影片送進系統桌布清單。")
+                    Text("""
+                        影片桌布未啟用。\
+                        打開上面的開關才會把來源資料夾裡的影片送進系統桌布清單。
+                        """)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
@@ -581,13 +599,13 @@ private struct VideoSettings: View {
 
     private var rotationHint: String {
         settings.videoEngine.needsDeployment
-            ? "不等螢幕睡著，現在就換一批進 extension"
-            : "重掃來源資料夾，然後整批重抽——剛丟進來的新片會在這時候出現"
+            ? String(localized: "不等螢幕睡著，現在就換一批進 extension")
+            : String(localized: "重掃來源資料夾，然後整批重抽——剛丟進來的新片會在這時候出現")
     }
 
     /// 標籤靠左、控制項靠右——與蒙太奇分頁同一條右緣。
     private func controlRow<Control: View>(
-        _ label: String, @ViewBuilder control: () -> Control
+        _ label: LocalizedStringKey, @ViewBuilder control: () -> Control
     ) -> some View {
         HStack(spacing: 10) {
             Text(label)
@@ -603,22 +621,26 @@ private struct VideoSettings: View {
         Text("怎麼開始播").font(.headline)
 
         if settings.videoEngine == .desktopWindow {
-            step(1, "打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，"
-                    + "並在左欄勾選要用的來源。")
-            step(2, "回選單列勾 **此螢幕改用影片**。就這樣——不必開系統設定、"
-                    + "不會拷貝任何檔案。")
+            step(1, """
+                打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，\
+                並在左欄勾選要用的來源。
+                """)
+            step(2, "回選單列勾 **此螢幕改用影片**。就這樣——不必開系統設定、不會拷貝任何檔案。")
             Text("桌面視窗**不會出現在鎖屏**。要鎖屏請改用系統桌布 extension。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         } else {
-            step(1, "打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，"
-                    + "並在左欄勾選要用的來源。")
+            step(1, """
+                打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，\
+                並在左欄勾選要用的來源。
+                """)
             step(2, "打開 系統設定 → 桌布，往下找到 **Foldwall** 區塊。")
-            step(3, "選 **Shuffle All** 就會隨機輪播全部影片；想固定一支就直接點那支。"
-                    + "隨機的切換頻率（喚醒時／5 分鐘／每天…）也在同一個畫面選。")
-            step(4, "回到選單列，勾 **此螢幕改用影片**。"
-                    + "漏掉這步，下一輪靜態蒙太奇會把影片蓋掉。")
+            step(3, """
+                選 **Shuffle All** 就會隨機輪播全部影片；想固定一支就直接點那支。\
+                隨機的切換頻率（喚醒時／5 分鐘／每天…）也在同一個畫面選。
+                """)
+            step(4, "回到選單列，勾 **此螢幕改用影片**。漏掉這步，下一輪靜態蒙太奇會把影片蓋掉。")
         }
 
         Button {
@@ -633,7 +655,10 @@ private struct VideoSettings: View {
     @ViewBuilder
     private var troubleshooting: some View {
         Text("疑難排解").font(.headline)
-        Text("桌布清單裡沒有 Foldwall？先把 app 從 /Applications 啟動一次，系統才會登錄它的 extension。")
+        Text("""
+            桌布清單裡沒有 Foldwall？先把 app 從 /Applications 啟動一次，系統才會登錄它的 \
+            extension。
+            """)
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -651,40 +676,47 @@ private struct VideoSettings: View {
     }
 
     /// 系統 extension 那條的輪替不歸這一頁管，講清楚它在哪裡設。
-    private static let extensionRotationNote = markdown(
-        "系統 extension 的輪替由**系統設定 → 桌布**決定："
-        + "選 **Shuffle All** 才會輪播，並在它的「Change Video」選單挑頻率"
-        + "（含**每播完一支**）。選了固定某一支就是單片循環。"
-        + "「下一片影片」在那裡也有效。"
-    )
+    ///
+    /// 這三段從 `static let` 改成 computed：`static let` 在第一次取用時求值一次，
+    /// 之後整個 process 都用那份結果——查表也一起被凍住，語言就再也換不掉。
+    private static var extensionRotationNote: AttributedString {
+        markdown(String(localized: """
+            系統 extension 的輪替由**系統設定 → 桌布**決定：選 **Shuffle All** 才會輪播，\
+            並在它的「Change Video」選單挑頻率（含**每播完一支**）。\
+            選了固定某一支就是單片循環。「下一片影片」在那裡也有效。
+            """))
+    }
 
-    private static let sleepExplainer = markdown(
-        "影片在**螢幕睡著時**（螢保啟動、鎖定、休眠）預先換好下一批，"
-        + "最少間隔 30 分鐘，不跟著桌布輪換——拷貝一次可能是好幾百 MB，"
-        + "放在你剛回到電腦前那一刻做會卡。等不及就按下面的**強制更換片源**。"
-        + "關掉開關會把已拷進去的影片清乾淨。"
-    )
+    private static var sleepExplainer: AttributedString {
+        markdown(String(localized: """
+            影片在**螢幕睡著時**（螢保啟動、鎖定、休眠）預先換好下一批，最少間隔 30 分鐘，\
+            不跟著桌布輪換——拷貝一次可能是好幾百 MB，放在你剛回到電腦前那一刻做會卡。\
+            等不及就按下面的**強制更換片源**。關掉開關會把已拷進去的影片清乾淨。
+            """))
+    }
 
-    /// 拆成常數：直接串在 View builder 裡會讓型別檢查器超時。
-    private static let budgetExplainer: String = {
+    /// 拆成獨立屬性：直接串在 View builder 裡會讓型別檢查器超時。
+    private static var budgetExplainer: String {
         let perFileGB = VideoBudget.maxFileBytes / (1024 * 1024 * 1024)
         let rotationGB = VideoBudget.rotationBytes / (1024 * 1024 * 1024)
-        return "沙盒 extension 讀不到 app 的來源資料夾，影片必須**實體拷貝**一份進去。"
-            + "來源若是 NAS，那會是幾十 GB——所以預設關閉，而且採**輪替**而非囤積："
-            + "一次帶到**填滿 \(rotationGB) GB** 為止（幾支視大小而定）。"
-            + "下次螢幕亮起換一批，但**只換四分之一**——重疊的部分不必重拷，"
-            + "每輪從來源搬動的量因此是 \(rotationGB * 1024 / 4) MB 而不是 \(rotationGB) GB。"
-            + "整個片庫照樣輪得到，只是慢一些。"
-            + "單檔超過 \(perFileGB) GB 一律不收——那是片庫內容，不是桌布循環素材。"
-    }()
+        let perRoundMB = rotationGB * 1024 / 4
+        return String(localized: """
+            沙盒 extension 讀不到 app 的來源資料夾，影片必須**實體拷貝**一份進去。來源若是 \
+            NAS，那會是幾十 GB——所以預設關閉，而且採**輪替**而非囤積：\
+            一次帶到**填滿 \(rotationGB) GB** 為止（幾支視大小而定）。下次螢幕亮起換一批，\
+            但**只換四分之一**——重疊的部分不必重拷，每輪從來源搬動的量因此是 \(perRoundMB) MB \
+            而不是 \(rotationGB) GB。整個片庫照樣輪得到，只是慢一些。單檔超過 \(perFileGB) GB \
+            一律不收——那是片庫內容，不是桌布循環素材。
+            """)
+    }
 
-    private func step(_ number: Int, _ text: String) -> some View {
+    private func step(_ number: Int, _ text: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: 8) {
-            Text("\(number)")
+            Text(number, format: .number)
                 .font(.caption.bold())
                 .frame(width: 18, height: 18)
                 .background(Circle().fill(.tint.opacity(0.18)))
-            Text(.init(text))
+            Text(text)
                 .font(.callout)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -827,15 +859,16 @@ private struct PlaylistSourceDetail: View {
     @Bindable var service: PlaylistService
     var onChange: () -> Void
 
-    private static let note: AttributedString = {
-        let text = "**存網址，不是存影片。** 加進來只會去問「這個片單裡有哪些影片」，"
-            + "不下載任何東西。等輪替真的抽到某一支，才去抓那一支。\n"
-            + "所以磁碟用量跟**你真的播過幾支**成正比，而不是整個片單的大小——"
-            + "幾百支的片單也不會一次塞爆磁碟。\n"
-            + "抓下來的影片存進**影片快取**，跟網路來源的影片同一個地方，"
-            + "受同一份 2 GB 上限與汰舊管。"
+    private static var note: AttributedString {
+        let text = String(localized: """
+            **存網址，不是存影片。** 加進來只會去問「這個片單裡有哪些影片」，不下載任何東西。\
+            等輪替真的抽到某一支，才去抓那一支。\n所以磁碟用量跟**你真的播過幾支**成正比，\
+            而不是整個片單的大小——幾百支的片單也不會一次塞爆磁碟。\n\
+            抓下來的影片存進**影片快取**，跟網路來源的影片同一個地方，受同一份 2 GB \
+            上限與汰舊管。
+            """)
         return (try? AttributedString(markdown: text)) ?? AttributedString(text)
-    }()
+    }
 
     var body: some View {
         Form {
@@ -846,8 +879,9 @@ private struct PlaylistSourceDetail: View {
                           prompt: Text("https://…"))
                     .onSubmit(reload)
                 TextField("名稱（選填）", text: $source.title,
-                          prompt: Text(source.resolvedTitle.isEmpty
-                                       ? "留白就用片單自己的標題" : source.resolvedTitle))
+                          prompt: source.resolvedTitle.isEmpty
+                              ? Text("留白就用片單自己的標題")
+                              : Text(verbatim: source.resolvedTitle))
                     .onSubmit(onChange)
             } header: {
                 Text("片單網址")
@@ -890,10 +924,11 @@ private struct PlaylistSourceDetail: View {
     }
 
     private var status: String {
-        guard source.url != nil else { return "還沒填網址。" }
+        guard source.url != nil else { return String(localized: "還沒填網址。") }
         let total = service.entryCount(for: source)
-        guard total > 0 else { return "還沒解析過。" }
-        return "\(total) 支，其中 \(service.downloadedCount(for: source)) 支已在本機。"
+        guard total > 0 else { return String(localized: "還沒解析過。") }
+        let local = service.downloadedCount(for: source)
+        return String(localized: "\(total) 支，其中 \(local) 支已在本機。")
     }
 
     private func reload() {
@@ -918,7 +953,8 @@ private struct YtDlpNotice: View {
     var body: some View {
         if isInstalled {
             VStack(alignment: .leading, spacing: 4) {
-                Label(version.map { "已偵測到 yt-dlp \($0)" } ?? "已偵測到 yt-dlp",
+                Label(version.map { LocalizedStringKey("已偵測到 yt-dlp \($0)") }
+                          ?? LocalizedStringKey("已偵測到 yt-dlp"),
                       systemImage: isOutdated
                           ? "arrow.up.circle.fill" : "checkmark.circle.fill")
                     .font(.caption)
@@ -926,8 +962,7 @@ private struct YtDlpNotice: View {
                 // 只在真的有新版時才唸。查不到上游版本就什麼都不說——
                 // 不確定的時候指著使用者的工具說它舊最糟。
                 if isOutdated {
-                    Text("有新版 \(latest ?? "")。網站一改版 extractor 就會解不出東西，"
-                         + "先更新再排查比較省事：")
+                    Text("有新版 \(latest ?? "")。網站一改版 extractor 就會解不出東西，先更新再排查比較省事：")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text("brew upgrade yt-dlp")
@@ -988,15 +1023,6 @@ private struct RemoteSourceDetail: View {
     @State private var keyLoaded = false
     @State private var test: SourceTestResult = .untested
 
-    private static let fourKNote: AttributedString = {
-        let source = "這個站**沒有 API**，Foldwall 是抓它的公開網頁。"
-            + "它的 robots.txt 明確禁止 `/search/`，所以**不做關鍵字搜尋**——"
-            + "上面的欄位在這裡是**分類**，留白就取首頁的混合內容。\n"
-            + "抓圖要兩段（清單頁→詳細頁→原圖），所以比有 API 的來源慢，"
-            + "而且站方改版就會失效。取每張的最大解析度。"
-        return (try? AttributedString(markdown: source)) ?? AttributedString(source)
-    }()
-
     var body: some View {
         Form {
             Section {
@@ -1012,8 +1038,10 @@ private struct RemoteSourceDetail: View {
                         .foregroundStyle(color(for: test))
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Text("這一頁只確認設定填對、連得上。要不要拿它合成蒙太奇或當影片來源，"
-                     + "在「蒙太奇桌布」／「影片桌布」分頁勾選。")
+                Text("""
+                    這一頁只確認設定填對、連得上。要不要拿它合成蒙太奇或當影片來源，\
+                    在「蒙太奇桌布」／「影片桌布」分頁勾選。
+                    """)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1091,11 +1119,11 @@ private struct RemoteSourceDetail: View {
         }
     }
 
-    private var linkTitle: String {
+    private var linkTitle: LocalizedStringKey {
         config.kind == .immich ? "開啟 Immich 說明文件" : "前往申請（免費）"
     }
 
-    private var keyHint: String {
+    private var keyHint: LocalizedStringKey {
         switch config.kind {
         case .unsplash: "在 Unsplash 建立一個 app，複製它的 Access Key。"
         case .pexels: "填個表單就會當場給你 key。"
@@ -1107,11 +1135,11 @@ private struct RemoteSourceDetail: View {
         }
     }
 
-    private var endpointLabel: String {
+    private var endpointLabel: LocalizedStringKey {
         config.kind == .immich ? "伺服器網址" : "Feed 網址"
     }
 
-    private var endpointHint: String {
+    private var endpointHint: LocalizedStringKey {
         config.kind == .immich
             ? "例如 https://photos.example.com（可只填主機名）。"
             : "RSS／Atom feed 的網址。"
@@ -1173,9 +1201,11 @@ private struct RuleSettings: View {
             }
 
             if coordinator.focusModes.isEmpty {
-                Text("讀不到系統的專注模式清單。macOS 沒有公開 API 可查詢目前是哪個模式，"
-                     + "Foldwall 讀的是 ~/Library/DoNotDisturb/DB/——格式若隨系統更新改變，"
-                     + "專注模式的規則會靜默失效，其他功能不受影響。")
+                Text("""
+                    讀不到系統的專注模式清單。macOS 沒有公開 API 可查詢目前是哪個模式，\
+                    Foldwall 讀的是 ~/Library/DoNotDisturb/DB/——格式若隨系統更新改變，\
+                    專注模式的規則會靜默失效，其他功能不受影響。
+                    """)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1193,9 +1223,10 @@ private struct RuleSettings: View {
                                      ? Color.secondary : Color.green)
                 if let reason = coordinator.status.activeRuleReason {
                     Text("目前生效：\(reason)")
+                } else if let focus = coordinator.activeFocusModeName {
+                    Text("目前沒有規則生效（專注：\(focus)）")
                 } else {
-                    Text("目前沒有規則生效"
-                         + (coordinator.activeFocusModeName.map { "（專注：\($0)）" } ?? ""))
+                    Text("目前沒有規則生效")
                 }
                 Spacer()
             }
@@ -1249,7 +1280,7 @@ private struct RuleRow: View {
         .padding(.vertical, 2)
     }
 
-    private var title: String {
+    private var title: LocalizedStringKey {
         switch rule.condition {
         case .onBattery: "靠電池時"
         case .focusMode(let id) where id.isEmpty: "任何專注模式時"
@@ -1293,11 +1324,13 @@ private struct CacheSettings: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("想讓**螢幕保護程式**播 Foldwall 抓下來的圖？")
                         .font(.callout)
-                    Text("系統設定 → 螢幕保護程式 → 選「照片」類的樣式 → 選項 → 來源，"
-                         + "把來源指到下面**照片**那一列的路徑（`~/Pictures/Foldwall`）。"
-                         + "那是一個彙整資料夾，裡面用硬連結收攏了三個快取裡的所有圖——"
-                         + "不佔額外空間，快取更新時會自動同步。Foldwall 沒辦法把自己註冊進"
-                         + "那個選單，所以要手動指一次。")
+                    Text("""
+                        系統設定 → 螢幕保護程式 → 選「照片」類的樣式 → 選項 → 來源，\
+                        把來源指到下面**照片**那一列的路徑（`~/Pictures/Foldwall`）。\
+                        那是一個彙整資料夾，裡面用硬連結收攏了三個快取裡的所有圖——\
+                        不佔額外空間，快取更新時會自動同步。Foldwall \
+                        沒辦法把自己註冊進那個選單，所以要手動指一次。
+                        """)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1351,9 +1384,11 @@ private struct CacheSettings: View {
             }
             .listStyle(.inset)
 
-            Text("兩組都在 ~/Library/Caches 底下，磁碟空間不足時 macOS 會自己刪。"
-                 + "Foldwall 會重新下載，但螢幕保護程式那邊會暫時沒圖可播。"
-                 + "目前掛在桌面上的桌布放在 Application Support，不會被清掉。")
+            Text("""
+                兩組都在 ~/Library/Caches 底下，磁碟空間不足時 macOS 會自己刪。Foldwall \
+                會重新下載，但螢幕保護程式那邊會暫時沒圖可播。目前掛在桌面上的桌布放在 \
+                Application Support，不會被清掉。
+                """)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1361,7 +1396,7 @@ private struct CacheSettings: View {
         .padding()
         .onAppear(perform: reload)
         .confirmationDialog(
-            pendingClear.map { "清除「\($0.name)」？" } ?? "",
+            pendingClear.map { String(localized: "清除「\($0.name)」？") } ?? "",
             isPresented: Binding(get: { pendingClear != nil },
                                  set: { if !$0 { pendingClear = nil } }),
             titleVisibility: .visible
@@ -1386,10 +1421,12 @@ private struct CacheSettings: View {
     private func consequence(_ location: CacheLocation) -> String {
         switch location.id {
         case "videos":
-            "輪替中的影片會被移除，影片螢幕暫由蒙太奇接管，下次螢幕睡著時再預先拷一批。"
+            String(localized: "輪替中的影片會被移除，影片螢幕暫由蒙太奇接管，下次螢幕睡著時再預先拷一批。")
         default:
-            "清完**不會立刻重新下載**，等下一個排程輪次自然補回來。"
-                + "目前掛在桌面上的桌布不受影響。"
+            String(localized: """
+                清完**不會立刻重新下載**，等下一個排程輪次自然補回來。\
+                目前掛在桌面上的桌布不受影響。
+                """)
         }
     }
 
@@ -1567,7 +1604,9 @@ private struct MontageSettings: View {
                             Text("自動").tag(Int?.none)
                             Divider()
                             ForEach(Array(MontageComposer.pieceCountRange), id: \.self) { count in
-                                Text(count == 1 ? "固定 1 張" : "最多 \(count) 張")
+                                Text(count == 1
+                                     ? LocalizedStringKey("固定 1 張")
+                                     : LocalizedStringKey("最多 \(count) 張"))
                                     .tag(Int?.some(count))
                             }
                         }
@@ -1585,13 +1624,16 @@ private struct MontageSettings: View {
                             override: settings.montagePieceCount
                         )
                         HStack(spacing: 6) {
-                            Text(ScreenBridge.localizedName(forUUID: display.uuid) ?? "未知螢幕")
+                            Text(ScreenBridge.localizedName(forUUID: display.uuid)
+                                 ?? String(localized: "未知螢幕"))
                                 .lineLimit(1)
                             Text("\(Int(display.canvas.width))×\(Int(display.canvas.height))")
                                 .foregroundStyle(.secondary)
                                 .monospacedDigit()
                             Spacer(minLength: 8)
-                            Text(ceiling == 1 ? "1 張" : "1–\(ceiling) 張")
+                            Text(ceiling == 1
+                                 ? LocalizedStringKey("1 張")
+                                 : LocalizedStringKey("1–\(ceiling) 張"))
                                 .foregroundStyle(.secondary)
                                 .monospacedDigit()
                         }
@@ -1618,7 +1660,7 @@ private struct MontageSettings: View {
 
     /// 標籤靠左、控制項靠右：右緣與上面那格的「下一張」在同一條線上。
     private func controlRow<Control: View>(
-        _ label: String, @ViewBuilder control: () -> Control
+        _ label: LocalizedStringKey, @ViewBuilder control: () -> Control
     ) -> some View {
         HStack(spacing: 10) {
             Text(label)
@@ -1629,23 +1671,34 @@ private struct MontageSettings: View {
         }
     }
 
-    private var creditNote: String {
+    private var creditNote: LocalizedStringKey {
         settings.showCredits
             ? "作者印在每張照片的相紙下緣；相紙太小放不下的，收到右下角一起列。"
-            : "已關閉。Unsplash 與 Pexels 的授權要求標註作者——關掉之後這些來源的圖只適合自己看。"
+            : """
+                已關閉。Unsplash 與 Pexels 的授權要求標註作者——\
+                關掉之後這些來源的圖只適合自己看。
+                """
     }
 
-    private var pieceCountNote: String {
-        let shared = "每輪實際幾張是在 1 到上限之間隨機決定的——有時一張大圖、有時鋪滿十幾張。"
-            + "每台螢幕各自抽圖、各自合成，同一時間兩台不會是同一張。降載時上限封頂 6 張。"
-        if settings.montagePieceCount == nil {
-            return "自動：上限依螢幕長邊決定。" + shared
+    /// 三種寫法各自是完整一句，不用「共通句 ＋ 前綴」拼——中文接得起來的順序，
+    /// 換成英文不一定接得起來，拼句子等於把語序寫死在程式碼裡。
+    private var pieceCountNote: LocalizedStringKey {
+        switch settings.montagePieceCount {
+        case nil:
+            """
+                自動：上限依螢幕長邊決定。每輪實際幾張是在 1 到上限之間隨機決定的——\
+                有時一張大圖、有時鋪滿十幾張。每台螢幕各自抽圖、各自合成，\
+                同一時間兩台不會是同一張。降載時上限封頂 6 張。
+                """
+        case 1:
+            "上限 1 張＝每輪固定單張大圖，不再隨機。每台螢幕各自抽圖。降載時一樣是 1 張。"
+        default:
+            """
+                指定的上限對所有螢幕一體適用。每輪實際幾張是在 1 到上限之間隨機決定的——\
+                有時一張大圖、有時鋪滿十幾張。每台螢幕各自抽圖、各自合成，\
+                同一時間兩台不會是同一張。降載時上限封頂 6 張。
+                """
         }
-        if settings.montagePieceCount == 1 {
-            return "上限 1 張＝每輪固定單張大圖，不再隨機。"
-                + "每台螢幕各自抽圖。降載時一樣是 1 張。"
-        }
-        return "指定的上限對所有螢幕一體適用。" + shared
     }
 
     /// 只列會產出圖的網路來源；Pexels 影片那種歸影片分頁。
@@ -1690,12 +1743,14 @@ private struct MontageSettings: View {
 
     private var poolSummary: String {
         let status = coordinator.status
-        if status.isIndexing && status.poolCount == 0 { return "正在掃描資料夾…" }
-        var parts = ["池 \(status.poolCount) 張"]
-        if status.remoteCount > 0 { parts.append("網路 \(status.remoteCount)") }
-        if status.photosCount > 0 { parts.append("相簿 \(status.photosCount)") }
-        if status.isIndexing { parts.append("掃描中") }
-        return parts.joined(separator: "・")
+        if status.isIndexing && status.poolCount == 0 {
+            return String(localized: "正在掃描資料夾…")
+        }
+        var parts = [String(localized: "池 \(status.poolCount) 張")]
+        if status.remoteCount > 0 { parts.append(String(localized: "網路 \(status.remoteCount)")) }
+        if status.photosCount > 0 { parts.append(String(localized: "相簿 \(status.photosCount)")) }
+        if status.isIndexing { parts.append(String(localized: "掃描中")) }
+        return parts.joined(separator: String(localized: "・"))
     }
 
 }
@@ -1788,19 +1843,33 @@ private struct BackupSettings: View {
 
                 GroupBox("備份裡有什麼") {
                     VStack(alignment: .leading, spacing: 6) {
-                        row("來源資料夾", "存**路徑**不是書籤——書籤綁著建立它的那台機器。"
-                            + "另一台沒掛那顆磁碟的路徑會被跳過。")
-                        row("照片相簿", "連**名稱**一起存。相簿的 localIdentifier 每台機器都不同，"
-                            + "就算兩台是同一個 iCloud 圖庫也對不上，所以跨機時靠名稱比對。")
-                        row("網路來源", "來源設定會備份，**API key 不會**——"
-                            + "備份檔是明文 JSON，放在 iCloud Drive 裡會被 Spotlight 索引。"
-                            + "換機器時到「來源」分頁重輸一次。")
-                        row("其他", "切換間隔、後製、同時抽取張數、狀態規則、"
-                            + "影片引擎、圖層與播放方式、登入時啟動。")
-                        row("不含", "「輪到第幾支影片了」這種執行狀態，"
-                            + "以及**哪台螢幕改用影片**。"
-                            + "前者兩台同步只會互相打斷輪替；後者存的是顯示器 UUID，"
-                            + "內建螢幕每台機器都不同——同步它只會把另一台的勾清掉。")
+                        row("來源資料夾",
+                            String(localized: """
+                                存**路徑**不是書籤——書籤綁著建立它的那台機器。\
+                                另一台沒掛那顆磁碟的路徑會被跳過。
+                                """))
+                        row("照片相簿",
+                            String(localized: """
+                                連**名稱**一起存。相簿的 localIdentifier 每台機器都不同，\
+                                就算兩台是同一個 iCloud 圖庫也對不上，所以跨機時靠名稱比對。
+                                """))
+                        row("網路來源",
+                            String(localized: """
+                                來源設定會備份，**API key 不會**——備份檔是明文 JSON，放在 \
+                                iCloud Drive 裡會被 Spotlight 索引。換機器時到「來源」\
+                                分頁重輸一次。
+                                """))
+                        row("其他",
+                            String(localized: """
+                                切換間隔、後製、同時抽取張數、狀態規則、影片引擎、\
+                                圖層與播放方式、登入時啟動。
+                                """))
+                        row("不含",
+                            String(localized: """
+                                「輪到第幾支影片了」這種執行狀態，以及**哪台螢幕改用影片**。\
+                                前者兩台同步只會互相打斷輪替；後者存的是顯示器 UUID，\
+                                內建螢幕每台機器都不同——同步它只會把另一台的勾清掉。
+                                """))
                     }
                     .padding(4)
                 }
@@ -1816,13 +1885,15 @@ private struct BackupSettings: View {
         (try? AttributedString(markdown: source)) ?? AttributedString(source)
     }
 
-    private static let autoSyncNote = markdown(
-        "開著的話，這台的設定一改就寫上去，另一台也會自動套用。"
-        + "同一輪裡兩邊都改過就**以 iCloud 上那份為準**——沒有合併，後寫的贏。"
-        + "只想要單向搬家的話，用上面兩顆按鈕就好。"
-    )
+    private static var autoSyncNote: AttributedString {
+        markdown(String(localized: """
+            開著的話，這台的設定一改就寫上去，另一台也會自動套用。\
+            同一輪裡兩邊都改過就**以 iCloud 上那份為準**——沒有合併，後寫的贏。\
+            只想要單向搬家的話，用上面兩顆按鈕就好。
+            """))
+    }
 
-    private func row(_ title: String, _ detail: String) -> some View {
+    private func row(_ title: LocalizedStringKey, _ detail: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             Text(title).font(.caption.bold())
             Text(Self.markdown(detail))
@@ -1840,21 +1911,21 @@ private struct AboutSettings: View {
 
     /// 為什麼靠外部工具，而不是自己解析。這是專案的**界線**，屬於「關於」；
     /// 「這台裝了沒、怎麼裝」那種操作提示放在會用到它的地方（片單網址）。
-    private static let ytdlpRationale: AttributedString = {
-        let text = "片單解析與影片下載都是呼叫**你自己安裝的 yt-dlp**，"
-            + "Foldwall 不實作任何串流解析或簽章繞過——那是規避技術保護措施。"
-            + "這裡只負責找到工具、組出參數、把結果收進影片來源；"
-            + "要對哪個站用由你決定。\n"
-            + "順帶的好處是 yt-dlp 支援上千個站，不必為每一個寫解析器；"
-            + "代價是**沒裝就用不了**這兩個功能，其他來源不受影響。"
+    private static var ytdlpRationale: AttributedString {
+        let text = String(localized: """
+            片單解析與影片下載都是呼叫**你自己安裝的 yt-dlp**，Foldwall \
+            不實作任何串流解析或簽章繞過——那是規避技術保護措施。這裡只負責找到工具、組出參數、\
+            把結果收進影片來源；要對哪個站用由你決定。\n順帶的好處是 yt-dlp 支援上千個站，\
+            不必為每一個寫解析器；代價是**沒裝就用不了**這兩個功能，其他來源不受影響。
+            """)
         return (try? AttributedString(markdown: text)) ?? AttributedString(text)
-    }()
+    }
 
     private var version: String {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "?"
         let build = info?["CFBundleVersion"] as? String ?? "?"
-        return "\(short)（build \(build)）"
+        return String(localized: "\(short)（build \(build)）")
     }
 
     var body: some View {
@@ -1864,7 +1935,7 @@ private struct AboutSettings: View {
                     .resizable()
                     .frame(width: 64, height: 64)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Foldwall").font(.title2.bold())
+                    Text(verbatim: "Foldwall").font(.title2.bold())
                     Text(version).foregroundStyle(.secondary).monospacedDigit()
                     Text("macOS 26+・Apple Silicon")
                         .font(.caption)
@@ -1875,8 +1946,10 @@ private struct AboutSettings: View {
 
             Divider()
 
-            Text("從資料夾、照片相簿與免 OAuth 的網路來源隨機合成蒙太奇桌布，"
-                 + "並支援影片桌布（桌面＋鎖屏）。")
+            Text("""
+                從資料夾、照片相簿與免 OAuth 的網路來源隨機合成蒙太奇桌布，\
+                並支援影片桌布（桌面＋鎖屏）。
+                """)
                 .font(.callout)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -1914,9 +1987,11 @@ private struct AboutSettings: View {
                         } else {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundStyle(.orange)
-                            Text("沒有 ffmpeg——`brew install ffmpeg`。"
-                                 + "YouTube 這類站只提供分離的視訊／音訊軌，"
-                                 + "沒有它就合併不了，片單一支也抓不下來。")
+                            Text("""
+                                沒有 ffmpeg——`brew install ffmpeg`。YouTube \
+                                這類站只提供分離的視訊／音訊軌，沒有它就合併不了，\
+                                片單一支也抓不下來。
+                                """)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -1931,13 +2006,17 @@ private struct AboutSettings: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Foldwall 以 MIT 授權釋出。")
                         .font(.caption)
-                    Text("影片桌布 extension fork 自 **Phosphene**（MIT），"
-                         + "授權原文隨原始碼一起保留。")
+                    Text("""
+                        影片桌布 extension fork 自 **Phosphene**（MIT），\
+                        授權原文隨原始碼一起保留。
+                        """)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("照片由 Unsplash／Pexels／Pixabay／Wallhaven 等來源提供，"
-                         + "各自的使用規範以該站條款為準。")
+                    Text("""
+                        照片由 Unsplash／Pexels／Pixabay／Wallhaven 等來源提供，\
+                        各自的使用規範以該站條款為準。
+                        """)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

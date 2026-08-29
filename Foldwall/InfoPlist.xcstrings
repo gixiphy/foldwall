@@ -1,0 +1,24 @@
+{
+  "sourceLanguage" : "zh-Hant",
+  "strings" : {
+    "NSPhotoLibraryUsageDescription" : {
+      "comment" : "首次讀取照片相簿時，系統授權對話框裡的說明。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foldwall reads the albums you choose to compose wallpaper montages. Your photos never leave this Mac."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foldwall 讀取你選擇的相簿，用來合成桌布蒙太奇。照片不會離開這台電腦。"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

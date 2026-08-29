@@ -1,0 +1,902 @@
+{
+  "sourceLanguage": "zh-Hant",
+  "strings": {
+    "%@：隨機": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: Random"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：隨機"
+          }
+        }
+      }
+    },
+    "%lld 分鐘": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld minutes"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 分鐘"
+          }
+        }
+      }
+    },
+    "1 小時": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 hour"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 小時"
+          }
+        }
+      }
+    },
+    "Flickr（公開搜尋）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flickr (public search)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flickr（公開搜尋）"
+          }
+        }
+      }
+    },
+    "HTTP %lld：key 不對或沒有權限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP %lld: wrong key, or no permission"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP %lld：key 不對或沒有權限"
+          }
+        }
+      }
+    },
+    "HTTP %lld：對方伺服器出錯": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP %lld: the other end errored"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP %lld：對方伺服器出錯"
+          }
+        }
+      }
+    },
+    "HTTP 404：路由或網址不存在": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP 404: no such route or URL"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP 404：路由或網址不存在"
+          }
+        }
+      }
+    },
+    "HTTP 429：超出速率上限，稍後再試": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP 429: rate limit exceeded, try again later"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP 429：超出速率上限，稍後再試"
+          }
+        }
+      }
+    },
+    "Pexels 影片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pexels Video"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pexels 影片"
+          }
+        }
+      }
+    },
+    "RSS 相片來源": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RSS photo feed"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RSS 相片來源"
+          }
+        }
+      }
+    },
+    "一支放到底再接回開頭，永遠是同一支。接回開頭是無縫的。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plays one video through, then loops back to its start — always the same video. The loop is seamless."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一支放到底再接回開頭，永遠是同一支。接回開頭是無縫的。"
+          }
+        }
+      }
+    },
+    "下載中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載中…"
+          }
+        }
+      }
+    },
+    "以螢幕**寬度**為準等比縮放：影片的左右剛好貼齊螢幕，上下超出的裁掉、不夠高的留上下黑邊。長寬比不變。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scales to the screen **width**: the video meets the left and right edges; anything taller is cropped, anything shorter leaves bars above and below. Aspect ratio unchanged."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以螢幕**寬度**為準等比縮放：影片的左右剛好貼齊螢幕，上下超出的裁掉、不夠高的留上下黑邊。長寬比不變。"
+          }
+        }
+      }
+    },
+    "以螢幕**高度**為準等比縮放：影片的上下剛好貼齊螢幕，左右超出的裁掉、不夠寬的留左右黑邊。長寬比不變。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scales to the screen **height**: the video meets the top and bottom edges; anything wider is cropped, anything narrower leaves bars left and right. Aspect ratio unchanged."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以螢幕**高度**為準等比縮放：影片的上下剛好貼齊螢幕，左右超出的裁掉、不夠寬的留左右黑邊。長寬比不變。"
+          }
+        }
+      }
+    },
+    "停用照片相簿": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disable photo albums"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停用照片相簿"
+          }
+        }
+      }
+    },
+    "停用網路來源": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disable web sources"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停用網路來源"
+          }
+        }
+      }
+    },
+    "停用資料夾來源": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disable folder sources"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停用資料夾來源"
+          }
+        }
+      }
+    },
+    "全部循環": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loop All"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部循環"
+          }
+        }
+      }
+    },
+    "去飽和": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desaturate"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去飽和"
+          }
+        }
+      }
+    },
+    "唯一能讓影片出現在**鎖屏**的做法。影片需拷進 extension（受輪替上限管制），且要在「系統設定 → 桌布」選片。依賴私有 API，macOS 大版本可能失效。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The only way to get video onto the **lock screen**. Videos have to be copied into the extension (subject to the rotation budget) and picked in System Settings → Wallpaper. Relies on private API, so a major macOS release may break it."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "唯一能讓影片出現在**鎖屏**的做法。影片需拷進 extension（受輪替上限管制），且要在「系統設定 → 桌布」選片。依賴私有 API，macOS 大版本可能失效。"
+          }
+        }
+      }
+    },
+    "單片循環": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loop One"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "單片循環"
+          }
+        }
+      }
+    },
+    "回應格式不符，可能不是這個來源的網址": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unexpected response format — this may not be a URL for this source"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回應格式不符，可能不是這個來源的網址"
+          }
+        }
+      }
+    },
+    "在桌面圖示之下": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Below desktop icons"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在桌面圖示之下"
+          }
+        }
+      }
+    },
+    "填滿寬度": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill Width"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填滿寬度"
+          }
+        }
+      }
+    },
+    "填滿螢幕": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill Screen"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填滿螢幕"
+          }
+        }
+      }
+    },
+    "填滿高度": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill Height"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填滿高度"
+          }
+        }
+      }
+    },
+    "完全暫停輪換": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause rotation entirely"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完全暫停輪換"
+          }
+        }
+      }
+    },
+    "完成：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成：%@"
+          }
+        }
+      }
+    },
+    "尚未測試": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not tested"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未測試"
+          }
+        }
+      }
+    },
+    "影片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Videos"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片"
+          }
+        }
+      }
+    },
+    "播完接下一支，走到底回到第一支。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moves to the next video when one ends, wrapping back to the first at the end of the list."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播完接下一支，走到底回到第一支。"
+          }
+        }
+      }
+    },
+    "播完隨機挑下一支。下一支不會是剛播完的那支。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Picks the next video at random when one ends. Never the one that just played."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播完隨機挑下一支。下一支不會是剛播完的那支。"
+          }
+        }
+      }
+    },
+    "暫停影片桌布": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause video wallpaper"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫停影片桌布"
+          }
+        }
+      }
+    },
+    "桌面視窗": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desktop window"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌面視窗"
+          }
+        }
+      }
+    },
+    "棕褐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sepia"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "棕褐"
+          }
+        }
+      }
+    },
+    "每天": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每天"
+          }
+        }
+      }
+    },
+    "每支影片各自抽一種（填滿螢幕／符合螢幕大小）。同一支在同一台螢幕上抽到的固定不變。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each video draws its own mode (Fill Screen / Fit to Screen). The same video on the same display always draws the same one."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每支影片各自抽一種（填滿螢幕／符合螢幕大小）。同一支在同一台螢幕上抽到的固定不變。"
+          }
+        }
+      }
+    },
+    "測試中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testing…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "測試中…"
+          }
+        }
+      }
+    },
+    "灰階": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grayscale"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "灰階"
+          }
+        }
+      }
+    },
+    "無": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無"
+          }
+        }
+      }
+    },
+    "照片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片"
+          }
+        }
+      }
+    },
+    "直接播來源檔，不拷貝、不佔額外磁碟，整個片庫都能播。全公開 API。**鎖屏不會播。**": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plays source files directly — no copying, no extra disk, your whole library is playable. Public API only. **Does not play on the lock screen.**"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直接播來源檔，不拷貝、不佔額外磁碟，整個片庫都能播。全公開 API。**鎖屏不會播。**"
+          }
+        }
+      }
+    },
+    "符合螢幕大小": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fit to Screen"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符合螢幕大小"
+          }
+        }
+      }
+    },
+    "等比放大到蓋滿螢幕，超出畫面的裁掉。不會有黑邊，但拍到的東西可能被切到。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scales up until the screen is covered and crops the overflow. No bars, but part of the frame may be cut off."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等比放大到蓋滿螢幕，超出畫面的裁掉。不會有黑邊，但拍到的東西可能被切到。"
+          }
+        }
+      }
+    },
+    "等比縮到整支影片都看得見。長寬比跟螢幕不一樣就會留黑邊。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scales down until the whole frame is visible. Leaves bars whenever the aspect ratio differs from the screen."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等比縮到整支影片都看得見。長寬比跟螢幕不一樣就會留黑邊。"
+          }
+        }
+      }
+    },
+    "系統桌布 extension": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System wallpaper extension"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統桌布 extension"
+          }
+        }
+      }
+    },
+    "網址格式錯誤：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Malformed URL: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網址格式錯誤：%@"
+          }
+        }
+      }
+    },
+    "網路來源下載的原圖、照片相簿匯出，以及合成前從網路磁碟拷回來的副本。想讓螢幕保護程式播這些，來源就指下面這個路徑。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full-size images downloaded from web sources, exports from photo albums, and copies pulled back from network volumes before compositing. To let the screen saver play these, point its source at the path below."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網路來源下載的原圖、照片相簿匯出，以及合成前從網路磁碟拷回來的副本。想讓螢幕保護程式播這些，來源就指下面這個路徑。"
+          }
+        }
+      }
+    },
+    "網路來源抓的影片、你在「來源 → 網路」用網址下載的影片，以及這一輪輪替中、已拷進影片 extension 的那幾支。有 2 GB 上限，超過會從最舊的開始汰。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Videos fetched from web sources, videos you downloaded by URL under Sources → Web, and the few copied into the video extension for this rotation. Capped at 2 GB; the oldest go first."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網路來源抓的影片、你在「來源 → 網路」用網址下載的影片，以及這一輪輪替中、已拷進影片 extension 的那幾支。有 2 GB 上限，超過會從最舊的開始汰。"
+          }
+        }
+      }
+    },
+    "缺少 API key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing API key"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少 API key"
+          }
+        }
+      }
+    },
+    "缺少網址或路由": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing URL or route"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少網址或路由"
+          }
+        }
+      }
+    },
+    "蓋住桌面圖示": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Above desktop icons"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "蓋住桌面圖示"
+          }
+        }
+      }
+    },
+    "通了，取得 %lld 項": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected — got %lld items"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通了，取得 %lld 項"
+          }
+        }
+      }
+    },
+    "連得上，但這個查詢沒有內容": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected, but this query returned nothing"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連得上，但這個查詢沒有內容"
+          }
+        }
+      }
+    },
+    "隨機": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Random"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隨機"
+          }
+        }
+      }
+    },
+    "隨機播放": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shuffle"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隨機播放"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

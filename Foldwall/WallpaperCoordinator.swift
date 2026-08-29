@@ -146,7 +146,8 @@ final class WallpaperCoordinator {
         desktopVideo.onPlaybackFailed = { [weak self] url, reason in
             guard let self else { return }
             self.playbackCooldown.recordFailure(url, now: .now)
-            self.status.sourceError = "影片播放失敗：\(url.lastPathComponent)－\(reason)"
+            let name = url.lastPathComponent
+            self.status.sourceError = String(localized: "影片播放失敗：\(name)－\(reason)")
             self.refreshNow("影片播放失敗")
         }
         // 一支播完了 → 依播放模式排下一支。單片循環不會走到這裡（那條路無縫接回開頭）。
@@ -1017,9 +1018,9 @@ final class WallpaperCoordinator {
     ) -> String? {
         guard !effects.isEmpty else { return nil }
         var causes: [String] = []
-        if context.onBattery { causes.append("電池") }
-        if let focusName { causes.append("專注：\(focusName)") }
-        return causes.isEmpty ? nil : causes.joined(separator: "・")
+        if context.onBattery { causes.append(String(localized: "電池")) }
+        if let focusName { causes.append(String(localized: "專注：\(focusName)")) }
+        return causes.isEmpty ? nil : causes.joined(separator: String(localized: "・"))
     }
 
     /// 清除某個快取目錄。
@@ -1094,7 +1095,7 @@ final class WallpaperCoordinator {
         let albumsByID = Dictionary(uniqueKeysWithValues: albums.map { ($0.id, $0.title) })
         return SettingsSnapshot(
             savedAt: .now,
-            deviceName: Host.current().localizedName ?? "未命名 Mac",
+            deviceName: Host.current().localizedName ?? String(localized: "未命名 Mac"),
             folders: folders.map(Self.plainPath),
             folderUsage: settings.folderUsage,
             // 相簿清單是背景列舉的，還沒回來時查不到名稱——那就只帶 id，

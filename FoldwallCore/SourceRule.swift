@@ -59,13 +59,17 @@ public struct RuleEffect: OptionSet, Codable, Sendable, Hashable {
     /// 完全停止換桌布，保留現狀。
     public static let pauseRotation    = RuleEffect(rawValue: 1 << 4)
 
-    public static let allCases: [(effect: RuleEffect, label: String)] = [
-        (.pauseVideo, "暫停影片桌布"),
-        (.disableRemote, "停用網路來源"),
-        (.disableFolders, "停用資料夾來源"),
-        (.disablePhotos, "停用照片相簿"),
-        (.pauseRotation, "完全暫停輪換"),
-    ]
+    /// 標籤要在**取用時**才查表：allCases 是 static let，在啟動時就求值一次，
+    /// 那時候查到的語言會被凍住整個 process。
+    public static var allCases: [(effect: RuleEffect, label: String)] {
+        [
+            (.pauseVideo, String(localized: "暫停影片桌布", bundle: .foldwallCore)),
+            (.disableRemote, String(localized: "停用網路來源", bundle: .foldwallCore)),
+            (.disableFolders, String(localized: "停用資料夾來源", bundle: .foldwallCore)),
+            (.disablePhotos, String(localized: "停用照片相簿", bundle: .foldwallCore)),
+            (.pauseRotation, String(localized: "完全暫停輪換", bundle: .foldwallCore)),
+        ]
+    }
 }
 
 public struct SourceRule: Codable, Sendable, Equatable, Identifiable {

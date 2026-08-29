@@ -1,0 +1,4147 @@
+{
+  "sourceLanguage": "zh-Hant",
+  "strings": {
+    "": {
+      "shouldTranslate": false
+    },
+    "%@ 模式時": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In %@ Focus"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 模式時"
+          }
+        }
+      }
+    },
+    "%@ 模式時…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In %@ Focus…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 模式時…"
+          }
+        }
+      }
+    },
+    "%@・%@・%lld 個資料夾・%lld 個相簿": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · %@ · %lld folders · %lld albums"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@・%2$@・%3$lld 個資料夾・%4$lld 個相簿"
+          }
+        }
+      }
+    },
+    "%@・下次 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · next %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@・下次 %2$@"
+          }
+        }
+      }
+    },
+    "%@・已暫停": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · paused"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@・已暫停"
+          }
+        }
+      }
+    },
+    "%@・掃描中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · scanning"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@・掃描中"
+          }
+        }
+      }
+    },
+    "%@（%lld×%lld）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (%lld×%lld)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@（%2$lld×%3$lld）"
+          }
+        }
+      }
+    },
+    "%@（%lld）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (%lld)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@（%2$lld）"
+          }
+        }
+      }
+    },
+    "%@（build %@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (build %@)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@（build %2$@）"
+          }
+        }
+      }
+    },
+    "%lld": {
+      "shouldTranslate": false
+    },
+    "%lld 個・%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld items · %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 個・%2$@"
+          }
+        }
+      }
+    },
+    "%lld 支，其中 %lld 支已在本機。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld videos, %lld of them already on this Mac."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 支，其中 %2$lld 支已在本機。"
+          }
+        }
+      }
+    },
+    "%lld×%lld": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld×%2$lld"
+          }
+        }
+      },
+      "shouldTranslate": false
+    },
+    "**存網址，不是存影片。** 加進來只會去問「這個片單裡有哪些影片」，不下載任何東西。等輪替真的抽到某一支，才去抓那一支。\n所以磁碟用量跟**你真的播過幾支**成正比，而不是整個片單的大小——幾百支的片單也不會一次塞爆磁碟。\n抓下來的影片存進**影片快取**，跟網路來源的影片同一個地方，受同一份 2 GB 上限與汰舊管。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**A URL is stored, not the videos.** Adding one only asks what videos the playlist contains; nothing is downloaded. A video is fetched when the rotation actually draws it.\nDisk use therefore scales with **how many you have actually played**, not with the size of the playlist — a playlist of several hundred will not fill your disk in one go.\nWhat is fetched lands in the **video cache**, the same place as videos from web sources, under the same 2 GB cap and eviction."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**存網址，不是存影片。** 加進來只會去問「這個片單裡有哪些影片」，不下載任何東西。等輪替真的抽到某一支，才去抓那一支。\n所以磁碟用量跟**你真的播過幾支**成正比，而不是整個片單的大小——幾百支的片單也不會一次塞爆磁碟。\n抓下來的影片存進**影片快取**，跟網路來源的影片同一個地方，受同一份 2 GB 上限與汰舊管。"
+          }
+        }
+      }
+    },
+    "1 張": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 張"
+          }
+        }
+      }
+    },
+    "1–%lld 張": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1–%lld"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1–%lld 張"
+          }
+        }
+      }
+    },
+    "API key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key"
+          }
+        }
+      }
+    },
+    "API key（選填，可提高速率上限）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key (optional, raises the rate limit)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key（選填，可提高速率上限）"
+          }
+        }
+      }
+    },
+    "Feed 網址": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed URL"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed 網址"
+          }
+        }
+      }
+    },
+    "Foldwall": {
+      "shouldTranslate": false
+    },
+    "Foldwall 以 MIT 授權釋出。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall is released under the MIT license."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall 以 MIT 授權釋出。"
+          }
+        }
+      }
+    },
+    "Foldwall 需要讀取權限才能把相簿當成桌布來源。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall needs read access before it can use albums as a wallpaper source."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall 需要讀取權限才能把相簿當成桌布來源。"
+          }
+        }
+      }
+    },
+    "RSS／Atom feed 的網址。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The URL of an RSS or Atom feed."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RSS／Atom feed 的網址。"
+          }
+        }
+      }
+    },
+    "Wallhaven 的公開內容**不需要 key**，直接用就行。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallhaven’s public content **needs no key** — just use it."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallhaven 的公開內容**不需要 key**，直接用就行。"
+          }
+        }
+      }
+    },
+    "brew install yt-dlp": {
+      "shouldTranslate": false
+    },
+    "brew upgrade yt-dlp": {
+      "shouldTranslate": false
+    },
+    "https://…": {
+      "shouldTranslate": false
+    },
+    "iCloud Drive 未啟用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud Drive is not enabled"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud Drive 未啟用"
+          }
+        }
+      }
+    },
+    "iCloud 上的備份：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup in iCloud: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 上的備份：%@"
+          }
+        }
+      }
+    },
+    "iCloud 上還沒有備份": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No backup in iCloud yet"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 上還沒有備份"
+          }
+        }
+      }
+    },
+    "iCloud 上還沒有備份。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No backup in iCloud yet."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 上還沒有備份。"
+          }
+        }
+      }
+    },
+    "macOS 26+・Apple Silicon": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 26+ · Apple Silicon"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 26+・Apple Silicon"
+          }
+        }
+      }
+    },
+    "yt-dlp 看得到這個片單有 %lld 支，卻一支也解不出來——你裝的是 %@，上游已經出到 %@。用 `brew upgrade yt-dlp` 更新後再按「重新解析」。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp can see %lld videos in this playlist but resolved none of them — you have %@ installed and upstream is already at %@. Update with `brew upgrade yt-dlp`, then press Resolve Again."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp 看得到這個片單有 %1$lld 支，卻一支也解不出來——你裝的是 %2$@，上游已經出到 %3$@。用 `brew upgrade yt-dlp` 更新後再按「重新解析」。"
+          }
+        }
+      }
+    },
+    "yt-dlp 看得到這個片單有 %lld 支，卻一支也解不出來——這個站的 extractor 追不上網站改版。你的 yt-dlp%@沒有更新的版本可裝，更新它沒有用；等上游修好，或到 yt-dlp 的 issue 區回報。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp can see %lld videos in this playlist but resolved none of them — this site’s extractor has fallen behind a site change. Your yt-dlp%@ has no newer version to install, so updating will not help; wait for an upstream fix, or report it on the yt-dlp issue tracker."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp 看得到這個片單有 %1$lld 支，卻一支也解不出來——這個站的 extractor 追不上網站改版。你的 yt-dlp%2$@沒有更新的版本可裝，更新它沒有用；等上游修好，或到 yt-dlp 的 issue 區回報。"
+          }
+        }
+      }
+    },
+    "…或在設定裡加照片相簿／網路來源": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "…or add photo albums / web sources in Settings"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "…或在設定裡加照片相簿／網路來源"
+          }
+        }
+      }
+    },
+    "「%@」抓不下來：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not download “%@”: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」抓不下來：%2$@"
+          }
+        }
+      }
+    },
+    "「照片」目前無法存取": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos is currently unavailable"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「照片」目前無法存取"
+          }
+        }
+      }
+    },
+    "「照片」裡沒有含影像的相簿。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos has no albums containing images."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「照片」裡沒有含影像的相簿。"
+          }
+        }
+      }
+    },
+    "「輪到第幾支影片了」這種執行狀態，以及**哪台螢幕改用影片**。前者兩台同步只會互相打斷輪替；後者存的是顯示器 UUID，內建螢幕每台機器都不同——同步它只會把另一台的勾清掉。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runtime state such as which video the rotation is on, and **which displays use video**. Syncing the former would just make two Macs interrupt each other’s rotation; the latter stores display UUIDs, and a built-in display’s UUID differs on every Mac — syncing it would only clear the other machine’s checkmarks."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「輪到第幾支影片了」這種執行狀態，以及**哪台螢幕改用影片**。前者兩台同步只會互相打斷輪替；後者存的是顯示器 UUID，內建螢幕每台機器都不同——同步它只會把另一台的勾清掉。"
+          }
+        }
+      }
+    },
+    "・": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " · "
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "・"
+          }
+        }
+      }
+    },
+    "上限 1 張＝每輪固定單張大圖，不再隨機。每台螢幕各自抽圖。降載時一樣是 1 張。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A limit of 1 means one large image every round, with no randomness. Every display still draws on its own. Under power saving it stays 1."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上限 1 張＝每輪固定單張大圖，不再隨機。每台螢幕各自抽圖。降載時一樣是 1 張。"
+          }
+        }
+      }
+    },
+    "下一張": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next Image"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一張"
+          }
+        }
+      }
+    },
+    "下一片影片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next Video"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一片影片"
+          }
+        }
+      }
+    },
+    "不含": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not included"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不含"
+          }
+        }
+      }
+    },
+    "不等螢幕睡著，現在就換一批進 extension": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swap a fresh batch into the extension now, without waiting for the display to sleep"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不等螢幕睡著，現在就換一批進 extension"
+          }
+        }
+      }
+    },
+    "任何專注模式時": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In any Focus"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任何專注模式時"
+          }
+        }
+      }
+    },
+    "任何專注模式時…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In any Focus…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任何專注模式時…"
+          }
+        }
+      }
+    },
+    "伺服器網址": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server URL"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "伺服器網址"
+          }
+        }
+      }
+    },
+    "作者印在每張照片的相紙下緣；相紙太小放不下的，收到右下角一起列。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The credit is printed along the bottom edge of each photo’s print; prints too small to hold one are listed together in the bottom-right corner."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作者印在每張照片的相紙下緣；相紙太小放不下的，收到右下角一起列。"
+          }
+        }
+      }
+    },
+    "來源": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sources"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源"
+          }
+        }
+      }
+    },
+    "來源無可用影像": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No usable images in your sources"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源無可用影像"
+          }
+        }
+      }
+    },
+    "來源設定會備份，**API key 不會**——備份檔是明文 JSON，放在 iCloud Drive 裡會被 Spotlight 索引。換機器時到「來源」分頁重輸一次。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source settings are backed up, **API keys are not** — the backup is plain-text JSON and Spotlight indexes it inside iCloud Drive. Re-enter them in the Sources tab on the new machine."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源設定會備份，**API key 不會**——備份檔是明文 JSON，放在 iCloud Drive 裡會被 Spotlight 索引。換機器時到「來源」分頁重輸一次。"
+          }
+        }
+      }
+    },
+    "來源資料夾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source folders"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源資料夾"
+          }
+        }
+      }
+    },
+    "來源離線 %lld 個": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sources offline"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源離線 %lld 個"
+          }
+        }
+      }
+    },
+    "來源離線／無權限（%lld）…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sources offline or unreadable (%lld)…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源離線／無權限（%lld）…"
+          }
+        }
+      }
+    },
+    "例如 https://photos.example.com（可只填主機名）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For example https://photos.example.com (a hostname alone is fine)."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例如 https://photos.example.com（可只填主機名）。"
+          }
+        }
+      }
+    },
+    "例如：靠電池時停用網路來源；工作模式時暫停影片桌布。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For example: disable web sources on battery; pause video wallpaper in Work focus."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例如：靠電池時停用網路來源；工作模式時暫停影片桌布。"
+          }
+        }
+      }
+    },
+    "備份": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份"
+          }
+        }
+      }
+    },
+    "備份到 iCloud": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back Up to iCloud"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份到 iCloud"
+          }
+        }
+      }
+    },
+    "備份失敗：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup failed: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份失敗：%@"
+          }
+        }
+      }
+    },
+    "備份是較新的格式（v%lld），請先更新這台的 Foldwall": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The backup uses a newer format (v%lld); update Foldwall on this Mac first"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份是較新的格式（v%lld），請先更新這台的 Foldwall"
+          }
+        }
+      }
+    },
+    "備份裡有什麼": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What a backup contains"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份裡有什麼"
+          }
+        }
+      }
+    },
+    "儲存": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "儲存"
+          }
+        }
+      }
+    },
+    "允許存取照片…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow Access to Photos…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允許存取照片…"
+          }
+        }
+      }
+    },
+    "內容": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contents"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內容"
+          }
+        }
+      }
+    },
+    "兩組都在 ~/Library/Caches 底下，磁碟空間不足時 macOS 會自己刪。Foldwall 會重新下載，但螢幕保護程式那邊會暫時沒圖可播。目前掛在桌面上的桌布放在 Application Support，不會被清掉。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Both live under ~/Library/Caches, so macOS deletes them on its own when disk space runs low. Foldwall re-downloads, but the screen saver has nothing to play in the meantime. The wallpaper currently on your desktop lives in Application Support and is never purged."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "兩組都在 ~/Library/Caches 底下，磁碟空間不足時 macOS 會自己刪。Foldwall 會重新下載，但螢幕保護程式那邊會暫時沒圖可播。目前掛在桌面上的桌布放在 Application Support，不會被清掉。"
+          }
+        }
+      }
+    },
+    "其他": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其他"
+          }
+        }
+      }
+    },
+    "切換間隔": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change interval"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切換間隔"
+          }
+        }
+      }
+    },
+    "切換間隔、後製、同時抽取張數、狀態規則、影片引擎、圖層與播放方式、登入時啟動。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change interval, effect, images per round, status rules, video engine, layer and playback mode, launch at login."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切換間隔、後製、同時抽取張數、狀態規則、影片引擎、圖層與播放方式、登入時啟動。"
+          }
+        }
+      }
+    },
+    "前往申請（免費）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign up (free)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往申請（免費）"
+          }
+        }
+      }
+    },
+    "加入": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入"
+          }
+        }
+      }
+    },
+    "加入一個有照片的資料夾就會開始輪播。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a folder with photos in it and the rotation starts."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入一個有照片的資料夾就會開始輪播。"
+          }
+        }
+      }
+    },
+    "加入資料夾…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Folder…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入資料夾…"
+          }
+        }
+      }
+    },
+    "原始碼（GitHub）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source code (GitHub)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原始碼（GitHub）"
+          }
+        }
+      }
+    },
+    "取消": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        }
+      }
+    },
+    "受限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "restricted"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受限"
+          }
+        }
+      }
+    },
+    "可被系統清除": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Purgeable by the system"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可被系統清除"
+          }
+        }
+      }
+    },
+    "可讀取": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Readable"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可讀取"
+          }
+        }
+      }
+    },
+    "名稱（選填）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name (optional)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名稱（選填）"
+          }
+        }
+      }
+    },
+    "和蒙太奇共用同一批來源資料夾，這裡只決定哪些拿來放影片。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shares the same source folders as the montage; this only decides which ones supply video."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "和蒙太奇共用同一批來源資料夾，這裡只決定哪些拿來放影片。"
+          }
+        }
+      }
+    },
+    "啟用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enabled"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "啟用"
+          }
+        }
+      }
+    },
+    "啟用影片桌布": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable video wallpaper"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "啟用影片桌布"
+          }
+        }
+      }
+    },
+    "回到選單列，勾 **此螢幕改用影片**。漏掉這步，下一輪靜態蒙太奇會把影片蓋掉。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back in the menu bar, check **Use Video on This Display**. Skip this and the next static montage will paint over the video."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回到選單列，勾 **此螢幕改用影片**。漏掉這步，下一輪靜態蒙太奇會把影片蓋掉。"
+          }
+        }
+      }
+    },
+    "回應格式不符": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unexpected response format"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回應格式不符"
+          }
+        }
+      }
+    },
+    "回選單列勾 **此螢幕改用影片**。就這樣——不必開系統設定、不會拷貝任何檔案。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back in the menu bar, check **Use Video on This Display**. That is all — no System Settings, no files copied."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回選單列勾 **此螢幕改用影片**。就這樣——不必開系統設定、不會拷貝任何檔案。"
+          }
+        }
+      }
+    },
+    "固定 1 張": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Always 1"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "固定 1 張"
+          }
+        }
+      }
+    },
+    "圖層": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Layer"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "圖層"
+          }
+        }
+      }
+    },
+    "在 Finder 顯示": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show in Finder"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Finder 顯示"
+          }
+        }
+      }
+    },
+    "在 Finder 顯示影片庫": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Video Library in Finder"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Finder 顯示影片庫"
+          }
+        }
+      }
+    },
+    "在 Finder 顯示快取": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Cache in Finder"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Finder 顯示快取"
+          }
+        }
+      }
+    },
+    "在 Unsplash 建立一個 app，複製它的 Access Key。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create an app on Unsplash and copy its Access Key."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Unsplash 建立一個 app，複製它的 Access Key。"
+          }
+        }
+      }
+    },
+    "在 Wallhaven 帳號設定頁面最下方。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At the bottom of your Wallhaven account settings page."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Wallhaven 帳號設定頁面最下方。"
+          }
+        }
+      }
+    },
+    "在你自己的 Immich：帳號設定 → API Keys → 新增。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On your own Immich: Account Settings → API Keys → New."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在你自己的 Immich：帳號設定 → API Keys → 新增。"
+          }
+        }
+      }
+    },
+    "填個表單就會當場給你 key。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill in one form and you get a key on the spot."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填個表單就會當場給你 key。"
+          }
+        }
+      }
+    },
+    "外部工具": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "External tools"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部工具"
+          }
+        }
+      }
+    },
+    "多條同時成立時，效果會疊加": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When several rules match, their effects stack"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多條同時成立時，效果會疊加"
+          }
+        }
+      }
+    },
+    "好": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好"
+          }
+        }
+      }
+    },
+    "存**路徑**不是書籤——書籤綁著建立它的那台機器。另一台沒掛那顆磁碟的路徑會被跳過。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stores **paths**, not bookmarks — a bookmark is tied to the Mac that created it. Paths whose volume is not mounted on the other Mac are skipped."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存**路徑**不是書籤——書籤綁著建立它的那台機器。另一台沒掛那顆磁碟的路徑會被跳過。"
+          }
+        }
+      }
+    },
+    "專注：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Focus: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "專注：%@"
+          }
+        }
+      }
+    },
+    "尚未加入任何來源": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No sources added yet"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未加入任何來源"
+          }
+        }
+      }
+    },
+    "尚未加入資料夾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No folders yet"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未加入資料夾"
+          }
+        }
+      }
+    },
+    "尚未詢問": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "not asked yet"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未詢問"
+          }
+        }
+      }
+    },
+    "已依狀態規則暫停": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused by a status rule"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已依狀態規則暫停"
+          }
+        }
+      }
+    },
+    "已依狀態規則暫停（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paused by a status rule (%@)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已依狀態規則暫停（%@）"
+          }
+        }
+      }
+    },
+    "已偵測到 yt-dlp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp detected"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已偵測到 yt-dlp"
+          }
+        }
+      }
+    },
+    "已偵測到 yt-dlp %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp %@ detected"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已偵測到 yt-dlp %@"
+          }
+        }
+      }
+    },
+    "已備份到 iCloud（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backed up to iCloud (%@)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已備份到 iCloud（%@）"
+          }
+        }
+      }
+    },
+    "已備妥 **%lld** 支影片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**%lld** videos ready"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已備妥 **%lld** 支影片"
+          }
+        }
+      }
+    },
+    "已允許": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "allowed"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已允許"
+          }
+        }
+      }
+    },
+    "已從 iCloud 匯入（%@・%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restored from iCloud (%@ · %@)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已從 iCloud 匯入（%1$@・%2$@）"
+          }
+        }
+      }
+    },
+    "已拒絕": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "denied"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已拒絕"
+          }
+        }
+      }
+    },
+    "已複製": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已複製"
+          }
+        }
+      }
+    },
+    "已關閉。Unsplash 與 Pexels 的授權要求標註作者——關掉之後這些來源的圖只適合自己看。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off. The Unsplash and Pexels licenses require attribution — with this off, images from those sources are only suitable for your own eyes."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已關閉。Unsplash 與 Pexels 的授權要求標註作者——關掉之後這些來源的圖只適合自己看。"
+          }
+        }
+      }
+    },
+    "引擎": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Engine"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引擎"
+          }
+        }
+      }
+    },
+    "張數上限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Max images"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "張數上限"
+          }
+        }
+      }
+    },
+    "強制更換片源": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Force New Selection"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "強制更換片源"
+          }
+        }
+      }
+    },
+    "影片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片"
+          }
+        }
+      }
+    },
+    "影片在**螢幕睡著時**（螢保啟動、鎖定、休眠）預先換好下一批，最少間隔 30 分鐘，不跟著桌布輪換——拷貝一次可能是好幾百 MB，放在你剛回到電腦前那一刻做會卡。等不及就按下面的**強制更換片源**。關掉開關會把已拷進去的影片清乾淨。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The next batch is prepared **while the display sleeps** (screen saver, lock, or sleep), at most once every 30 minutes, and not in step with the wallpaper rotation — one copy can be several hundred MB, and doing that the moment you sit back down would stutter. If you would rather not wait, press **Force New Selection** below. Turning the switch off clears out everything already copied in."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片在**螢幕睡著時**（螢保啟動、鎖定、休眠）預先換好下一批，最少間隔 30 分鐘，不跟著桌布輪換——拷貝一次可能是好幾百 MB，放在你剛回到電腦前那一刻做會卡。等不及就按下面的**強制更換片源**。關掉開關會把已拷進去的影片清乾淨。"
+          }
+        }
+      }
+    },
+    "影片尚未備妥，這些螢幕暫由蒙太奇接管": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Videos are not ready yet — the montage is covering these displays for now"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片尚未備妥，這些螢幕暫由蒙太奇接管"
+          }
+        }
+      }
+    },
+    "影片播放失敗：%@－%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video playback failed: %@ — %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片播放失敗：%1$@－%2$@"
+          }
+        }
+      }
+    },
+    "影片播放方式": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video Playback"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片播放方式"
+          }
+        }
+      }
+    },
+    "影片桌布": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片桌布"
+          }
+        }
+      }
+    },
+    "影片桌布 extension fork 自 **Phosphene**（MIT），授權原文隨原始碼一起保留。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The video wallpaper extension is forked from **Phosphene** (MIT); the original license text is kept alongside the source."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片桌布 extension fork 自 **Phosphene**（MIT），授權原文隨原始碼一起保留。"
+          }
+        }
+      }
+    },
+    "影片桌布未啟用。打開上面的開關才會把來源資料夾裡的影片送進系統桌布清單。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video wallpaper is off. Turn on the switch above to feed videos from your source folders into the system wallpaper list."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片桌布未啟用。打開上面的開關才會把來源資料夾裡的影片送進系統桌布清單。"
+          }
+        }
+      }
+    },
+    "影片縮放": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video Scaling"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片縮放"
+          }
+        }
+      }
+    },
+    "影片需在「系統設定 → 桌布」選片，再回來勾這裡": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick videos in System Settings → Wallpaper first, then check them here"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片需在「系統設定 → 桌布」選片，再回來勾這裡"
+          }
+        }
+      }
+    },
+    "後製": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effect"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "後製"
+          }
+        }
+      }
+    },
+    "從 iCloud 匯入": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore from iCloud"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "從 iCloud 匯入"
+          }
+        }
+      }
+    },
+    "從資料夾、照片相簿與免 OAuth 的網路來源隨機合成蒙太奇桌布，並支援影片桌布（桌面＋鎖屏）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Builds random montage wallpapers from folders, photo albums and OAuth-free web sources, and can play video wallpaper on the desktop and lock screen."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "從資料夾、照片相簿與免 OAuth 的網路來源隨機合成蒙太奇桌布，並支援影片桌布（桌面＋鎖屏）。"
+          }
+        }
+      }
+    },
+    "快取位置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cache"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快取位置"
+          }
+        }
+      }
+    },
+    "怎麼開始播": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How to start"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "怎麼開始播"
+          }
+        }
+      }
+    },
+    "想讓**螢幕保護程式**播 Foldwall 抓下來的圖？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Want your **screen saver** to play the images Foldwall collects?"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "想讓**螢幕保護程式**播 Foldwall 抓下來的圖？"
+          }
+        }
+      }
+    },
+    "或用左下角 + 新增。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Or add one with + at the bottom left."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "或用左下角 + 新增。"
+          }
+        }
+      }
+    },
+    "打開 系統設定 → 桌布": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings → Wallpaper"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打開 系統設定 → 桌布"
+          }
+        }
+      }
+    },
+    "打開 系統設定 → 桌布…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings → Wallpaper…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打開 系統設定 → 桌布…"
+          }
+        }
+      }
+    },
+    "打開 系統設定 → 桌布，往下找到 **Foldwall** 區塊。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings → Wallpaper and scroll down to the **Foldwall** section."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打開 系統設定 → 桌布，往下找到 **Foldwall** 區塊。"
+          }
+        }
+      }
+    },
+    "打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，並在左欄勾選要用的來源。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on **Enable video wallpaper** above, add a folder containing videos in the Sources tab, and check the sources you want in the left column."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，並在左欄勾選要用的來源。"
+          }
+        }
+      }
+    },
+    "找不到 yt-dlp。用 `brew install yt-dlp` 安裝後再試。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp not found. Install it with `brew install yt-dlp` and try again."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到 yt-dlp。用 `brew install yt-dlp` 安裝後再試。"
+          }
+        }
+      }
+    },
+    "拷貝中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copying…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷貝中…"
+          }
+        }
+      }
+    },
+    "指定的上限對所有螢幕一體適用。每輪實際幾張是在 1 到上限之間隨機決定的——有時一張大圖、有時鋪滿十幾張。每台螢幕各自抽圖、各自合成，同一時間兩台不會是同一張。降載時上限封頂 6 張。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A limit you set applies to every display alike. How many actually appear each round is drawn at random between 1 and the limit — sometimes one large image, sometimes a dozen tiled. Every display draws and composes on its own, so no two show the same thing at once. Under power saving the limit is capped at 6."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指定的上限對所有螢幕一體適用。每輪實際幾張是在 1 到上限之間隨機決定的——有時一張大圖、有時鋪滿十幾張。每台螢幕各自抽圖、各自合成，同一時間兩台不會是同一張。降載時上限封頂 6 張。"
+          }
+        }
+      }
+    },
+    "掃描中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "scanning"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "掃描中"
+          }
+        }
+      }
+    },
+    "掃描中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scanning…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "掃描中…"
+          }
+        }
+      }
+    },
+    "授權": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "License"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "授權"
+          }
+        }
+      }
+    },
+    "搜尋關鍵字（選填）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search terms (optional)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜尋關鍵字（選填）"
+          }
+        }
+      }
+    },
+    "播完之後": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When one ends"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播完之後"
+          }
+        }
+      }
+    },
+    "播放方式": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playback"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播放方式"
+          }
+        }
+      }
+    },
+    "新增規則": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Rule"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增規則"
+          }
+        }
+      }
+    },
+    "新版": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "a newer one"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新版"
+          }
+        }
+      }
+    },
+    "暫停": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫停"
+          }
+        }
+      }
+    },
+    "最多 %lld 張": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Up to %lld"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %lld 張"
+          }
+        }
+      }
+    },
+    "有 %lld 個來源離線或無權限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sources are offline or unreadable"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有 %lld 個來源離線或無權限"
+          }
+        }
+      }
+    },
+    "有新版 %@。網站一改版 extractor 就會解不出東西，先更新再排查比較省事：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@ is available. Extractors stop working as soon as a site changes, so updating first is usually less work than debugging:"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有新版 %@。網站一改版 extractor 就會解不出東西，先更新再排查比較省事："
+          }
+        }
+      }
+    },
+    "未命名 Mac": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unnamed Mac"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未命名 Mac"
+          }
+        }
+      }
+    },
+    "未命名相簿": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Untitled Album"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未命名相簿"
+          }
+        }
+      }
+    },
+    "未安裝——`brew install yt-dlp`": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not installed — `brew install yt-dlp`"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未安裝——`brew install yt-dlp`"
+          }
+        }
+      }
+    },
+    "未知(%lld)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "unknown (%lld)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知(%lld)"
+          }
+        }
+      }
+    },
+    "未知螢幕": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown display"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知螢幕"
+          }
+        }
+      }
+    },
+    "未知錯誤": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "unknown error"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知錯誤"
+          }
+        }
+      }
+    },
+    "本機、SMB，以及 Box／pCloud／Dropbox／OneDrive／Google Drive 等雲端硬碟的掛載點——裝了桌面版就是一般資料夾，不需要 OAuth。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local disks, SMB, and the mount points of cloud drives such as Box, pCloud, Dropbox, OneDrive and Google Drive — with the desktop client installed they are ordinary folders, so no OAuth is involved."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本機、SMB，以及 Box／pCloud／Dropbox／OneDrive／Google Drive 等雲端硬碟的掛載點——裝了桌面版就是一般資料夾，不需要 OAuth。"
+          }
+        }
+      }
+    },
+    "桌布清單裡沒有 Foldwall？先把 app 從 /Applications 啟動一次，系統才會登錄它的 extension。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Foldwall in the wallpaper list? Launch the app once from /Applications — the system only registers its extension then."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌布清單裡沒有 Foldwall？先把 app 從 /Applications 啟動一次，系統才會登錄它的 extension。"
+          }
+        }
+      }
+    },
+    "桌面視窗**不會出現在鎖屏**。要鎖屏請改用系統桌布 extension。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The desktop window **does not appear on the lock screen**. For that, switch to the system wallpaper extension."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌面視窗**不會出現在鎖屏**。要鎖屏請改用系統桌布 extension。"
+          }
+        }
+      }
+    },
+    "正在掃描資料夾…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scanning folders…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在掃描資料夾…"
+          }
+        }
+      }
+    },
+    "此螢幕改用影片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use Video on This Display"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此螢幕改用影片"
+          }
+        }
+      }
+    },
+    "每台螢幕張數上限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Per-display limit"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每台螢幕張數上限"
+          }
+        }
+      }
+    },
+    "池 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld in pool"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "池 %lld"
+          }
+        }
+      }
+    },
+    "池 %lld 張": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld in pool"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "池 %lld 張"
+          }
+        }
+      }
+    },
+    "沒有 ffmpeg——`brew install ffmpeg`。YouTube 這類站只提供分離的視訊／音訊軌，沒有它就合併不了，片單一支也抓不下來。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No ffmpeg — `brew install ffmpeg`. Sites like YouTube only serve separate video and audio tracks; without it they cannot be merged, and not a single playlist video will download."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有 ffmpeg——`brew install ffmpeg`。YouTube 這類站只提供分離的視訊／音訊軌，沒有它就合併不了，片單一支也抓不下來。"
+          }
+        }
+      }
+    },
+    "沒有可用的相簿": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No usable albums"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有可用的相簿"
+          }
+        }
+      }
+    },
+    "沒有規則": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No rules"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有規則"
+          }
+        }
+      }
+    },
+    "沙盒 extension 讀不到 app 的來源資料夾，影片必須**實體拷貝**一份進去。來源若是 NAS，那會是幾十 GB——所以預設關閉，而且採**輪替**而非囤積：一次帶到**填滿 %lld GB** 為止（幾支視大小而定）。下次螢幕亮起換一批，但**只換四分之一**——重疊的部分不必重拷，每輪從來源搬動的量因此是 %lld MB 而不是 %lld GB。整個片庫照樣輪得到，只是慢一些。單檔超過 %lld GB 一律不收——那是片庫內容，不是桌布循環素材。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A sandboxed extension cannot read the app’s source folders, so videos must be **physically copied** into it. From a NAS that would be tens of GB — which is why this is off by default and why it **rotates** rather than hoards: each pass takes videos until **%1$lld GB is full** (how many depends on their size). The next time the display wakes it swaps a batch, but **only a quarter of it** — the overlap is not re-copied, so each pass moves %2$lld MB from the source instead of %3$lld GB. The whole library still comes around, just more slowly. Any single file over %4$lld GB is never taken — that is library material, not wallpaper loop material."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沙盒 extension 讀不到 app 的來源資料夾，影片必須**實體拷貝**一份進去。來源若是 NAS，那會是幾十 GB——所以預設關閉，而且採**輪替**而非囤積：一次帶到**填滿 %1$lld GB** 為止（幾支視大小而定）。下次螢幕亮起換一批，但**只換四分之一**——重疊的部分不必重拷，每輪從來源搬動的量因此是 %2$lld MB 而不是 %3$lld GB。整個片庫照樣輪得到，只是慢一些。單檔超過 %4$lld GB 一律不收——那是片庫內容，不是桌布循環素材。"
+          }
+        }
+      }
+    },
+    "清完**不會立刻重新下載**，等下一個排程輪次自然補回來。目前掛在桌面上的桌布不受影響。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing is **re-downloaded immediately** — the next scheduled pass refills it. The wallpaper currently on your desktop is unaffected."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清完**不會立刻重新下載**，等下一個排程輪次自然補回來。目前掛在桌面上的桌布不受影響。"
+          }
+        }
+      }
+    },
+    "清除": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除"
+          }
+        }
+      }
+    },
+    "清除「%@」？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear “%@”?"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除「%@」？"
+          }
+        }
+      }
+    },
+    "清除失敗": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear failed"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除失敗"
+          }
+        }
+      }
+    },
+    "測試連線": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test Connection"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "測試連線"
+          }
+        }
+      }
+    },
+    "照片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片"
+          }
+        }
+      }
+    },
+    "照片授權": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos Access"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片授權"
+          }
+        }
+      }
+    },
+    "照片由 Unsplash／Pexels／Pixabay／Wallhaven 等來源提供，各自的使用規範以該站條款為準。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos come from Unsplash, Pexels, Pixabay, Wallhaven and others; each site’s own terms govern how you may use them."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片由 Unsplash／Pexels／Pixabay／Wallhaven 等來源提供，各自的使用規範以該站條款為準。"
+          }
+        }
+      }
+    },
+    "照片相簿": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photo albums"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片相簿"
+          }
+        }
+      }
+    },
+    "片單網址": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlist URL"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "片單網址"
+          }
+        }
+      }
+    },
+    "片單解析與下載都靠它。安裝後回來按「重新解析」：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Both playlist resolution and downloads depend on it. Install it, then come back and press Resolve Again:"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "片單解析與下載都靠它。安裝後回來按「重新解析」："
+          }
+        }
+      }
+    },
+    "片單解析與影片下載都是呼叫**你自己安裝的 yt-dlp**，Foldwall 不實作任何串流解析或簽章繞過——那是規避技術保護措施。這裡只負責找到工具、組出參數、把結果收進影片來源；要對哪個站用由你決定。\n順帶的好處是 yt-dlp 支援上千個站，不必為每一個寫解析器；代價是**沒裝就用不了**這兩個功能，其他來源不受影響。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlist resolution and video downloads both call **the yt-dlp you installed yourself**. Foldwall implements no stream parsing and no signature bypass — that would be circumvention of technical protection measures. All it does is locate the tool, assemble the arguments and take the result in as a video source; which sites you point it at is your call.\nA side benefit is that yt-dlp supports thousands of sites, so no per-site parser is needed here; the cost is that **without it these two features do not work**, while every other source is unaffected."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "片單解析與影片下載都是呼叫**你自己安裝的 yt-dlp**，Foldwall 不實作任何串流解析或簽章繞過——那是規避技術保護措施。這裡只負責找到工具、組出參數、把結果收進影片來源；要對哪個站用由你決定。\n順帶的好處是 yt-dlp 支援上千個站，不必為每一個寫解析器；代價是**沒裝就用不了**這兩個功能，其他來源不受影響。"
+          }
+        }
+      }
+    },
+    "片單：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playlist: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "片單：%@"
+          }
+        }
+      }
+    },
+    "版本": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本"
+          }
+        }
+      }
+    },
+    "狀態規則": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rules"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "狀態規則"
+          }
+        }
+      }
+    },
+    "狀態規則生效中：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status rule active: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "狀態規則生效中：%@"
+          }
+        }
+      }
+    },
+    "狀態：%@\n\n如果系統設定的「照片」清單裡找不到 Foldwall，代表授權請求還沒送出過——先按下面的「請求授權」。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status: %@\n\nIf Foldwall is missing from the Photos list in System Settings, the permission request has never been sent — press Request Access below first."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "狀態：%@\n\n如果系統設定的「照片」清單裡找不到 Foldwall，代表授權請求還沒送出過——先按下面的「請求授權」。"
+          }
+        }
+      }
+    },
+    "申請非商業用 key 即可（只用公開搜尋）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A non-commercial key is enough (only public search is used)."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "申請非商業用 key 即可（只用公開搜尋）。"
+          }
+        }
+      }
+    },
+    "留白就用片單自己的標題": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave blank to use the playlist’s own title"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留白就用片單自己的標題"
+          }
+        }
+      }
+    },
+    "留空則取精選／隨機內容。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave blank to take curated or random content."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留空則取精選／隨機內容。"
+          }
+        }
+      }
+    },
+    "疑難排解": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Troubleshooting"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "疑難排解"
+          }
+        }
+      }
+    },
+    "登入後，API 文件頁面會直接顯示你的 key。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Once signed in, the API docs page shows your key directly."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登入後，API 文件頁面會直接顯示你的 key。"
+          }
+        }
+      }
+    },
+    "登入時啟動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Launch at Login"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登入時啟動"
+          }
+        }
+      }
+    },
+    "目前沒有影片。加入含 mp4／mov／m4v 的來源資料夾即可。大型來源要等背景掃描與拷貝跑完。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No videos yet. Add a source folder containing mp4/mov/m4v files. Large sources have to finish scanning and copying in the background first."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前沒有影片。加入含 mp4／mov／m4v 的來源資料夾即可。大型來源要等背景掃描與拷貝跑完。"
+          }
+        }
+      }
+    },
+    "目前沒有規則生效": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No rule is active"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前沒有規則生效"
+          }
+        }
+      }
+    },
+    "目前沒有規則生效（專注：%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No rule is active (Focus: %@)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前沒有規則生效（專注：%@）"
+          }
+        }
+      }
+    },
+    "目前生效：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Currently active: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前生效：%@"
+          }
+        }
+      }
+    },
+    "相簿 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld albums"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相簿 %lld"
+          }
+        }
+      }
+    },
+    "看不懂 yt-dlp 的輸出": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not make sense of yt-dlp’s output"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "看不懂 yt-dlp 的輸出"
+          }
+        }
+      }
+    },
+    "移除": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
+          }
+        }
+      }
+    },
+    "移除這條規則": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove this rule"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除這條規則"
+          }
+        }
+      }
+    },
+    "等資料超過 %lld 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "waited more than %lld seconds for data"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等資料超過 %lld 秒"
+          }
+        }
+      }
+    },
+    "系統 extension 的輪替由**系統設定 → 桌布**決定：選 **Shuffle All** 才會輪播，並在它的「Change Video」選單挑頻率（含**每播完一支**）。選了固定某一支就是單片循環。「下一片影片」在那裡也有效。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rotation for the system extension is set in **System Settings → Wallpaper**: pick **Shuffle All** to rotate at all, then choose the frequency in its Change Video menu (including **after each video**). Picking one fixed video means it loops. Next Video still works there."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統 extension 的輪替由**系統設定 → 桌布**決定：選 **Shuffle All** 才會輪播，並在它的「Change Video」選單挑頻率（含**每播完一支**）。選了固定某一支就是單片循環。「下一片影片」在那裡也有效。"
+          }
+        }
+      }
+    },
+    "系統 extension：輪替頻率在「系統設定 → 桌布」選 Shuffle All 之後設定": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System extension: pick Shuffle All in System Settings → Wallpaper, then set the rotation frequency there"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統 extension：輪替頻率在「系統設定 → 桌布」選 Shuffle All 之後設定"
+          }
+        }
+      }
+    },
+    "系統設定 → 螢幕保護程式 → 選「照片」類的樣式 → 選項 → 來源，把來源指到下面**照片**那一列的路徑（`~/Pictures/Foldwall`）。那是一個彙整資料夾，裡面用硬連結收攏了三個快取裡的所有圖——不佔額外空間，快取更新時會自動同步。Foldwall 沒辦法把自己註冊進那個選單，所以要手動指一次。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System Settings → Screen Saver → pick a Photos-style saver → Options → Source, and point the source at the path on the **Photos** row below (`~/Pictures/Foldwall`). That is an aggregate folder: hard links gather every image from all three caches into one place — no extra space used, and it stays in sync as the caches change. Foldwall cannot register itself in that menu, so you have to point it there once."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統設定 → 螢幕保護程式 → 選「照片」類的樣式 → 選項 → 來源，把來源指到下面**照片**那一列的路徑（`~/Pictures/Foldwall`）。那是一個彙整資料夾，裡面用硬連結收攏了三個快取裡的所有圖——不佔額外空間，快取更新時會自動同步。Foldwall 沒辦法把自己註冊進那個選單，所以要手動指一次。"
+          }
+        }
+      }
+    },
+    "結束 Foldwall": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit Foldwall"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結束 Foldwall"
+          }
+        }
+      }
+    },
+    "網址格式錯誤": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Malformed URL"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網址格式錯誤"
+          }
+        }
+      }
+    },
+    "網路": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網路"
+          }
+        }
+      }
+    },
+    "網路 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld from web"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網路 %lld"
+          }
+        }
+      }
+    },
+    "網路來源": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web sources"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網路來源"
+          }
+        }
+      }
+    },
+    "網路來源異常：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Web source problem: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網路來源異常：%@"
+          }
+        }
+      }
+    },
+    "縮放": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scaling"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "縮放"
+          }
+        }
+      }
+    },
+    "繼續": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繼續"
+          }
+        }
+      }
+    },
+    "缺少 API key": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing API key"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少 API key"
+          }
+        }
+      }
+    },
+    "缺少網址": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Missing URL"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少網址"
+          }
+        }
+      }
+    },
+    "自動": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動"
+          }
+        }
+      }
+    },
+    "自動與 iCloud 同步": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync automatically with iCloud"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動與 iCloud 同步"
+          }
+        }
+      }
+    },
+    "自動：上限依螢幕長邊決定。每輪實際幾張是在 1 到上限之間隨機決定的——有時一張大圖、有時鋪滿十幾張。每台螢幕各自抽圖、各自合成，同一時間兩台不會是同一張。降載時上限封頂 6 張。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatic: the limit follows the display’s long edge. How many actually appear each round is drawn at random between 1 and the limit — sometimes one large image, sometimes a dozen tiled. Every display draws and composes on its own, so no two show the same thing at once. Under power saving the limit is capped at 6."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動：上限依螢幕長邊決定。每輪實際幾張是在 1 到上限之間隨機決定的——有時一張大圖、有時鋪滿十幾張。每台螢幕各自抽圖、各自合成，同一時間兩台不會是同一張。降載時上限封頂 6 張。"
+          }
+        }
+      }
+    },
+    "舊版": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "an older build"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "舊版"
+          }
+        }
+      }
+    },
+    "蒙太奇桌布": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Montage"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "蒙太奇桌布"
+          }
+        }
+      }
+    },
+    "螢幕 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display %lld"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "螢幕 %lld"
+          }
+        }
+      }
+    },
+    "複製路徑": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Path"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製路徑"
+          }
+        }
+      }
+    },
+    "要用哪些來源": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which sources to use"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要用哪些來源"
+          }
+        }
+      }
+    },
+    "解析中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resolving…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解析中…"
+          }
+        }
+      }
+    },
+    "解析失敗": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resolution failed"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解析失敗"
+          }
+        }
+      }
+    },
+    "設定（來源・影片・規則）…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings (Sources · Video · Rules)…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定（來源・影片・規則）…"
+          }
+        }
+      }
+    },
+    "請求授權…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Request Access…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請求授權…"
+          }
+        }
+      }
+    },
+    "讀不到系統的專注模式清單。macOS 沒有公開 API 可查詢目前是哪個模式，Foldwall 讀的是 ~/Library/DoNotDisturb/DB/——格式若隨系統更新改變，專注模式的規則會靜默失效，其他功能不受影響。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The system’s Focus list could not be read. macOS has no public API for querying the current Focus, so Foldwall reads ~/Library/DoNotDisturb/DB/ — if a system update changes that format, Focus rules fail silently while everything else keeps working."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讀不到系統的專注模式清單。macOS 沒有公開 API 可查詢目前是哪個模式，Foldwall 讀的是 ~/Library/DoNotDisturb/DB/——格式若隨系統更新改變，專注模式的規則會靜默失效，其他功能不受影響。"
+          }
+        }
+      }
+    },
+    "讀不到（未掛載或無權限）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unreadable (not mounted, or no permission)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讀不到（未掛載或無權限）"
+          }
+        }
+      }
+    },
+    "讀取備份失敗：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read the backup: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讀取備份失敗：%@"
+          }
+        }
+      }
+    },
+    "資料夾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folders"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "資料夾"
+          }
+        }
+      }
+    },
+    "資料夾 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld folders"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "資料夾 %lld"
+          }
+        }
+      }
+    },
+    "輪替中的影片會被移除，影片螢幕暫由蒙太奇接管，下次螢幕睡著時再預先拷一批。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The videos in this rotation are removed, the montage takes over those displays for now, and a fresh batch is copied the next time the display sleeps."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輪替中的影片會被移除，影片螢幕暫由蒙太奇接管，下次螢幕睡著時再預先拷一批。"
+          }
+        }
+      }
+    },
+    "這一頁只確認設定填對、連得上。要不要拿它合成蒙太奇或當影片來源，在「蒙太奇桌布」／「影片桌布」分頁勾選。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This page only confirms the settings are right and the source is reachable. Whether it feeds the montage or supplies video is checked in the Montage and Video tabs."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這一頁只確認設定填對、連得上。要不要拿它合成蒙太奇或當影片來源，在「蒙太奇桌布」／「影片桌布」分頁勾選。"
+          }
+        }
+      }
+    },
+    "這一頁只管來源設好了沒、讀不讀得到。要拿哪些來源合成蒙太奇、哪些放影片，在「蒙太奇桌布」和「影片桌布」分頁決定。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This page only covers whether a source is set up and readable. Which sources feed the montage and which supply video is decided in the Montage and Video tabs."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這一頁只管來源設好了沒、讀不讀得到。要拿哪些來源合成蒙太奇、哪些放影片，在「蒙太奇桌布」和「影片桌布」分頁決定。"
+          }
+        }
+      }
+    },
+    "這個網址裡沒有可用的影片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No usable videos at this URL"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個網址裡沒有可用的影片"
+          }
+        }
+      }
+    },
+    "這台沒有啟用 iCloud Drive，備份功能停用。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud Drive is not enabled on this Mac; backup is disabled."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這台沒有啟用 iCloud Drive，備份功能停用。"
+          }
+        }
+      }
+    },
+    "通用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通用"
+          }
+        }
+      }
+    },
+    "連**名稱**一起存。相簿的 localIdentifier 每台機器都不同，就算兩台是同一個 iCloud 圖庫也對不上，所以跨機時靠名稱比對。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stored with their **names**. An album’s localIdentifier differs on every Mac and will not match even across one shared iCloud library, so names are what get matched across machines."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連**名稱**一起存。相簿的 localIdentifier 每台機器都不同，就算兩台是同一個 iCloud 圖庫也對不上，所以跨機時靠名稱比對。"
+          }
+        }
+      }
+    },
+    "選 **Shuffle All** 就會隨機輪播全部影片；想固定一支就直接點那支。隨機的切換頻率（喚醒時／5 分鐘／每天…）也在同一個畫面選。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick **Shuffle All** to rotate through every video at random, or click one video to keep it fixed. The shuffle frequency (on wake / every 5 minutes / daily…) is set on the same screen."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選 **Shuffle All** 就會隨機輪播全部影片；想固定一支就直接點那支。隨機的切換頻率（喚醒時／5 分鐘／每天…）也在同一個畫面選。"
+          }
+        }
+      }
+    },
+    "選一個來源": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select a source"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選一個來源"
+          }
+        }
+      }
+    },
+    "選單列也有，⇧⌘N": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also in the menu bar, ⇧⌘N"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選單列也有，⇧⌘N"
+          }
+        }
+      }
+    },
+    "選擇要當桌布來源的資料夾": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose folders to use as wallpaper sources"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇要當桌布來源的資料夾"
+          }
+        }
+      }
+    },
+    "還沒填網址。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No URL yet."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒填網址。"
+          }
+        }
+      }
+    },
+    "還沒有任何來源。到「來源」分頁加入。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No sources yet. Add them in the Sources tab."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒有任何來源。到「來源」分頁加入。"
+          }
+        }
+      }
+    },
+    "還沒解析過。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not resolved yet."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒解析過。"
+          }
+        }
+      }
+    },
+    "部分允許": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "limited"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分允許"
+          }
+        }
+      }
+    },
+    "重掃來源資料夾，然後整批重抽——剛丟進來的新片會在這時候出現": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescans the source folders and redraws the whole batch — videos you just dropped in show up here"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重掃來源資料夾，然後整批重抽——剛丟進來的新片會在這時候出現"
+          }
+        }
+      }
+    },
+    "重新解析": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resolve Again"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新解析"
+          }
+        }
+      }
+    },
+    "開啟 Immich 說明文件": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Immich documentation"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開啟 Immich 說明文件"
+          }
+        }
+      }
+    },
+    "開啟系統設定": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open System Settings"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開啟系統設定"
+          }
+        }
+      }
+    },
+    "開著的話，這台的設定一改就寫上去，另一台也會自動套用。同一輪裡兩邊都改過就**以 iCloud 上那份為準**——沒有合併，後寫的贏。只想要單向搬家的話，用上面兩顆按鈕就好。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "With this on, any change here is written up immediately and applied on your other Mac. If both changed in the same round, **the copy in iCloud wins** — there is no merging; the last write takes it. If all you want is a one-way move, the two buttons above are enough."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開著的話，這台的設定一改就寫上去，另一台也會自動套用。同一輪裡兩邊都改過就**以 iCloud 上那份為準**——沒有合併，後寫的贏。只想要單向搬家的話，用上面兩顆按鈕就好。"
+          }
+        }
+      }
+    },
+    "間隔": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interval"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "間隔"
+          }
+        }
+      }
+    },
+    "電池": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Battery"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "電池"
+          }
+        }
+      }
+    },
+    "需要 yt-dlp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp required"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要 yt-dlp"
+          }
+        }
+      }
+    },
+    "需要「照片」授權": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos access required"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要「照片」授權"
+          }
+        }
+      }
+    },
+    "靠電池時": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On battery"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "靠電池時"
+          }
+        }
+      }
+    },
+    "靠電池時…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On battery…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "靠電池時…"
+          }
+        }
+      }
+    },
+    "顯示": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示"
+          }
+        }
+      }
+    },
+    "顯示來源與作者": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show source and credit"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示來源與作者"
+          }
+        }
+      }
+    },
+    "驗證": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authentication"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "驗證"
+          }
+        }
+      }
+    },
+    "（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " (%@)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（%@）"
+          }
+        }
+      }
+    },
+    "（這個站只提供分離的視訊／音訊軌，合併需要 ffmpeg：`brew install ffmpeg`）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " (this site only serves separate video and audio tracks; merging them needs ffmpeg: `brew install ffmpeg`)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（這個站只提供分離的視訊／音訊軌，合併需要 ffmpeg：`brew install ffmpeg`）"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

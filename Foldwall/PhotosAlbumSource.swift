@@ -42,12 +42,12 @@ final class PhotosAlbumSource {
 
     static func describe(_ status: PHAuthorizationStatus) -> String {
         switch status {
-        case .notDetermined: "尚未詢問"
-        case .restricted: "受限"
-        case .denied: "已拒絕"
-        case .authorized: "已允許"
-        case .limited: "部分允許"
-        @unknown default: "未知(\(status.rawValue))"
+        case .notDetermined: String(localized: "尚未詢問")
+        case .restricted: String(localized: "受限")
+        case .denied: String(localized: "已拒絕")
+        case .authorized: String(localized: "已允許")
+        case .limited: String(localized: "部分允許")
+        @unknown default: String(localized: "未知(\(status.rawValue))")
         }
     }
 
@@ -73,7 +73,7 @@ final class PhotosAlbumSource {
                 guard assets.count > 0 else { return }
                 result.append(PhotoAlbum(
                     id: collection.localIdentifier,
-                    title: collection.localizedTitle ?? "未命名相簿",
+                    title: collection.localizedTitle ?? String(localized: "未命名相簿"),
                     count: assets.count
                 ))
             }

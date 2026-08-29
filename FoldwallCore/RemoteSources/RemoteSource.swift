@@ -16,10 +16,10 @@ public enum RemoteSourceKind: String, Codable, CaseIterable, Sendable {
         case .pexels: "Pexels"
         case .pixabay: "Pixabay"
         case .wallhaven: "Wallhaven"
-        case .flickr: "Flickr（公開搜尋）"
+        case .flickr: String(localized: "Flickr（公開搜尋）", bundle: .foldwallCore)
         case .immich: "Immich"
-        case .rss: "RSS 相片來源"
-        case .pexelsVideo: "Pexels 影片"
+        case .rss: String(localized: "RSS 相片來源", bundle: .foldwallCore)
+        case .pexelsVideo: String(localized: "Pexels 影片", bundle: .foldwallCore)
         case .fourKWallpapers: "4KWallpapers"
         }
     }
@@ -146,7 +146,9 @@ extension RemoteSourceConfig {
             if let host { return "\(kind.displayName)：\(host)" }
         }
         // 沒有關鍵字＝取精選／隨機，講清楚比留白好
-        return kind.supportsQuery ? "\(kind.displayName)：隨機" : kind.displayName
+        return kind.supportsQuery
+            ? String(localized: "\(kind.displayName)：隨機", bundle: .foldwallCore)
+            : kind.displayName
     }
 }
 

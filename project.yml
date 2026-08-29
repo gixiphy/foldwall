@@ -1,6 +1,9 @@
 name: Foldwall
 options:
   bundleIdPrefix: app.foldwall
+  # 字串表的原文是程式碼裡的中文，所以開發語言＝zh-Hant，英文是「翻譯」。
+  # 反過來設的話 Xcode 抽字串時會把中文原文歸到 en 底下，整份 catalog 會錯位。
+  developmentLanguage: zh-Hant
   deploymentTarget:
     macOS: "26.0"
   createIntermediateGroups: true
@@ -16,6 +19,9 @@ settings:
     MACOSX_DEPLOYMENT_TARGET: "26.0"
     SWIFT_STRICT_CONCURRENCY: complete
     GCC_TREAT_WARNINGS_AS_ERRORS: NO
+    # 建置時把程式碼裡的 LocalizedStringKey／String(localized:) 抽成 .stringsdata，
+    # 再由 xcstringstool sync 灌進 Localizable.xcstrings（見 docs/DEVELOPMENT.md）。
+    SWIFT_EMIT_LOC_STRINGS: YES
     ENABLE_USER_SCRIPT_SANDBOXING: NO
 
 targets:

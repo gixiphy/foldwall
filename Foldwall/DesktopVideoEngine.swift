@@ -250,7 +250,7 @@ final class DesktopVideoEngine {
             // 明確失敗：壞檔、網址 404、憑證錯誤都走這裡。這是唯一沒有歧義的訊號。
             if entry.player.currentItem?.status == .failed || entry.player.error != nil {
                 let reason = entry.player.currentItem?.error?.localizedDescription
-                    ?? entry.player.error?.localizedDescription ?? "未知錯誤"
+                    ?? entry.player.error?.localizedDescription ?? String(localized: "未知錯誤")
                 fail(uuid, entry: entry, reason: reason)
                 continue
             }
@@ -265,7 +265,8 @@ final class DesktopVideoEngine {
             let since = entry.waitingSince ?? now
             playing[uuid]?.waitingSince = since
             if now.timeIntervalSince(since) > Self.waitingTimeout {
-                fail(uuid, entry: entry, reason: "等資料超過 \(Int(Self.waitingTimeout)) 秒")
+                let seconds = Int(Self.waitingTimeout)
+                fail(uuid, entry: entry, reason: String(localized: "等資料超過 \(seconds) 秒"))
             }
         }
     }

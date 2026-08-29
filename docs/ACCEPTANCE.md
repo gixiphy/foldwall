@@ -13,6 +13,8 @@
 | — | 選單列 app，啟動不跳空視窗 | `LSUIElement = true`，無 `WindowGroup` |
 | — | 無任何 Google API／帳號 | 原始碼零 `google`／`oauth` 字樣 |
 | — | extension 被系統登錄 | `pluginkit -m -p com.apple.wallpaper` 列出 `app.foldwall.extension` |
+| — | 英文翻譯沒有漏 | `./packaging/sync-strings.sh` 回「全部有英文」；`testEveryCoreStringIsTranslatedToEnglish` 綠 |
+| — | 中英兩份字串表都進得了 app | `Foldwall.app` 裡 `en.lproj` 與 `zh-Hant.lproj` 各一份，key 數相同 |
 
 單元測試覆蓋的規格行為：索引與 sidecar 過濾、短邊 <256px 於**抽片時**剔除（索引不開檔）、索引快取不阻塞合成（掃描中仍能出圖、清單不完整時不做影片同步、移除來源立即生效、節流與強制重掃）、書籤往返與改名、移除來源持久化、離線計數、蒙太奇尺寸／決定性／片數 clamp、後製四效果、EXIF 方向、壞檔 throw、每螢不同構圖、影片螢幕零次寫入、空池零次寫入、只留兩代檔案、電源分級表、排程器全部語意（暫停／單發／resume 立即／睡醒 catch-up／熱插拔不重設）、SMB 快取 LRU 淘汰。
 
@@ -57,6 +59,7 @@
 | — | 間隔 | 切 5 分鐘看兩輪自動輪換；切「每天」後闔蓋再開，確認**不會**提前換 |
 | — | 移除來源 | 移除資料夾後池數立即變小，且該來源影片從 extension container 消失 |
 | — | 空狀態 | 移除所有來源後選單顯示「尚未加入資料夾」，且啟動時**不彈** panel |
+| — | 英文介面 | 系統設定 → 一般 → 語言與地區 → App → 把 Foldwall 設成 English，重開 app。選單列與六個分頁逐一看過，**不該出現任何中文**；再切回繁中確認文字回得來。查表漏一條的症狀是英文畫面裡冒出一句中文，不會當掉也不會有 log |
 
 ## 刻意不做
 

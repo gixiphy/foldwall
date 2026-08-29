@@ -27,11 +27,11 @@ public enum PostProcess: String, CaseIterable, Sendable {
     /// 選單與設定視窗共用。
     public var displayName: String {
         switch self {
-        case .none: "無"
-        case .grayscale: "灰階"
-        case .sepia: "棕褐"
-        case .desaturate: "去飽和"
-        case .random: "隨機"
+        case .none: String(localized: "無", bundle: .foldwallCore)
+        case .grayscale: String(localized: "灰階", bundle: .foldwallCore)
+        case .sepia: String(localized: "棕褐", bundle: .foldwallCore)
+        case .desaturate: String(localized: "去飽和", bundle: .foldwallCore)
+        case .random: String(localized: "隨機", bundle: .foldwallCore)
         }
     }
 

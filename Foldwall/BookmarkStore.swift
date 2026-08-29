@@ -51,8 +51,8 @@ final class BookmarkStore: FolderBookmarking {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = true
-        panel.prompt = "加入"
-        panel.message = "選擇要當桌布來源的資料夾"
+        panel.prompt = String(localized: "加入")
+        panel.message = String(localized: "選擇要當桌布來源的資料夾")
 
         guard await panel.begin() == .OK else { return [] }
 

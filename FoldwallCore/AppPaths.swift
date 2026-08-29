@@ -70,21 +70,24 @@ public struct AppPaths: Sendable {
     public func locations(videoContainer: URL? = nil) -> [CacheLocation] {
         [
             CacheLocation(
-                id: "photos", name: "照片",
-                purpose: "網路來源下載的原圖、照片相簿匯出，以及合成前從網路磁碟拷回來的副本。"
-                    + "想讓螢幕保護程式播這些，來源就指下面這個路徑。",
+                id: "photos", name: String(localized: "照片", bundle: .foldwallCore),
+                purpose: String(localized: """
+                    網路來源下載的原圖、照片相簿匯出，以及合成前從網路磁碟拷回來的副本。\
+                    想讓螢幕保護程式播這些，來源就指下面這個路徑。
+                    """, bundle: .foldwallCore),
                 // 複製路徑要給**彙整資料夾**：三個快取分開放，螢保只能指一個目錄，
                 // 給其中任何一個都會漏掉另外兩個的圖。
                 url: aggregateFolder,
                 members: [remoteCache, photosCache, smbCache],
                 isPurgeable: true),
             CacheLocation(
-                id: "videos", name: "影片",
+                id: "videos", name: String(localized: "影片", bundle: .foldwallCore),
                 // 純文字：CacheLocation.purpose 是 Core 的資料，UI 用 Text(String) 顯示，
                 // 那條路不解析 Markdown（`**` 會原樣印出來）。
-                purpose: "網路來源抓的影片、你在「來源 → 網路」用網址下載的影片，"
-                    + "以及這一輪輪替中、已拷進影片 extension 的那幾支。"
-                    + "有 2 GB 上限，超過會從最舊的開始汰。",
+                purpose: String(localized: """
+                    網路來源抓的影片、你在「來源 → 網路」用網址下載的影片，以及這一輪輪替中、\
+                    已拷進影片 extension 的那幾支。有 2 GB 上限，超過會從最舊的開始汰。
+                    """, bundle: .foldwallCore),
                 url: remoteVideoCache,
                 members: [remoteVideoCache] + (videoContainer.map { [$0] } ?? []),
                 isPurgeable: true),

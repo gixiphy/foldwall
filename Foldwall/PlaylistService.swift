@@ -128,7 +128,10 @@ final class PlaylistService {
         // lastError（要打開設定才看得到）。把「這一輪打算解析誰」記一筆。
         if usable.isEmpty, !sources.isEmpty {
             Log.video.notice(
-                "片單來源 \(sources.count, privacy: .public) 個，但沒有一個可用（沒啟用或網址無效）")
+                """
+                    片單來源 \(sources.count, privacy: .public) 個，\
+                    但沒有一個可用（沒啟用或網址無效）
+                    """)
         }
         for source in usable {
             let stale = lastRefresh[source.id]
@@ -158,7 +161,7 @@ final class PlaylistService {
 
     private func resolve(_ source: PlaylistSource) {
         guard let url = source.url, let tool = VideoDownloadTool.locate() else {
-            lastError = "找不到 yt-dlp。用 `brew install yt-dlp` 安裝後再試。"
+            lastError = String(localized: "找不到 yt-dlp。用 `brew install yt-dlp` 安裝後再試。")
             // 以前只寫進 lastError，而那要打開設定視窗才看得到——
             // 從外面看就是「片單完全沒反應」。
             Log.video.error("片單無法解析：找不到 yt-dlp")
@@ -253,9 +256,9 @@ final class PlaylistService {
                 expected: expected, diagnostics,
                 outdated: outdated, version: version, latest: latest))
         } catch PlaylistCodec.Failure.empty {
-            return .failure("這個網址裡沒有可用的影片")
+            return .failure(String(localized: "這個網址裡沒有可用的影片"))
         } catch PlaylistCodec.Failure.unreadable {
-            return .failure("看不懂 yt-dlp 的輸出")
+            return .failure(String(localized: "看不懂 yt-dlp 的輸出"))
         } catch {
             return .failure((error as NSError).localizedDescription)
         }
@@ -264,7 +267,7 @@ final class PlaylistService {
     nonisolated private static func explain(_ text: String) -> String {
         guard let line = text.split(separator: "\n").last(where: { $0.contains("ERROR") })
             ?? text.split(separator: "\n").last
-        else { return "解析失敗" }
+        else { return String(localized: "解析失敗") }
         if let range = line.range(of: "ERROR: ") { return String(line[range.upperBound...]) }
         return String(line)
     }
@@ -281,14 +284,24 @@ final class PlaylistService {
         expected: Int, _ diagnostics: String,
         outdated: Bool, version: String?, latest: String?
     ) -> String {
-        var message = "yt-dlp 看得到這個片單有 \(expected) 支，卻一支也解不出來——"
+        // 一句一個 key，不用「開頭 ＋ 續句」拼：中文接得順的兩截，換成英文的
+        // 語序不一定還接得起來。
+        var message: String
         if outdated {
-            message += "你裝的是 \(version ?? "舊版")，上游已經出到 \(latest ?? "新版")。"
-                + "用 `brew upgrade yt-dlp` 更新後再按「重新解析」。"
+            let installed = version ?? String(localized: "舊版")
+            let upstream = latest ?? String(localized: "新版")
+            message = String(localized: """
+                yt-dlp 看得到這個片單有 \(expected) 支，卻一支也解不出來——你裝的是 \
+                \(installed)，上游已經出到 \(upstream)。用 `brew upgrade yt-dlp` \
+                更新後再按「重新解析」。
+                """)
         } else {
-            message += "這個站的 extractor 追不上網站改版。"
-                + "你的 yt-dlp\(version.map { "（\($0)）" } ?? "")沒有更新的版本可裝，"
-                + "更新它沒有用；等上游修好，或到 yt-dlp 的 issue 區回報。"
+            let installed = version.map { String(localized: "（\($0)）") } ?? ""
+            message = String(localized: """
+                yt-dlp 看得到這個片單有 \(expected) 支，卻一支也解不出來——這個站的 extractor \
+                追不上網站改版。你的 yt-dlp\(installed)沒有更新的版本可裝，更新它沒有用；\
+                等上游修好，或到 yt-dlp 的 issue 區回報。
+                """)
         }
         if let warning = firstWarning(diagnostics) { message += "\n\n\(warning)" }
         return message
@@ -360,7 +373,7 @@ final class PlaylistService {
             }
             // 冷卻而不是永久剔除：失效多半是暫時的（限流、網路斷一下）
             self.failed[id] = .now
-            self.lastError = "「\(title)」抓不下來：\(failure)"
+            self.lastError = String(localized: "「\(title)」抓不下來：\(failure)")
             Log.video.error(
                 "片單下載失敗：\(title, privacy: .public) — \(failure, privacy: .public)")
         }
@@ -392,8 +405,7 @@ final class PlaylistService {
             // 這個錯配上「沒裝 ffmpeg」幾乎一定是同一件事，直接把解法講出來。
             if reason.contains("Requested format is not available"),
                VideoDownloadTool.locateFFmpeg() == nil {
-                reason += "（這個站只提供分離的視訊／音訊軌，合併需要 ffmpeg："
-                    + "`brew install ffmpeg`）"
+                reason += String(localized: "（這個站只提供分離的視訊／音訊軌，合併需要 ffmpeg：`brew install ffmpeg`）")
             }
             return reason
         } catch {

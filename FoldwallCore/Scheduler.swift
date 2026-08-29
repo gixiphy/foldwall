@@ -12,9 +12,9 @@ public struct Scheduler: Sendable {
     /// 選單與設定視窗共用同一份標籤，兩邊不會講不一樣的話。
     public static func intervalLabel(_ minutes: Int) -> String {
         switch minutes {
-        case 1440: "每天"
-        case 60: "1 小時"
-        default: "\(minutes) 分鐘"
+        case 1440: String(localized: "每天", bundle: .foldwallCore)
+        case 60: String(localized: "1 小時", bundle: .foldwallCore)
+        default: String(localized: "\(minutes) 分鐘", bundle: .foldwallCore)
         }
     }
     public static let defaultIntervalMinutes = 5

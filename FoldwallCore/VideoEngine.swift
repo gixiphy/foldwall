@@ -20,18 +20,23 @@ public enum VideoEngine: String, Codable, Sendable, CaseIterable {
 
     public var displayName: String {
         switch self {
-        case .desktopWindow: "桌面視窗"
-        case .systemExtension: "系統桌布 extension"
+        case .desktopWindow: String(localized: "桌面視窗", bundle: .foldwallCore)
+        case .systemExtension: String(localized: "系統桌布 extension", bundle: .foldwallCore)
         }
     }
 
     public var summary: String {
         switch self {
         case .desktopWindow:
-            "直接播來源檔，不拷貝、不佔額外磁碟，整個片庫都能播。全公開 API。**鎖屏不會播。**"
+            String(localized: """
+                直接播來源檔，不拷貝、不佔額外磁碟，整個片庫都能播。全公開 API。\
+                **鎖屏不會播。**
+                """, bundle: .foldwallCore)
         case .systemExtension:
-            "唯一能讓影片出現在**鎖屏**的做法。影片需拷進 extension（受輪替上限管制），"
-                + "且要在「系統設定 → 桌布」選片。依賴私有 API，macOS 大版本可能失效。"
+            String(localized: """
+                唯一能讓影片出現在**鎖屏**的做法。影片需拷進 extension（受輪替上限管制），\
+                且要在「系統設定 → 桌布」選片。依賴私有 API，macOS 大版本可能失效。
+                """, bundle: .foldwallCore)
         }
     }
 
@@ -49,8 +54,8 @@ public enum DesktopVideoLayer: String, Codable, Sendable, CaseIterable {
 
     public var displayName: String {
         switch self {
-        case .belowIcons: "在桌面圖示之下"
-        case .aboveIcons: "蓋住桌面圖示"
+        case .belowIcons: String(localized: "在桌面圖示之下", bundle: .foldwallCore)
+        case .aboveIcons: String(localized: "蓋住桌面圖示", bundle: .foldwallCore)
         }
     }
 }
@@ -73,17 +78,21 @@ public enum VideoPlaybackMode: String, Codable, Sendable, CaseIterable {
 
     public var displayName: String {
         switch self {
-        case .repeatOne: "單片循環"
-        case .repeatAll: "全部循環"
-        case .shuffle: "隨機播放"
+        case .repeatOne: String(localized: "單片循環", bundle: .foldwallCore)
+        case .repeatAll: String(localized: "全部循環", bundle: .foldwallCore)
+        case .shuffle: String(localized: "隨機播放", bundle: .foldwallCore)
         }
     }
 
     public var summary: String {
         switch self {
-        case .repeatOne: "一支放到底再接回開頭，永遠是同一支。接回開頭是無縫的。"
-        case .repeatAll: "播完接下一支，走到底回到第一支。"
-        case .shuffle: "播完隨機挑下一支。下一支不會是剛播完的那支。"
+        case .repeatOne:
+            String(localized: "一支放到底再接回開頭，永遠是同一支。接回開頭是無縫的。",
+                   bundle: .foldwallCore)
+        case .repeatAll:
+            String(localized: "播完接下一支，走到底回到第一支。", bundle: .foldwallCore)
+        case .shuffle:
+            String(localized: "播完隨機挑下一支。下一支不會是剛播完的那支。", bundle: .foldwallCore)
         }
     }
 
@@ -125,25 +134,37 @@ public enum VideoScaleMode: String, Codable, Sendable, CaseIterable {
 
     public var displayName: String {
         switch self {
-        case .fill: "填滿螢幕"
-        case .matchHeight: "填滿高度"
-        case .matchWidth: "填滿寬度"
-        case .fit: "符合螢幕大小"
-        case .random: "隨機"
+        case .fill: String(localized: "填滿螢幕", bundle: .foldwallCore)
+        case .matchHeight: String(localized: "填滿高度", bundle: .foldwallCore)
+        case .matchWidth: String(localized: "填滿寬度", bundle: .foldwallCore)
+        case .fit: String(localized: "符合螢幕大小", bundle: .foldwallCore)
+        case .random: String(localized: "隨機", bundle: .foldwallCore)
         }
     }
 
     public var summary: String {
         switch self {
-        case .fill: "等比放大到蓋滿螢幕，超出畫面的裁掉。不會有黑邊，但拍到的東西可能被切到。"
+        case .fill:
+            String(localized: "等比放大到蓋滿螢幕，超出畫面的裁掉。不會有黑邊，但拍到的東西可能被切到。",
+                   bundle: .foldwallCore)
         case .matchHeight:
-            "以螢幕**高度**為準等比縮放：影片的上下剛好貼齊螢幕，左右超出的裁掉、"
-                + "不夠寬的留左右黑邊。長寬比不變。"
+            String(localized: """
+                以螢幕**高度**為準等比縮放：影片的上下剛好貼齊螢幕，左右超出的裁掉、\
+                不夠寬的留左右黑邊。長寬比不變。
+                """, bundle: .foldwallCore)
         case .matchWidth:
-            "以螢幕**寬度**為準等比縮放：影片的左右剛好貼齊螢幕，上下超出的裁掉、"
-                + "不夠高的留上下黑邊。長寬比不變。"
-        case .fit: "等比縮到整支影片都看得見。長寬比跟螢幕不一樣就會留黑邊。"
-        case .random: "每支影片各自抽一種（填滿螢幕／符合螢幕大小）。同一支在同一台螢幕上抽到的固定不變。"
+            String(localized: """
+                以螢幕**寬度**為準等比縮放：影片的左右剛好貼齊螢幕，上下超出的裁掉、\
+                不夠高的留上下黑邊。長寬比不變。
+                """, bundle: .foldwallCore)
+        case .fit:
+            String(localized: "等比縮到整支影片都看得見。長寬比跟螢幕不一樣就會留黑邊。",
+                   bundle: .foldwallCore)
+        case .random:
+            String(localized: """
+                每支影片各自抽一種（填滿螢幕／符合螢幕大小）。\
+                同一支在同一台螢幕上抽到的固定不變。
+                """, bundle: .foldwallCore)
         }
     }
 

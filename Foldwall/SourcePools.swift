@@ -98,10 +98,10 @@ final class RemoteSourcePool {
 
     static func describe(_ error: Error) -> String {
         switch error {
-        case RemoteSourceError.missingKey: "缺少 API key"
-        case RemoteSourceError.missingEndpoint: "缺少網址"
-        case RemoteSourceError.badEndpoint: "網址格式錯誤"
-        case RemoteSourceError.malformedResponse: "回應格式不符"
+        case RemoteSourceError.missingKey: String(localized: "缺少 API key")
+        case RemoteSourceError.missingEndpoint: String(localized: "缺少網址")
+        case RemoteSourceError.badEndpoint: String(localized: "網址格式錯誤")
+        case RemoteSourceError.malformedResponse: String(localized: "回應格式不符")
         case RemoteSourceError.httpStatus(let code): "HTTP \(code)"
         default: (error as NSError).localizedDescription
         }

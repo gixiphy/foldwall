@@ -161,8 +161,8 @@ public enum VideoDownloadState: Sendable, Equatable {
     public var summary: String {
         switch self {
         case .idle: ""
-        case .running: "下載中…"
-        case .finished(let name): "完成：\(name)"
+        case .running: String(localized: "下載中…", bundle: .foldwallCore)
+        case .finished(let name): String(localized: "完成：\(name)", bundle: .foldwallCore)
         case .failed(let reason): reason
         }
     }

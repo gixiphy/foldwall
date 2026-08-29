@@ -34,10 +34,10 @@ public enum SourceTestResult: Sendable, Equatable {
 
     public var summary: String {
         switch self {
-        case .untested: "尚未測試"
-        case .testing: "測試中…"
-        case .passed(let count): "通了，取得 \(count) 項"
-        case .empty: "連得上，但這個查詢沒有內容"
+        case .untested: String(localized: "尚未測試", bundle: .foldwallCore)
+        case .testing: String(localized: "測試中…", bundle: .foldwallCore)
+        case .passed(let count): String(localized: "通了，取得 \(count) 項", bundle: .foldwallCore)
+        case .empty: String(localized: "連得上，但這個查詢沒有內容", bundle: .foldwallCore)
         case .failed(let reason): reason
         }
     }
@@ -50,10 +50,15 @@ public enum SourceTestResult: Sendable, Equatable {
     /// 把錯誤翻成使用者看得懂的一句話。
     public static func fromError(_ error: Error) -> SourceTestResult {
         switch error {
-        case RemoteSourceError.missingKey: .failed(reason: "缺少 API key")
-        case RemoteSourceError.missingEndpoint: .failed(reason: "缺少網址或路由")
-        case RemoteSourceError.badEndpoint(let value): .failed(reason: "網址格式錯誤：\(value)")
-        case RemoteSourceError.malformedResponse: .failed(reason: "回應格式不符，可能不是這個來源的網址")
+        case RemoteSourceError.missingKey:
+            .failed(reason: String(localized: "缺少 API key", bundle: .foldwallCore))
+        case RemoteSourceError.missingEndpoint:
+            .failed(reason: String(localized: "缺少網址或路由", bundle: .foldwallCore))
+        case RemoteSourceError.badEndpoint(let value):
+            .failed(reason: String(localized: "網址格式錯誤：\(value)", bundle: .foldwallCore))
+        case RemoteSourceError.malformedResponse:
+            .failed(reason: String(localized: "回應格式不符，可能不是這個來源的網址",
+                                   bundle: .foldwallCore))
         case RemoteSourceError.httpStatus(let code): .failed(reason: httpReason(code))
         default: .failed(reason: (error as NSError).localizedDescription)
         }
@@ -61,10 +66,10 @@ public enum SourceTestResult: Sendable, Equatable {
 
     private static func httpReason(_ code: Int) -> String {
         switch code {
-        case 401, 403: "HTTP \(code)：key 不對或沒有權限"
-        case 404: "HTTP 404：路由或網址不存在"
-        case 429: "HTTP 429：超出速率上限，稍後再試"
-        case 500...599: "HTTP \(code)：對方伺服器出錯"
+        case 401, 403: String(localized: "HTTP \(code)：key 不對或沒有權限", bundle: .foldwallCore)
+        case 404: String(localized: "HTTP 404：路由或網址不存在", bundle: .foldwallCore)
+        case 429: String(localized: "HTTP 429：超出速率上限，稍後再試", bundle: .foldwallCore)
+        case 500...599: String(localized: "HTTP \(code)：對方伺服器出錯", bundle: .foldwallCore)
         default: "HTTP \(code)"
         }
     }

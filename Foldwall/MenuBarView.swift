@@ -84,28 +84,40 @@ struct MenuBarView: View {
 
     private var statusText: String {
         let status = coordinator.status
-        if status.hasNoSources { return "尚未加入任何來源" }
+        if status.hasNoSources { return String(localized: "尚未加入任何來源") }
         if status.offlineCount > 0 && status.sourceCount == 0 {
-            return "來源離線 \(status.offlineCount) 個"
+            return String(localized: "來源離線 \(status.offlineCount) 個")
         }
         if status.activeEffects.contains(.pauseRotation) {
-            return "已依狀態規則暫停" + (status.activeRuleReason.map { "（\($0)）" } ?? "")
+            guard let reason = status.activeRuleReason else {
+                return String(localized: "已依狀態規則暫停")
+            }
+            return String(localized: "已依狀態規則暫停（\(reason)）")
         }
         if status.poolWasEmpty || status.poolCount == 0 {
             // 掃描還在跑就別誤報「沒圖」——大型資料夾要幾分鐘才走得完
-            return status.isIndexing ? "正在掃描資料夾…" : "來源無可用影像"
+            return status.isIndexing
+                ? String(localized: "正在掃描資料夾…")
+                : String(localized: "來源無可用影像")
         }
 
-        var parts = ["池 \(status.poolCount)"]
-        if status.sourceCount > 0 { parts.insert("資料夾 \(status.sourceCount)", at: 0) }
-        if status.photosCount > 0 { parts.append("相簿 \(status.photosCount)") }
-        if status.remoteCount > 0 { parts.append("網路 \(status.remoteCount)") }
-        var base = parts.joined(separator: "・")
-        if status.isIndexing { base += "・掃描中" }
-        if status.isPaused { return base + "・已暫停" }
+        var parts = [String(localized: "池 \(status.poolCount)")]
+        if status.sourceCount > 0 {
+            parts.insert(String(localized: "資料夾 \(status.sourceCount)"), at: 0)
+        }
+        if status.photosCount > 0 { parts.append(String(localized: "相簿 \(status.photosCount)")) }
+        if status.remoteCount > 0 { parts.append(String(localized: "網路 \(status.remoteCount)")) }
+        var base = parts.joined(separator: Self.separator)
+        if status.isIndexing { base = String(localized: "\(base)・掃描中") }
+        if status.isPaused { return String(localized: "\(base)・已暫停") }
         guard let due = status.nextDue else { return base }
-        return base + "・下次 " + due.formatted(date: .omitted, time: .shortened)
+        let time = due.formatted(date: .omitted, time: .shortened)
+        return String(localized: "\(base)・下次 \(time)")
     }
+
+    /// 狀態列各段之間的分隔。中文用全形間隔號、英文用空格夾的 middle dot——
+    /// 「池 12・網路 3」直接搬成 "Pool 12・Web 3" 在英文裡會黏成一團。
+    private static var separator: String { String(localized: "・") }
 
     // MARK: - 子選單
 
@@ -180,7 +192,8 @@ struct MenuBarView: View {
             ForEach(Array(coordinator.displays.enumerated()), id: \.element.uuid) { index, display in
                 // 設備名稱優先（"AG493UCX2"）；查不到才退回「螢幕 N」。
                 // 兩台同型號時系統會自己加後綴，不必在這裡編號。
-                let name = ScreenBridge.localizedName(forUUID: display.uuid) ?? "螢幕 \(index + 1)"
+                let name = ScreenBridge.localizedName(forUUID: display.uuid)
+                    ?? String(localized: "螢幕 \(index + 1)")
                 Button {
                     coordinator.toggleVideo(for: display)
                 } label: {
