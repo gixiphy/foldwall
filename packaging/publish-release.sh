@@ -56,7 +56,7 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-[ "$BRANCH" = "main" ] || echo "⚠️  目前在 $BRANCH，不是 main"
+[ "$BRANCH" = "main" ] || echo "⚠️  目前在 ${BRANCH}，不是 main"
 
 git fetch --quiet origin
 if [ -n "$(git rev-list "origin/$BRANCH..HEAD" 2>/dev/null)" ]; then
@@ -101,7 +101,7 @@ DMG_APP_VERSION="$(
   rmdir "$MOUNT" 2>/dev/null || true
 )"
 [ "$DMG_APP_VERSION" = "$VERSION" ] || {
-  echo "✗ DMG 裡的 app 是 $DMG_APP_VERSION，但要發的是 $VERSION"
+  echo "✗ DMG 裡的 app 是 ${DMG_APP_VERSION}，但要發的是 $VERSION"
   exit 1
 }
 echo "    DMG 版本 $DMG_APP_VERSION ✓"
@@ -137,7 +137,7 @@ echo
 echo "---- 發佈說明 ----"
 printf '%s\n' "$NOTES"
 echo "------------------"
-echo "檔案：$DMG（$(du -h "$DMG" | cut -f1)）"
+echo "檔案：${DMG}（$(du -h "$DMG" | cut -f1)）"
 echo
 
 if [ "$DRY_RUN" = 1 ]; then
@@ -148,7 +148,7 @@ fi
 if [ "$ASSUME_YES" = 1 ]; then
   echo "（--yes，略過確認）"
 else
-  read -r -p "確定發佈 $TAG？[y/N] " CONFIRM
+  read -r -p "確定發佈 ${TAG}？[y/N] " CONFIRM
   case "$CONFIRM" in
     y|Y) ;;
     *) echo "取消"; exit 1 ;;
