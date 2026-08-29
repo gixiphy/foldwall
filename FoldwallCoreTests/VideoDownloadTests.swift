@@ -93,4 +93,61 @@ final class VideoDownloadTests: XCTestCase {
         XCTAssertTrue(VideoDownloadState.finished(name: "a.mp4").summary.contains("a.mp4"))
         XCTAssertTrue(VideoDownloadState.failed(reason: "壞了").summary.contains("壞了"))
     }
+
+    // MARK: - 版本
+
+    func testParsesTheDateVersion() {
+        XCTAssertEqual(VideoDownloadTool.parseVersion("2026.08.19\n"), [2026, 8, 19])
+    }
+
+    /// Homebrew 會把前導零去掉，所以比字串沒有用。
+    func testHomebrewStyleVersionParsesToTheSameNumbers() {
+        XCTAssertEqual(VideoDownloadTool.parseVersion("2026.8.19"),
+                       VideoDownloadTool.parseVersion("2026.08.19"))
+    }
+
+    /// nightly 會多接一段秒數，前三段仍然是日期。
+    func testParsesTheNightlyVersion() {
+        XCTAssertEqual(VideoDownloadTool.parseVersion("2026.08.19.232712"), [2026, 8, 19])
+    }
+
+    func testUnparseableVersionIsNil() {
+        XCTAssertNil(VideoDownloadTool.parseVersion("git-2026abcdef"))
+        XCTAssertNil(VideoDownloadTool.parseVersion(""))
+        XCTAssertNil(VideoDownloadTool.parseVersion("2026.08"))
+    }
+
+    func testOlderInstallIsOutdated() {
+        XCTAssertTrue(VideoDownloadTool.isOutdated(installed: "2026.05.01", latest: "2026.08.19"))
+        XCTAssertTrue(VideoDownloadTool.isOutdated(installed: "2025.12.31", latest: "2026.01.01"))
+    }
+
+    func testSameOrNewerInstallIsNotOutdated() {
+        XCTAssertFalse(VideoDownloadTool.isOutdated(installed: "2026.08.19", latest: "2026.08.19"))
+        XCTAssertFalse(VideoDownloadTool.isOutdated(installed: "2026.8.19", latest: "2026.08.19"),
+                       "前導零不該讓最新版被說成舊的")
+        XCTAssertFalse(VideoDownloadTool.isOutdated(installed: "2026.09.01", latest: "2026.08.19"),
+                       "nightly 可能比 stable 新")
+    }
+
+    /// 查不到不是「有問題」。不確定就別唸使用者。
+    func testUnknownVersionsAreNeverCalledOutdated() {
+        XCTAssertFalse(VideoDownloadTool.isOutdated(installed: nil, latest: "2026.08.19"))
+        XCTAssertFalse(VideoDownloadTool.isOutdated(installed: "2026.08.19", latest: nil))
+        XCTAssertFalse(VideoDownloadTool.isOutdated(installed: "git-abc", latest: "2026.08.19"))
+    }
+
+    func testParsesTheReleaseTag() {
+        let json = Data(#"{"tag_name":"2026.08.19","name":"yt-dlp 2026.08.19"}"#.utf8)
+        XCTAssertEqual(VideoDownloadTool.parseLatestRelease(json), "2026.08.19")
+        XCTAssertNil(VideoDownloadTool.parseLatestRelease(Data("not json".utf8)))
+        XCTAssertNil(VideoDownloadTool.parseLatestRelease(Data(#"{"tag_name":""}"#.utf8)))
+    }
+
+    /// GitHub 對沒帶 User-Agent 的請求回 403。
+    func testReleaseRequestCarriesAUserAgent() {
+        let request = VideoDownloadTool.latestReleaseRequest()
+        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "Foldwall")
+        XCTAssertEqual(request.url?.host(), "api.github.com")
+    }
 }

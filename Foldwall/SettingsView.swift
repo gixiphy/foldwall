@@ -858,7 +858,9 @@ private struct PlaylistSourceDetail: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                YtDlpNotice()
+                YtDlpNotice(version: service.toolVersion,
+                            latest: service.latestToolVersion,
+                            isOutdated: service.isToolOutdated)
             }
         }
         .formStyle(.grouped)
@@ -886,11 +888,35 @@ private struct YtDlpNotice: View {
     /// 開頁時查一次就好，不必每次重繪都去磁碟上找一遍執行檔。
     @State private var isInstalled = VideoDownloadTool.locate() != nil
 
+    /// 版號由 service 問（本機跑一次 `--version`，上游查一次 release），這裡只顯示。
+    var version: String?
+    var latest: String?
+    var isOutdated: Bool
+
     var body: some View {
         if isInstalled {
-            Label("已偵測到 yt-dlp", systemImage: "checkmark.circle.fill")
-                .font(.caption)
-                .foregroundStyle(.green)
+            VStack(alignment: .leading, spacing: 4) {
+                Label(version.map { "已偵測到 yt-dlp \($0)" } ?? "已偵測到 yt-dlp",
+                      systemImage: isOutdated
+                          ? "arrow.up.circle.fill" : "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(isOutdated ? .orange : .green)
+                // 只在真的有新版時才唸。查不到上游版本就什麼都不說——
+                // 不確定的時候指著使用者的工具說它舊最糟。
+                if isOutdated {
+                    Text("有新版 \(latest ?? "")。網站一改版 extractor 就會解不出東西，"
+                         + "先更新再排查比較省事：")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("brew upgrade yt-dlp")
+                        .font(.caption.monospaced())
+                        .textSelection(.enabled)
+                        .padding(.vertical, 2)
+                        .padding(.horizontal, 6)
+                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
         } else {
             VStack(alignment: .leading, spacing: 4) {
                 Label("需要 yt-dlp", systemImage: "exclamationmark.triangle.fill")

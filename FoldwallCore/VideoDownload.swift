@@ -53,6 +53,63 @@ public enum VideoDownloadTool {
         ]
     }
 
+    // MARK: - 版本
+
+    /// 問工具版本的參數。
+    public static let versionArguments = ["--version"]
+
+    /// 解析版號。
+    ///
+    /// yt-dlp 用**日期版號**：`2026.08.19`，nightly 多接一段
+    /// （`2026.08.19.232712`），GitHub 的 tag 也是同一套。Homebrew 會把前導零
+    /// 去掉（`2026.8.19`），所以比字串沒有用，要比數字。
+    /// 解不出來就回 nil——**寧可不提醒，也不要亂猜版本**。
+    public static func parseVersion(_ text: String) -> [Int]? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = trimmed.split(separator: ".")
+        guard parts.count >= 3 else { return nil }
+        let numbers = parts.prefix(3).compactMap { Int($0) }
+        guard numbers.count == 3, numbers[0] >= 2000,
+              (1...12).contains(numbers[1]), (1...31).contains(numbers[2])
+        else { return nil }
+        return numbers
+    }
+
+    /// 問 GitHub 最新的 release 是哪一版。
+    ///
+    /// 為什麼是「有沒有新版」而不是「幾天沒更新」：後者是猜的。一個十天前才
+    /// 更新過的人如果已經是最新版，叫他去更新就是錯的建議——他照做也不會好，
+    /// 還會以為問題處理掉了。直接問上游最新是幾版，答案沒有模糊空間。
+    public static func latestReleaseRequest() -> URLRequest {
+        var request = URLRequest(
+            url: URL(string: "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest")!)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        // GitHub 對沒帶 User-Agent 的請求回 403。
+        request.setValue("Foldwall", forHTTPHeaderField: "User-Agent")
+        request.timeoutInterval = 15
+        return request
+    }
+
+    /// 從 release JSON 撈出 tag。
+    public static func parseLatestRelease(_ data: Data) -> String? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let tag = root["tag_name"] as? String, !tag.isEmpty
+        else { return nil }
+        return tag
+    }
+
+    /// 裝的這版落後上游了嗎。
+    ///
+    /// 任何一邊解不出版號就回 `false`：查不到不是「有問題」，不確定的時候
+    /// 指著使用者的工具說它舊最糟。
+    public static func isOutdated(installed: String?, latest: String?) -> Bool {
+        guard let installed, let latest,
+              let mine = parseVersion(installed), let theirs = parseVersion(latest)
+        else { return false }
+        for (a, b) in zip(mine, theirs) where a != b { return a < b }
+        return false
+    }
+
     /// 網址看起來合理嗎。擋掉明顯的手滑，真正能不能抓由工具決定。
     public static func isPlausible(_ url: String) -> Bool {
         let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)

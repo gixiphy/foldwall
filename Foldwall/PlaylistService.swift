@@ -36,6 +36,21 @@ final class PlaylistService {
 
     private(set) var lastError: String?
 
+    /// `yt-dlp --version` 的輸出。工具還沒問過、或根本沒裝就是 nil。
+    private(set) var toolVersion: String?
+    /// 上游最新的 release。查不到就是 nil。
+    private(set) var latestToolVersion: String?
+    /// 裝的這版落後上游了嗎。**任何一邊查不到都是 false**——不確定就不要
+    /// 指著使用者的工具說它舊。
+    var isToolOutdated: Bool {
+        VideoDownloadTool.isOutdated(installed: toolVersion, latest: latestToolVersion)
+    }
+
+    /// 兩次查詢上游版本的最短間隔。這只是提示，一天問一次綽綽有餘，
+    /// 而 GitHub 對未驗證的請求每小時只給 60 次。
+    private static let versionCheckInterval: TimeInterval = 24 * 60 * 60
+    private var lastVersionCheck: Date?
+
     /// 有東西落地時回呼，讓上層補一輪。
     var onChanged: (() -> Void)?
 
@@ -43,10 +58,64 @@ final class PlaylistService {
         self.directory = paths.remoteVideoCache
     }
 
+    /// 問一次工具版本。
+    ///
+    /// 為什麼要問：片單解不出來時最好的猜測是「yt-dlp 太舊」，但那句話對一個
+    /// 剛更新過的人是**錯的建議**——會把他推去更新，而問題不在那。知道版號才
+    /// 講得出對的話（見 explainNothingExtracted）。
+    func readToolVersion() {
+        guard let tool = VideoDownloadTool.locate() else {
+            toolVersion = nil
+            latestToolVersion = nil
+            return
+        }
+        if let last = lastVersionCheck,
+           Date.now.timeIntervalSince(last) < Self.versionCheckInterval { return }
+        lastVersionCheck = .now
+
+        Task { @MainActor [weak self] in
+            let installed = await Task.detached(priority: .utility) {
+                Self.runVersion(tool: tool)
+            }.value
+            self?.toolVersion = installed
+
+            // 上游那邊查不到就算了：版本提示不值得讓使用者看到錯誤。
+            guard let (data, response) = try? await URLSession.shared.data(
+                for: VideoDownloadTool.latestReleaseRequest()),
+                (response as? HTTPURLResponse)?.statusCode == 200
+            else { return }
+            self?.latestToolVersion = VideoDownloadTool.parseLatestRelease(data)
+        }
+    }
+
+    nonisolated private static func runVersion(tool: URL) -> String? {
+        let process = Process()
+        process.executableURL = tool
+        process.arguments = VideoDownloadTool.versionArguments
+        let output = Pipe()
+        process.standardOutput = output
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            let data = output.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            guard process.terminationStatus == 0 else { return nil }
+            let text = String(decoding: data, as: UTF8.self)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return text.isEmpty ? nil : text
+        } catch {
+            return nil
+        }
+    }
+
     // MARK: - 解析
 
     /// 需要的話在背景重新解析片單。**不阻塞呼叫端。**
     func refreshIfNeeded(_ sources: [PlaylistSource]) {
+        // 版本提示要打一次網路，所以綁在「真的有片單來源」上：沒用到這功能的人
+        // 不該因為開了 App 就多一個對外請求。
+        if !sources.isEmpty { readToolVersion() }
+
         // 被刪掉的片單留在這些表裡永遠等不到人查，順手清掉——
         // 這個行程一開就是好幾週，慢性堆積也是堆積。
         let known = Set(sources.map(\.id))
@@ -86,10 +155,15 @@ final class PlaylistService {
         }
         refreshing.insert(source.id)
         let id = source.id
+        // 版號帶進去：解不出來時要靠它決定該不該叫人去更新（見 explainNothingExtracted）
+        let version = toolVersion
+        let outdated = isToolOutdated
+        let latest = latestToolVersion
 
         Task { @MainActor [weak self] in
             let outcome = await Task.detached(priority: .utility) {
-                Self.runList(tool: tool, url: url.absoluteString)
+                Self.runList(tool: tool, url: url.absoluteString,
+                             version: version, latest: latest, outdated: outdated)
             }.value
 
             guard let self else { return }
@@ -120,7 +194,9 @@ final class PlaylistService {
         case failure(String)
     }
 
-    nonisolated private static func runList(tool: URL, url: String) -> ListOutcome {
+    nonisolated private static func runList(
+        tool: URL, url: String, version: String?, latest: String?, outdated: Bool
+    ) -> ListOutcome {
         let process = Process()
         process.executableURL = tool
         process.arguments = VideoDownloadTool.listArguments(url: url)
@@ -162,7 +238,9 @@ final class PlaylistService {
             }
             return .success(title: parsed.title, entries: parsed.entries)
         } catch PlaylistCodec.Failure.nothingExtracted(let expected) {
-            return .failure(Self.explainNothingExtracted(expected: expected, diagnostics))
+            return .failure(Self.explainNothingExtracted(
+                expected: expected, diagnostics,
+                outdated: outdated, version: version, latest: latest))
         } catch PlaylistCodec.Failure.empty {
             return .failure("這個網址裡沒有可用的影片")
         } catch PlaylistCodec.Failure.unreadable {
@@ -183,15 +261,24 @@ final class PlaylistService {
     /// yt-dlp 數得出片單裡有幾支，卻一支也沒解出來。
     ///
     /// 它自己認為成功（exit 0），所以這裡**不能**說「這個網址裡沒有可用的影片」——
-    /// 那會把人推去檢查片單，而片單好好的。真正的原因幾乎都是 yt-dlp 太舊：
-    /// 網站改版後 extractor 認不得新的頁面結構，只在 stderr 留一行 WARNING。
-    /// 把那行原文一起帶出來，使用者要回報也有東西可貼。
+    /// 那會把人推去檢查片單，而片單好好的。網站改版後 extractor 認不得新的
+    /// 頁面結構就是這個症狀，stderr 只留一行 WARNING，原文一起帶出來。
+    ///
+    /// **要不要說「去更新 yt-dlp」得看有沒有新版。** 對一個已經是最新版的人
+    /// 講這句是錯的建議：他照做也不會好，而且會以為問題處理掉了。
     nonisolated private static func explainNothingExtracted(
-        expected: Int, _ diagnostics: String
+        expected: Int, _ diagnostics: String,
+        outdated: Bool, version: String?, latest: String?
     ) -> String {
-        var message = "yt-dlp 看得到這個片單有 \(expected) 支，卻一支也解不出來"
-            + "——多半是 yt-dlp 太舊，跟不上網站改版。"
-            + "用 `brew upgrade yt-dlp` 更新後再按「重新解析」。"
+        var message = "yt-dlp 看得到這個片單有 \(expected) 支，卻一支也解不出來——"
+        if outdated {
+            message += "你裝的是 \(version ?? "舊版")，上游已經出到 \(latest ?? "新版")。"
+                + "用 `brew upgrade yt-dlp` 更新後再按「重新解析」。"
+        } else {
+            message += "這個站的 extractor 追不上網站改版。"
+                + "你的 yt-dlp\(version.map { "（\($0)）" } ?? "")沒有更新的版本可裝，"
+                + "更新它沒有用；等上游修好，或到 yt-dlp 的 issue 區回報。"
+        }
         if let warning = firstWarning(diagnostics) { message += "\n\n\(warning)" }
         return message
     }
