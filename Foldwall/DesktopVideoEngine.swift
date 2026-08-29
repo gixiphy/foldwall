@@ -27,6 +27,18 @@ import AppKit
 import AVFoundation
 import FoldwallCore
 
+extension VideoScaleMode {
+    /// 對應的 videoGravity。呼叫端要先化簡：`random` 走 `resolved(seed:)`，
+    /// 「填滿高度／寬度」走 `resolved(videoAspect:screenAspect:)`。
+    /// 真的漏了就退回填滿（舊行為），不要拿 fatalError 換桌布黑掉。
+    var videoGravity: AVLayerVideoGravity {
+        switch self {
+        case .fill, .random, .matchHeight, .matchWidth: .resizeAspectFill
+        case .fit: .resizeAspect
+        }
+    }
+}
+
 /// 點擊穿透：桌布不該吃掉使用者的滑鼠事件。
 private final class PassThroughView: NSView {
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
@@ -36,7 +48,7 @@ private final class DesktopVideoWindow: NSWindow {
 
     let playerLayer = AVPlayerLayer()
 
-    init(screen: NSScreen, layer: DesktopVideoLayer) {
+    init(screen: NSScreen, layer: DesktopVideoLayer, gravity: AVLayerVideoGravity) {
         super.init(contentRect: screen.frame, styleMask: [.borderless],
                    backing: .buffered, defer: false)
 
@@ -58,7 +70,7 @@ private final class DesktopVideoWindow: NSWindow {
         content.wantsLayer = true
         content.layer?.backgroundColor = NSColor.black.cgColor
         playerLayer.frame = content.bounds
-        playerLayer.videoGravity = .resizeAspectFill   // 超寬屏不要黑邊
+        playerLayer.videoGravity = gravity
         playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
         content.layer?.addSublayer(playerLayer)
         contentView = content
@@ -85,6 +97,18 @@ final class DesktopVideoEngine {
         var url: URL
         /// 視窗是照哪個圖層設定建的。視窗層級只在 init 設得了，改了就得重建視窗。
         var layer: DesktopVideoLayer
+        /// 使用者要的縮放，`random` 已經抽定；可能還是「填滿高度／寬度」。
+        var scale: VideoScaleMode
+        /// 真的設進 layer 的那個（fill 或 fit）。存起來才知道要不要動 layer——
+        /// 每輪都寫一次 videoGravity 不會壞，但寫了就看不出「改過」與「沒改」的差別。
+        var applied: VideoScaleMode
+        /// 影片的寬÷高，**已套用旋轉**。KVO 拿到第一格的畫面尺寸之前是 nil，
+        /// 「填滿高度／寬度」在那之前只能先用 fill 頂著。
+        var videoAspect: Double?
+        /// 監看 `presentationSize` 的 KVO。teardown 要拔掉。
+        /// 用 KVO 而不是另外開一次 asset 讀 naturalSize：那等於為了一個長寬比
+        /// 再走一趟 SMB／雲端掛載點把檔頭讀一遍，而 player 本來就已經知道了。
+        var aspectObserver: NSKeyValueObservation?
         /// 這支開始播的時間。
         var startedAt: Date
         /// 連續處於「想播但沒資料」的起點；不是那個狀態就是 nil。
@@ -124,7 +148,7 @@ final class DesktopVideoEngine {
 
     /// 讓畫面符合 `plan`：沒在計畫裡的關掉，換片的重建，沒變的留著。
     func apply(plan: [String: URL], layer: DesktopVideoLayer, screens: [DisplayTarget],
-               mode: VideoPlaybackMode) {
+               mode: VideoPlaybackMode, scale: VideoScaleMode) {
         // 循環方式是**建 player 當下**決定的（走不走 AVPlayerLooper），改不動已經在跑的
         // 那個。所以模式一換就整批重建——這是使用者剛動過手的那一刻，重播一次不突兀。
         if mode != activeMode {
@@ -146,6 +170,10 @@ final class DesktopVideoEngine {
             // 同一支繼續播，不要每輪重啟
             if let current = playing[uuid], current.url == url {
                 current.window.setFrame(screen.frame, display: true)
+                // 縮放改得動已經在播的那個 layer（不像循環方式），所以只設 gravity，
+                // 不重建 player：使用者在設定裡試各種縮放時畫面不該一直重播。
+                // 螢幕的長寬比也可能剛換（改解析度、換螢幕），一併重算。
+                applyScale(scale, to: uuid, url: url, screen: screen)
                 // 除非它已經播完了：池裡只有這一支（或隨機又抽到同一支）時，
                 // 上層排的下一支就是它自己。從頭再播一次，不要停在最後一格。
                 if current.ended { replay(uuid) }
@@ -160,11 +188,11 @@ final class DesktopVideoEngine {
             // 在同一個 player 上接著建第二個 looper 是在賭。那條路換片是使用者
             // 按「下一片」的偶發動作，閃一下換整批重建的確定性，划得來。
             if let current = playing[uuid], current.layer == layer, mode.advancesAtEnd {
-                switchVideo(uuid, to: url, screen: screen, mode: mode)
+                switchVideo(uuid, to: url, screen: screen, mode: mode, scale: scale)
                 continue
             }
             teardown(uuid)
-            start(url: url, uuid: uuid, screen: screen, layer: layer, mode: mode)
+            start(url: url, uuid: uuid, screen: screen, layer: layer, mode: mode, scale: scale)
         }
     }
 
@@ -252,7 +280,7 @@ final class DesktopVideoEngine {
     // MARK: - 私有
 
     private func start(url: URL, uuid: String, screen: NSScreen, layer: DesktopVideoLayer,
-                       mode: VideoPlaybackMode) {
+                       mode: VideoPlaybackMode, scale: VideoScaleMode) {
         let item = AVPlayerItem(url: url)
         // 桌布不需要搶時間，寧可等到能順順播再播。緩衝也封頂：來源可能是
         // SMB 上一支幾 GB 的檔，無上限預讀等於拿記憶體換不會有人看的進度。
@@ -263,13 +291,20 @@ final class DesktopVideoEngine {
 
         let (looper, endObserver) = load(item: item, into: player, uuid: uuid, url: url, mode: mode)
 
-        let window = DesktopVideoWindow(screen: screen, layer: layer)
+        let wanted = Self.resolve(scale, uuid: uuid, url: url)
+        // 第一格解出來之前不知道影片多寬多高，先用 fill 頂著（＝舊行為，不留黑邊），
+        // KVO 一拿到畫面尺寸就改成該有的那個。改 gravity 不必重播。
+        let applied = wanted.resolved(videoAspect: nil, screenAspect: Self.aspect(of: screen))
+        let window = DesktopVideoWindow(screen: screen, layer: layer,
+                                        gravity: applied.videoGravity)
         window.playerLayer.player = player
         window.orderFront(nil)
         player.play()
 
         playing[uuid] = Playing(window: window, player: player, looper: looper,
                                 endObserver: endObserver, url: url, layer: layer,
+                                scale: wanted, applied: applied,
+                                aspectObserver: observeAspect(item, uuid: uuid, url: url),
                                 startedAt: .now)
         startWatchdogIfNeeded()
         Log.video.info(
@@ -281,7 +316,7 @@ final class DesktopVideoEngine {
     ///
     /// **只給沒有 looper 的那條路用**（見 `apply` 裡的條件）。
     private func switchVideo(_ uuid: String, to url: URL, screen: NSScreen,
-                             mode: VideoPlaybackMode) {
+                             mode: VideoPlaybackMode, scale: VideoScaleMode) {
         guard let entry = playing[uuid] else { return }
         // 舊 item 的播畢通知要先斷掉，否則它會進來把新的那支標成播完的。
         if let observer = entry.endObserver { NotificationCenter.default.removeObserver(observer) }
@@ -295,8 +330,16 @@ final class DesktopVideoEngine {
         let (looper, endObserver) = load(item: item, into: player, uuid: uuid, url: url, mode: mode)
 
         entry.window.setFrame(screen.frame, display: true)
+        // 隨機縮放是「每支各抽一種」，換片就得重抽——這裡是新的那支。
+        // 長寬比也跟著歸零：上一支的比例套在新的那支身上會框錯。
+        let wanted = Self.resolve(scale, uuid: uuid, url: url)
+        let applied = wanted.resolved(videoAspect: nil, screenAspect: Self.aspect(of: screen))
+        entry.window.playerLayer.videoGravity = applied.videoGravity
+        entry.aspectObserver?.invalidate()
         playing[uuid] = Playing(window: entry.window, player: player, looper: looper,
                                 endObserver: endObserver, url: url, layer: entry.layer,
+                                scale: wanted, applied: applied,
+                                aspectObserver: observeAspect(item, uuid: uuid, url: url),
                                 startedAt: .now)
         if !isPolicyPaused { player.play() }
         Log.video.info("桌面視窗換片：\(url.lastPathComponent, privacy: .public)")
@@ -347,11 +390,76 @@ final class DesktopVideoEngine {
         if !isPolicyPaused { entry.player.play() }
     }
 
+    /// 把縮放套到正在播的那台。已經是這個縮放就不動——寫一次 videoGravity 不貴，
+    /// 但每輪 refresh 都碰 layer 會讓「真的改過」在 log 與除錯時看不出來。
+    private func applyScale(_ scale: VideoScaleMode, to uuid: String, url: URL,
+                            screen: NSScreen) {
+        guard let entry = playing[uuid] else { return }
+        let wanted = Self.resolve(scale, uuid: uuid, url: url)
+        playing[uuid]?.scale = wanted
+        let applied = wanted.resolved(videoAspect: entry.videoAspect,
+                                      screenAspect: Self.aspect(of: screen))
+        guard applied != entry.applied else { return }
+        entry.window.playerLayer.videoGravity = applied.videoGravity
+        playing[uuid]?.applied = applied
+        Log.video.info(
+            "影片縮放改為 \(wanted.displayName, privacy: .public)（\(applied.rawValue, privacy: .public)）")
+    }
+
+    /// `random` 在這裡抽定：seed 是「螢幕 ＋ 影片」，所以同一支在同一台螢幕上
+    /// 每次算出來都一樣，重新排片不會讓播到一半的影片突然換一種縮放。
+    /// **「填滿高度／寬度」不在這裡化簡**——那要等長寬比，見 `noteAspect`。
+    private static func resolve(_ scale: VideoScaleMode, uuid: String, url: URL)
+    -> VideoScaleMode {
+        scale.resolved(seed: VideoScaleMode.seed(displayUUID: uuid,
+                                                 video: url.absoluteString))
+    }
+
+    private static func aspect(of screen: NSScreen) -> Double {
+        let size = screen.frame.size
+        guard size.height > 0 else { return 1 }
+        return Double(size.width / size.height)
+    }
+
+    /// 監看 player 算出來的畫面尺寸。
+    ///
+    /// `presentationSize` 是**已經套過旋轉**的顯示尺寸（直拍手機影片的 naturalSize
+    /// 是橫的，自己讀那個會把長寬比弄反），而且 player 本來就要算它——
+    /// 比為了一個長寬比再開一次 asset 讀檔頭便宜得多。
+    /// 第一格解出來之前它是 `.zero`，所以這裡只認正的尺寸。
+    private func observeAspect(_ item: AVPlayerItem, uuid: String, url: URL)
+    -> NSKeyValueObservation {
+        item.observe(\.presentationSize, options: [.initial, .new]) { [weak self] _, change in
+            guard let size = change.newValue, size.width > 0, size.height > 0 else { return }
+            let aspect = Double(size.width / size.height)
+            Task { @MainActor [weak self] in
+                self?.noteAspect(aspect, uuid: uuid, url: url)
+            }
+        }
+    }
+
+    /// 知道影片多寬多高了 → 「填滿高度／寬度」這時才算得出要 fill 還是 fit。
+    private func noteAspect(_ aspect: Double, uuid: String, url: URL) {
+        // 遲到的通知：換片之後才送達的那種，不能拿來框新的那支。
+        guard let entry = playing[uuid], entry.url == url else { return }
+        playing[uuid]?.videoAspect = aspect
+        guard entry.scale.needsVideoAspect,
+              let screen = entry.window.screen ?? NSScreen.main else { return }
+        let applied = entry.scale.resolved(videoAspect: aspect,
+                                           screenAspect: Self.aspect(of: screen))
+        guard applied != entry.applied else { return }
+        entry.window.playerLayer.videoGravity = applied.videoGravity
+        playing[uuid]?.applied = applied
+        Log.video.info(
+            "影片長寬比 \(aspect, format: .fixed(precision: 2), privacy: .public)：\(entry.scale.displayName, privacy: .public) → \(applied.rawValue, privacy: .public)")
+    }
+
     private func teardown(_ uuid: String) {
         guard let entry = playing.removeValue(forKey: uuid) else { return }
         if let observer = entry.endObserver {
             NotificationCenter.default.removeObserver(observer)
         }
+        entry.aspectObserver?.invalidate()
         entry.looper?.disableLooping()
         entry.player.pause()
         entry.player.removeAllItems()

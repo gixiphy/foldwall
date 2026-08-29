@@ -360,7 +360,12 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
         let rootLayer = CALayer()
         rootLayer.frame = layerFrame
         rootLayer.contentsScale = scaleFactor
-        rootLayer.contentsGravity = .resizeAspectFill
+        // The user's scale choice, relayed by the app (Settings → 影片 → 縮放). This
+        // layer holds the cached still shown until the first decoded frame, so it has
+        // to crop/letterbox exactly like the video layer above it.
+        rootLayer.contentsGravity = WallpaperPrefs.shared.videoScaleMode
+            .resolved(seed: videoURL?.path ?? "")
+            .resolved(still: cachedStill, surface: destSize).contentsGravity
         if let cachedStill { rootLayer.contents = cachedStill }
         caContext.layer = rootLayer
         CATransaction.flush()
@@ -504,7 +509,9 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
         let rootLayer = CALayer()
         rootLayer.frame = CGRect(origin: .zero, size: destSize)
         rootLayer.contentsScale = scaleFactor
-        rootLayer.contentsGravity = .resizeAspectFill
+        rootLayer.contentsGravity = WallpaperPrefs.shared.videoScaleMode
+            .resolved(seed: videoURL?.path ?? "")
+            .resolved(still: cachedStill, surface: destSize).contentsGravity
         caContext.layer = rootLayer
         CATransaction.flush()
         guard let replyObj = createRemoteContextXPC(contextId: caContext.contextId) else {

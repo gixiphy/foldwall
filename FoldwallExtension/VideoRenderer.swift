@@ -59,6 +59,108 @@ final class VideoRenderer: @unchecked Sendable {
     /// Called at each loop boundary to select the video URL for the next iteration.
     var variantSelector: (@Sendable () -> URL)?
 
+    /// The user's scale choice, plus everything needed to settle it: which video it
+    /// applies to (`random` draws per video), the video's display aspect ratio and the
+    /// surface's. Locked because it is read from the prefs (Darwin notification) thread
+    /// as well as from `queue` — `asset` itself is only safe to touch on `queue`.
+    private struct Scale {
+        var mode: VideoScaleMode
+        var url: URL
+        /// Width ÷ height AFTER the track's preferred transform (a portrait phone video
+        /// has a landscape naturalSize; using it raw flips the ratio). nil until loaded.
+        var videoAspect: Double?
+        var screenAspect: Double
+
+        /// The concrete mode to hand to the layers: `random` drawn for this video,
+        /// then "scale to height/width" reduced against the two aspect ratios.
+        var settled: VideoScaleMode {
+            mode.resolved(seed: url.path)
+                .resolved(videoAspect: videoAspect, screenAspect: screenAspect)
+        }
+    }
+
+    private let scaleState: OSAllocatedUnfairLock<Scale>
+
+    /// Apply a new scale choice to this renderer's layers. Cheap — a gravity write, no
+    /// decoder work — so the change lands on the playing video, not the next one.
+    /// Returns the concrete mode used (`random` drawn for this video, "scale to height/
+    /// width" reduced against the two aspect ratios), which the caller applies to the
+    /// root layer so the still underneath frames the same way.
+    @discardableResult
+    func applyScaleMode(_ mode: VideoScaleMode) -> VideoScaleMode {
+        let resolved = scaleState.withLock { state -> VideoScaleMode in
+            state.mode = mode
+            return state.settled
+        }
+        setGravity(resolved)
+        return resolved
+    }
+
+    /// Re-settle the scale for a video we just switched to: `random` draws per video and
+    /// the aspect ratio belongs to the old one, so both are reset here. The new ratio
+    /// arrives asynchronously (`loadAspect`); until it does, "scale to height/width"
+    /// falls back to fill. Call on `queue`.
+    private func rescale(for url: URL) {
+        let resolved = scaleState.withLock { state -> VideoScaleMode in
+            state.url = url
+            state.videoAspect = nil
+            return state.settled
+        }
+        setGravity(resolved)
+        loadAspect(of: url)
+    }
+
+    /// Record the video's display aspect ratio and re-apply the gravity it settles.
+    /// Ignores a late arrival for a video we have already switched away from.
+    private func noteAspect(_ aspect: Double, for url: URL) {
+        let resolved = scaleState.withLock { state -> VideoScaleMode? in
+            guard state.url == url else { return nil }
+            state.videoAspect = aspect
+            return state.settled
+        }
+        guard let resolved else { return }
+        setGravity(resolved)
+        traceLog("  [scale #\(debugID)] aspect \(aspect) → \(resolved.rawValue)")
+    }
+
+    /// Load the display aspect ratio off the main path. Re-opening the asset costs a
+    /// header read of a local file in our own container (a few ms) and keeps the
+    /// non-Sendable `AVAssetTrack` on the thread that owns it.
+    private func loadAspect(of url: URL) {
+        Task { [weak self] in
+            guard let self else { return }
+            let asset = AVURLAsset(url: url)
+            guard let track = try? await asset.loadTracks(withMediaType: .video).first,
+                  let aspect = try? await Self.displayAspect(of: track) else { return }
+            noteAspect(aspect, for: url)
+        }
+    }
+
+    /// Width ÷ height of a surface. 1 for a degenerate size, which only makes
+    /// "scale to height/width" behave like fill until a real size arrives.
+    static func aspect(of size: CGSize) -> Double {
+        guard size.width > 0, size.height > 0 else { return 1 }
+        return Double(size.width / size.height)
+    }
+
+    /// Width ÷ height as displayed — `naturalSize` put through `preferredTransform`.
+    /// nil for a degenerate size (a track that reports 0 in either direction).
+    static func displayAspect(of track: AVAssetTrack) async throws -> Double? {
+        let (size, transform) = try await track.load(.naturalSize, .preferredTransform)
+        let display = size.applying(transform)
+        let width = abs(display.width), height = abs(display.height)
+        guard width > 0, height > 0 else { return nil }
+        return Double(width / height)
+    }
+
+    private func setGravity(_ mode: VideoScaleMode) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        displayLayer.videoGravity = mode.videoGravity
+        stillFrameLayer.contentsGravity = mode.contentsGravity
+        CATransaction.commit()
+    }
+
     static func create(
         rootLayer: CALayer,
         videoURL: URL,
@@ -73,7 +175,17 @@ final class VideoRenderer: @unchecked Sendable {
         }
 
         let displayLayer = AVSampleBufferDisplayLayer()
-        displayLayer.videoGravity = .resizeAspectFill
+        // The user's choice (Settings → 影片 → 縮放), relayed by the app through
+        // WallpaperPrefs. `random` draws per video and "scale to height/width" needs
+        // both aspect ratios, so this is settled here — and again on every switch —
+        // not once per process. The track is already loaded, so the video's ratio costs
+        // nothing extra here (the switch path loads it separately).
+        let scaleMode = WallpaperPrefs.shared.videoScaleMode
+        let videoAspect = try? await displayAspect(of: track)
+        let screenAspect = Self.aspect(of: rootLayer.bounds.size)
+        let settled = scaleMode.resolved(seed: videoURL.path)
+            .resolved(videoAspect: videoAspect ?? nil, screenAspect: screenAspect)
+        displayLayer.videoGravity = settled.videoGravity
         displayLayer.frame = rootLayer.bounds
         displayLayer.contentsScale = rootLayer.contentsScale
         // Opaque: the per-surface context fix (each Space/lock surface owns its own
@@ -95,6 +207,10 @@ final class VideoRenderer: @unchecked Sendable {
             asset: asset,
             videoTrack: track,
             stillImage: stillImage,
+            scaleMode: scaleMode,
+            videoAspect: videoAspect ?? nil,
+            screenAspect: screenAspect,
+            settled: settled,
         )
     }
 
@@ -104,7 +220,14 @@ final class VideoRenderer: @unchecked Sendable {
         asset: AVURLAsset,
         videoTrack: AVAssetTrack,
         stillImage: CGImage?,
+        scaleMode: VideoScaleMode,
+        videoAspect: Double?,
+        screenAspect: Double,
+        settled: VideoScaleMode,
     ) {
+        self.scaleState = OSAllocatedUnfairLock(initialState: Scale(
+            mode: scaleMode, url: asset.url,
+            videoAspect: videoAspect, screenAspect: screenAspect))
         self.displayLayer = displayLayer
         self.renderer = displayLayer.sampleBufferRenderer
         self.asset = asset
@@ -112,7 +235,9 @@ final class VideoRenderer: @unchecked Sendable {
 
         self.stillFrameLayer = CALayer()
         stillFrameLayer.frame = rootLayer.bounds
-        stillFrameLayer.contentsGravity = .resizeAspectFill
+        // Same gravity as the video layer: the still is what the user sees until the
+        // first decoded frame lands, and a mismatch makes the picture jump at that moment.
+        stillFrameLayer.contentsGravity = settled.contentsGravity
         stillFrameLayer.contentsScale = rootLayer.contentsScale
         stillFrameLayer.opacity = 0
         stillFrameLayer.name = "phosphene.stillFrame"
@@ -243,6 +368,15 @@ final class VideoRenderer: @unchecked Sendable {
         displayLayer.contentsScale = scale
         stillFrameLayer.frame = bounds
         stillFrameLayer.contentsScale = scale
+        // A new destination geometry can flip which axis "scale to height/width"
+        // resolves to (a 16:9 video is wider than a 16:10 panel but narrower than an
+        // ultrawide), so re-settle inside the same transaction.
+        let settled = scaleState.withLock { state -> VideoScaleMode in
+            state.screenAspect = Self.aspect(of: destSize)
+            return state.settled
+        }
+        displayLayer.videoGravity = settled.videoGravity
+        stillFrameLayer.contentsGravity = settled.contentsGravity
         CATransaction.commit()
         CATransaction.flush()
         traceLog("  [resize #\(debugID)] → \(destSize) @\(scale)x")
@@ -264,6 +398,7 @@ final class VideoRenderer: @unchecked Sendable {
             }
             asset = newAsset
             videoTrack = track
+            rescale(for: url)
             traceLog("  [switchVideo #\(debugID)] restarting from 0 → \(url.lastPathComponent)")
             restartWithCurrentAsset()
         }

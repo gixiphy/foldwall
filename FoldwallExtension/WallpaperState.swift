@@ -190,6 +190,20 @@ final class WallpaperState: Sendable {
         }
     }
 
+    /// Execute a closure for every live surface: its root layer, its renderer (nil while
+    /// a create is still in flight) and the choice id it tracks. Used by settings that
+    /// touch the whole layer tree — scale/gravity applies to the root layer's still as
+    /// well as the renderer's own layers, so `forEachRenderer` alone isn't enough.
+    /// Snapshot copy under lock, iteration outside.
+    func forEachSurface(_ body: (CALayer, VideoRenderer?, String?) -> Void) {
+        // Copy out whole `ActiveWallpaper`s (@unchecked Sendable) rather than a tuple
+        // of layers — CALayer isn't Sendable, so a tuple can't leave the lock.
+        let surfaces = lock.withLock { state in Array(state.contexts.values) }
+        for surface in surfaces {
+            body(surface.rootLayer, surface.renderer, surface.videoID)
+        }
+    }
+
     /// Whether ANY acquired context tracks the given choice id. Scans every context —
     /// `activeDisplayContexts()` samples one arbitrary context per display, which
     /// misreports when desktop, lock-screen, and preview surfaces coexist on one

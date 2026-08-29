@@ -171,6 +171,9 @@ final class WallpaperCoordinator {
         }
         // 心跳只是輪詢，不必準點：給系統餘裕合併喚醒，省電（尤其電池上）。
         heartbeat?.tolerance = 5
+        // extension 讀的是它自己 container 裡那個檔，不是 UserDefaults：
+        // 啟動時推一次，換版或還原備份之後它才會收斂到現在的設定。
+        pushExtensionPrefs()
         Task.detached(priority: .utility) { Self.migrateLegacyDownloads() }
         reloadAlbums()
         refreshNow("啟動")   // performRefresh 自己會先解析資料夾
@@ -392,6 +395,20 @@ final class WallpaperCoordinator {
     func videoPlaybackModeDidChange() {
         guard settings.videoWallpaperEnabled, !settings.videoEngine.needsDeployment else { return }
         applyDesktopVideoNow("改播放模式")
+    }
+
+    /// 改了縮放（填滿／符合／擴充／隨機）。兩條引擎都要收到：
+    /// 桌面視窗直接改正在播的那個 layer 的 gravity，系統 extension 走 prefs 檔＋通知。
+    func videoScaleModeDidChange() {
+        pushExtensionPrefs()
+        guard settings.videoWallpaperEnabled, !settings.videoEngine.needsDeployment else { return }
+        applyDesktopVideoNow("改影片縮放")
+    }
+
+    /// 把 extension 那條路吃得到的設定寫進它的 container。
+    /// extension 是沙盒的、也不連 FoldwallCore，只能靠這個檔＋Darwin 通知。
+    private func pushExtensionPrefs() {
+        ExtensionPrefs.write(videoScaleMode: settings.videoScaleMode)
     }
 
     /// 一支播完了：排下一支。
@@ -870,7 +887,7 @@ final class WallpaperCoordinator {
         }
 
         desktopVideo.apply(plan: plan, layer: settings.desktopVideoLayer, screens: displays,
-                           mode: settings.videoPlaybackMode)
+                           mode: settings.videoPlaybackMode, scale: settings.videoScaleMode)
         desktopVideo.setPaused(currentTier() == .paused)
 
         // 池裡的片單影片不夠讓每台螢幕各播一支 → 補抓一支。
@@ -1059,6 +1076,7 @@ final class WallpaperCoordinator {
             videoEngine: settings.videoEngine,
             desktopVideoLayer: settings.desktopVideoLayer,
             videoPlaybackMode: settings.videoPlaybackMode,
+            videoScaleMode: settings.videoScaleMode,
             launchAtLogin: settings.launchAtLogin
         )
     }
@@ -1099,6 +1117,7 @@ final class WallpaperCoordinator {
         settings.videoEngine = snapshot.videoEngine
         settings.desktopVideoLayer = snapshot.desktopVideoLayer
         settings.videoPlaybackMode = snapshot.videoPlaybackMode
+        settings.videoScaleMode = snapshot.videoScaleMode
         // videoScreens 刻意不套：它是這台機器的硬體設定，見 SettingsSnapshot 檔頭。
         settings.launchAtLogin = snapshot.launchAtLogin
         settings.photoAlbums = Self.matchAlbums(snapshot.albums, against: albums)
@@ -1113,7 +1132,8 @@ final class WallpaperCoordinator {
         forceVideoSync = true
         Task { @MainActor in
             await self.reloadFolders()
-            await self.folderIndex.invalidate(roots: self.folders)
+            await self.folderIndex.invalidate(
+                roots: self.indexRoots, offline: self.offlineFolders)
             self.refreshNow("匯入設定")
         }
     }

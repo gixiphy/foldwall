@@ -63,6 +63,8 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
     public var desktopVideoLayer: DesktopVideoLayer
     /// 一支播完之後怎麼辦。只影響桌面視窗那條路。
     public var videoPlaybackMode: VideoPlaybackMode
+    /// 影片怎麼填進螢幕。兩條引擎都吃，跟硬體無關，可以跨機搬。
+    public var videoScaleMode: VideoScaleMode
 
     public var launchAtLogin: Bool
 
@@ -83,6 +85,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         videoEngine: VideoEngine,
         desktopVideoLayer: DesktopVideoLayer,
         videoPlaybackMode: VideoPlaybackMode = .repeatAll,
+        videoScaleMode: VideoScaleMode = .fill,
         launchAtLogin: Bool
     ) {
         self.version = version
@@ -101,6 +104,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         self.videoEngine = videoEngine
         self.desktopVideoLayer = desktopVideoLayer
         self.videoPlaybackMode = videoPlaybackMode
+        self.videoScaleMode = videoScaleMode
         self.launchAtLogin = launchAtLogin
     }
 
@@ -111,7 +115,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         case remoteSources, playlistSources, sourceRules
         case intervalMinutes, effect, montagePieceCount
         case videoWallpaperEnabled, videoEngine, desktopVideoLayer
-        case videoPlaybackMode
+        case videoPlaybackMode, videoScaleMode
         case launchAtLogin
     }
 
@@ -142,6 +146,9 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         // 舊備份沒有播放模式：套 .repeatAll 這個預設，與全新安裝一致。
         videoPlaybackMode = try c.decodeIfPresent(
             VideoPlaybackMode.self, forKey: .videoPlaybackMode) ?? .repeatAll
+        // 舊備份沒有縮放：.fill 就是 0.6.2 以前寫死的行為，還原後畫面不會變。
+        videoScaleMode = try c.decodeIfPresent(
+            VideoScaleMode.self, forKey: .videoScaleMode) ?? .fill
     }
 
     /// 內容是否等價——**不看 `savedAt` 與 `deviceName`**。

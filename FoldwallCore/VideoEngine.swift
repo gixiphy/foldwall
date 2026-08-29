@@ -95,6 +95,119 @@ public enum VideoPlaybackMode: String, Codable, Sendable, CaseIterable {
     public var advancesAtEnd: Bool { self != .repeatOne }
 }
 
+/// 影片怎麼填進螢幕。前三個的名稱刻意跟「系統設定 → 桌布」一致——
+/// 使用者在那裡看過這幾個詞，換個說法只會讓人以為是別的東西。
+///
+/// - `fill`：等比放大到蓋滿螢幕，超出的裁掉。0.6.2 以前唯一的行為，也是預設。
+/// - `matchHeight`：**以螢幕高度為準**等比縮放，左右超出的裁掉、不足的留黑邊。
+/// - `matchWidth`：**以螢幕寬度為準**等比縮放，上下超出的裁掉、不足的留黑邊。
+/// - `fit`：等比縮到整支都看得見，長寬比不同就留黑邊。
+/// - `random`：從 `fill`／`fit` 抽一種。
+///
+/// **每一種都保持影片原本的長寬比。** 系統設定裡的「擴充至填滿螢幕」是把畫面拉扁去
+/// 湊螢幕，0.6.3 跟著做過一版；那在桌布上就是把每支影片都變形，這裡不留那個選項。
+///
+/// **為什麼「對齊某一邊」不必自己算 layer 的框**：`matchHeight` 的縮放比是
+/// `螢幕高 / 影片高`，而那恰好等於 aspectFill 的縮放比（兩邊取大的那個）
+/// **當且僅當**影片比螢幕寬；反過來就等於 aspectFit。`matchWidth` 對稱。
+/// 所以知道兩個長寬比之後，這兩種都化簡成 fill 或 fit，交給 videoGravity 就好——
+/// 不必自己排版、不必動 masksToBounds，也不會跟 layer 的 resize 打架。
+/// 化簡在 `resolved(videoAspect:screenAspect:)`。
+///
+/// 兩條引擎都吃這個設定：桌面視窗設 `AVPlayerLayer.videoGravity`，
+/// 系統 extension 設 `AVSampleBufferDisplayLayer.videoGravity`（見 WallpaperPrefs）。
+public enum VideoScaleMode: String, Codable, Sendable, CaseIterable {
+    case fill
+    case matchHeight
+    case matchWidth
+    case fit
+    case random
+
+    public var displayName: String {
+        switch self {
+        case .fill: "填滿螢幕"
+        case .matchHeight: "填滿高度"
+        case .matchWidth: "填滿寬度"
+        case .fit: "符合螢幕大小"
+        case .random: "隨機"
+        }
+    }
+
+    public var summary: String {
+        switch self {
+        case .fill: "等比放大到蓋滿螢幕，超出畫面的裁掉。不會有黑邊，但拍到的東西可能被切到。"
+        case .matchHeight:
+            "以螢幕**高度**為準等比縮放：影片的上下剛好貼齊螢幕，左右超出的裁掉、"
+                + "不夠寬的留左右黑邊。長寬比不變。"
+        case .matchWidth:
+            "以螢幕**寬度**為準等比縮放：影片的左右剛好貼齊螢幕，上下超出的裁掉、"
+                + "不夠高的留上下黑邊。長寬比不變。"
+        case .fit: "等比縮到整支影片都看得見。長寬比跟螢幕不一樣就會留黑邊。"
+        case .random: "每支影片各自抽一種（填滿螢幕／符合螢幕大小）。同一支在同一台螢幕上抽到的固定不變。"
+        }
+    }
+
+    /// 要知道影片的長寬比才決定得了畫面長什麼樣。
+    /// 這兩種在拿到長寬比之前只能先用預設值頂著（見 `resolved(videoAspect:screenAspect:)`）。
+    public var needsVideoAspect: Bool { self == .matchHeight || self == .matchWidth }
+
+    /// `random` 抽的池子。
+    ///
+    /// **刻意不含 `matchHeight`／`matchWidth`**：那兩種對任何一支影片來說，
+    /// 結果本來就等於 fill 或 fit 其中之一（見型別註解的數學），放進來只是改變機率，
+    /// 不會多出任何一種看得出差別的畫面。
+    public static let concrete: [VideoScaleMode] = [.fill, .fit]
+
+    /// 這一支實際要用哪種縮放。`random` 以外原樣回傳。
+    ///
+    /// **抽的結果由 seed 決定，不是每次呼叫都重擲**：畫面重新套用設定的時機比想像多
+    /// （螢幕插拔、重新排片、設定視窗改別的選項），每次都擲一次的話同一支播到一半
+    /// 會突然換一種縮放，那看起來就是壞的。seed 用「螢幕 ＋ 影片」，
+    /// 所以不同片會抽到不同縮放，而同一片在同一台螢幕上永遠一樣。
+    public func resolved(seed: UInt64) -> VideoScaleMode {
+        guard self == .random else { return self }
+        var generator = SeededGenerator(seed: seed)
+        return Self.concrete.randomElement(using: &generator) ?? .fill
+    }
+
+    /// 把「對齊某一邊」化簡成 `fill` 或 `fit`；其他模式原樣回傳。
+    ///
+    /// - Parameters:
+    ///   - videoAspect: 影片的寬÷高（**已套用旋轉**：直拍的手機影片 naturalSize 是橫的，
+    ///     要先過 preferredTransform，否則會反過來）。還不知道就給 nil。
+    ///   - screenAspect: 螢幕的寬÷高。
+    /// - Returns: 可以直接拿去設 videoGravity 的模式。長寬比還不知道（或算出來是
+    ///   0／NaN）時退回 `fill`——那是舊行為，也是唯一不會留黑邊的選擇，
+    ///   等長寬比到手再改一次 gravity 就好（改 gravity 不必重播）。
+    public func resolved(videoAspect: Double?, screenAspect: Double) -> VideoScaleMode {
+        guard needsVideoAspect else { return self }
+        guard let videoAspect, videoAspect.isFinite, videoAspect > 0,
+              screenAspect.isFinite, screenAspect > 0 else { return .fill }
+        // 影片比螢幕寬 → 對齊高度會讓左右滿出去（＝aspectFill）；對齊寬度則留上下黑邊。
+        let videoIsWider = videoAspect >= screenAspect
+        switch self {
+        case .matchHeight: return videoIsWider ? .fill : .fit
+        case .matchWidth: return videoIsWider ? .fit : .fill
+        default: return self
+        }
+    }
+
+    /// 認不得的值當成 `fill`，不要讓整份設定解不開。
+    ///
+    /// 具體會遇到的是 0.6.3 短暫存在過的 `"stretch"`（拉扁那個，已移除）：
+    /// 那時寫下的備份與 UserDefaults 現在還在磁碟上，硬要解就是整份設定壞掉。
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = VideoScaleMode(rawValue: raw) ?? .fill
+    }
+
+    /// `resolved(seed:)` 的 seed：同一台螢幕上的同一支影片得到同一顆。
+    public static func seed(displayUUID: String, video: String) -> UInt64 {
+        // \u{0} 當分隔：檔名與螢幕 UUID 都不可能含它，("a","bc") 與 ("ab","c") 才不會撞。
+        SeededGenerator.seed(cycleNonce: 0, displayUUID: displayUUID + "\u{0}" + video)
+    }
+}
+
 /// 哪台螢幕要播哪一支。純邏輯，跟 AppKit 無關，所以測得到。
 public enum VideoPlaybackPlan {
 

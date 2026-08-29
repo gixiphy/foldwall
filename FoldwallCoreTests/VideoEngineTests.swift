@@ -35,6 +35,146 @@ final class VideoEngineTests: XCTestCase {
     }
 }
 
+final class VideoScaleModeTests: XCTestCase {
+
+    /// 使用者看得到的四個選項，名稱要跟「系統設定 → 桌布」對得上。
+    func testEveryScaleModeExplainsItself() {
+        for scale in VideoScaleMode.allCases {
+            XCTAssertFalse(scale.displayName.isEmpty)
+            XCTAssertFalse(scale.summary.isEmpty)
+        }
+        XCTAssertEqual(VideoScaleMode.fill.displayName, "填滿螢幕")
+        XCTAssertEqual(VideoScaleMode.fit.displayName, "符合螢幕大小")
+        XCTAssertEqual(VideoScaleMode.matchHeight.displayName, "填滿高度")
+        XCTAssertEqual(VideoScaleMode.matchWidth.displayName, "填滿寬度")
+    }
+
+    /// **沒有拉扁那一種。** 桌布把每支影片都變形不是選項，所以「擴充至填滿螢幕」
+    /// （0.6.3 短暫做過）已經移除，剩下的每一種都保持長寬比。
+    func testNoModeDistortsTheVideo() {
+        XCTAssertNil(VideoScaleMode(rawValue: "stretch"))
+        XCTAssertFalse(VideoScaleMode.allCases.contains { $0.displayName.contains("擴充") })
+    }
+
+    /// 舊設定與舊備份裡還躺著 `"stretch"`。解不開的話整份設定會壞掉，
+    /// 所以認不得的值一律當 `.fill`。
+    func testUnknownRawValueDecodesAsFill() throws {
+        let data = Data("\"stretch\"".utf8)
+        XCTAssertEqual(try JSONDecoder().decode(VideoScaleMode.self, from: data), .fill)
+    }
+
+    /// `random` 不是一種縮放，是「從那三種抽一種」——不能出現在可抽的池裡，
+    /// 否則抽到它就得再抽一次，遲早有人寫成無窮迴圈。
+    func testRandomIsNotOneOfTheConcreteChoices() {
+        XCTAssertEqual(VideoScaleMode.concrete, [.fill, .fit])
+        XCTAssertFalse(VideoScaleMode.concrete.contains(.random))
+        // 「填滿高度／寬度」對任何一支影片來說結果都是 fill 或 fit 其中之一，
+        // 放進抽籤池只會改機率，不會多出一種看得出差別的畫面。
+        XCTAssertFalse(VideoScaleMode.concrete.contains(.matchHeight))
+        XCTAssertFalse(VideoScaleMode.concrete.contains(.matchWidth))
+    }
+
+    /// 「填滿高度」＝影片的高貼齊螢幕。影片比螢幕寬時左右會滿出去，那正是 aspectFill；
+    /// 反過來留左右黑邊，那正是 aspectFit。這條等式是不用自己算 layer 框的理由。
+    func testMatchHeightReducesToFillOnlyWhenTheVideoIsWider() {
+        let ultrawide = 32.0 / 9      // 螢幕
+        let cinema = 21.0 / 9         // 比 16:9 寬，但比螢幕窄
+        let portrait = 9.0 / 16
+
+        XCTAssertEqual(
+            VideoScaleMode.matchHeight.resolved(videoAspect: 40.0 / 9, screenAspect: ultrawide),
+            .fill, "比螢幕還寬 → 貼齊高度就會左右滿出去")
+        XCTAssertEqual(
+            VideoScaleMode.matchHeight.resolved(videoAspect: cinema, screenAspect: ultrawide),
+            .fit, "比螢幕窄 → 貼齊高度會留左右黑邊")
+        XCTAssertEqual(
+            VideoScaleMode.matchHeight.resolved(videoAspect: portrait, screenAspect: ultrawide),
+            .fit)
+    }
+
+    /// 「填滿寬度」是對稱的那一半。
+    func testMatchWidthIsTheMirrorOfMatchHeight() {
+        let screen = 16.0 / 10
+        for video in [9.0 / 16, 1.0, 16.0 / 9, 32.0 / 9] {
+            let height = VideoScaleMode.matchHeight.resolved(
+                videoAspect: video, screenAspect: screen)
+            let width = VideoScaleMode.matchWidth.resolved(
+                videoAspect: video, screenAspect: screen)
+            XCTAssertNotEqual(height, width,
+                              "同一支影片不可能兩邊都貼齊又都滿出去（正方形螢幕除外）")
+        }
+    }
+
+    /// 長寬比還不知道（第一格還沒解出來）時退回填滿——那是舊行為，
+    /// 也是唯一不留黑邊的選擇。拿到比例再改一次 gravity 就好，不必重播。
+    func testUnknownAspectFallsBackToFill() {
+        XCTAssertEqual(
+            VideoScaleMode.matchHeight.resolved(videoAspect: nil, screenAspect: 16.0 / 9), .fill)
+        XCTAssertEqual(
+            VideoScaleMode.matchWidth.resolved(videoAspect: 0, screenAspect: 16.0 / 9), .fill)
+        XCTAssertEqual(
+            VideoScaleMode.matchHeight.resolved(videoAspect: .nan, screenAspect: 16.0 / 9), .fill)
+        XCTAssertEqual(
+            VideoScaleMode.matchWidth.resolved(videoAspect: 1.5, screenAspect: 0), .fill)
+    }
+
+    /// 其他模式不受長寬比影響——化簡只針對「填滿高度／寬度」。
+    func testOtherModesIgnoreAspectRatios() {
+        for scale in [VideoScaleMode.fill, .fit, .random] {
+            XCTAssertEqual(scale.resolved(videoAspect: 9.0 / 16, screenAspect: 32.0 / 9), scale)
+        }
+        XCTAssertFalse(VideoScaleMode.fill.needsVideoAspect)
+        XCTAssertTrue(VideoScaleMode.matchHeight.needsVideoAspect)
+        XCTAssertTrue(VideoScaleMode.matchWidth.needsVideoAspect)
+    }
+
+    func testFixedModesResolveToThemselves() {
+        for scale in VideoScaleMode.allCases where scale != .random {
+            XCTAssertEqual(scale.resolved(seed: 1), scale)
+            XCTAssertEqual(scale.resolved(seed: 999), scale, "固定的縮放不該看 seed")
+        }
+    }
+
+    /// 同一支影片在同一台螢幕上永遠抽到同一種：畫面重新套用設定的時機很多，
+    /// 每次重擲的話播到一半會突然換一種縮放。
+    func testRandomIsStableForTheSameScreenAndVideo() {
+        let seed = VideoScaleMode.seed(displayUUID: "SCREEN-1", video: "/videos/a.mp4")
+        let first = VideoScaleMode.random.resolved(seed: seed)
+        for _ in 0..<20 {
+            XCTAssertEqual(VideoScaleMode.random.resolved(seed: seed), first)
+        }
+        XCTAssertTrue(VideoScaleMode.concrete.contains(first), "抽出來的必須是具體的縮放")
+    }
+
+    /// 不同影片要抽得出不同縮放，否則「隨機」等於固定一種。
+    func testRandomVariesAcrossVideos() {
+        let picks = Set((0..<50).map { index in
+            VideoScaleMode.random.resolved(
+                seed: VideoScaleMode.seed(displayUUID: "SCREEN-1",
+                                          video: "/videos/\(index).mp4"))
+        })
+        XCTAssertGreaterThan(picks.count, 1)
+    }
+
+    /// 螢幕不同也要分得開：兩台播同一支時抽到一樣的話，多螢幕看起來就沒在隨機。
+    func testSeedSeparatesScreenFromVideo() {
+        XCTAssertNotEqual(
+            VideoScaleMode.seed(displayUUID: "A", video: "BC"),
+            VideoScaleMode.seed(displayUUID: "AB", video: "C"),
+            "螢幕與影片之間要有分隔，不能直接字串相接")
+        XCTAssertNotEqual(
+            VideoScaleMode.seed(displayUUID: "SCREEN-1", video: "/videos/a.mp4"),
+            VideoScaleMode.seed(displayUUID: "SCREEN-2", video: "/videos/a.mp4"))
+    }
+
+    func testScaleModesSurviveEncoding() throws {
+        for scale in VideoScaleMode.allCases {
+            let data = try JSONEncoder().encode(scale)
+            XCTAssertEqual(try JSONDecoder().decode(VideoScaleMode.self, from: data), scale)
+        }
+    }
+}
+
 final class VideoPlaybackPlanTests: XCTestCase {
 
     private func video(_ name: String) -> URL { URL(filePath: "/videos/\(name)") }

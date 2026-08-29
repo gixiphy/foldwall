@@ -26,7 +26,9 @@ func bisectShowStill(videoURL: URL?, cachedStill: CGImage?, rootLayer: CALayer, 
         layer = existing
     } else {
         layer = AVSampleBufferDisplayLayer()
-        layer.videoGravity = .resizeAspectFill
+        layer.videoGravity = WallpaperPrefs.shared.videoScaleMode
+            .resolved(seed: videoURL?.path ?? "")
+            .resolved(still: cachedStill, surface: rootLayer.bounds.size).videoGravity
         layer.frame = rootLayer.bounds
         layer.contentsScale = rootLayer.contentsScale
         CATransaction.begin()

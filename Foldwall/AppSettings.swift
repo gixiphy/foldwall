@@ -25,6 +25,7 @@ final class AppSettings {
         static let videoEngine = "videoEngine"
         static let desktopVideoLayer = "desktopVideoLayer"
         static let videoPlaybackMode = "videoPlaybackMode"
+        static let videoScaleMode = "videoScaleMode"
         static let montagePieceCount = "montagePieceCount"
         static let showCredits = "showCredits"
         static let iCloudSyncEnabled = "iCloudSyncEnabled"
@@ -110,6 +111,14 @@ final class AppSettings {
         didSet { defaults.set(videoPlaybackMode.rawValue, forKey: Key.videoPlaybackMode) }
     }
 
+    /// 影片怎麼填進螢幕：填滿／符合／擴充／隨機。**兩條引擎都吃這個設定**。
+    ///
+    /// **預設填滿螢幕**（`.fill`）：0.6.2 以前是寫死的 `resizeAspectFill`，
+    /// 缺 key 走這個預設，升上來的人畫面不會變。
+    var videoScaleMode: VideoScaleMode {
+        didSet { defaults.set(videoScaleMode.rawValue, forKey: Key.videoScaleMode) }
+    }
+
     /// 影片輪替走到哪了。存起來才能跨重啟繼續輪，不會每次都從頭那幾支開始。
     var videoRotationCursor: Int {
         didSet { defaults.set(videoRotationCursor, forKey: Key.videoRotationCursor) }
@@ -186,6 +195,8 @@ final class AppSettings {
             .flatMap(DesktopVideoLayer.init(rawValue:))) ?? .belowIcons
         self.videoPlaybackMode = (defaults.string(forKey: Key.videoPlaybackMode)
             .flatMap(VideoPlaybackMode.init(rawValue:))) ?? .repeatAll
+        self.videoScaleMode = (defaults.string(forKey: Key.videoScaleMode)
+            .flatMap(VideoScaleMode.init(rawValue:))) ?? .fill
         self.videoRotationCursor = defaults.integer(forKey: Key.videoRotationCursor)   // 缺 key = 0
         self.videoRemoteCursor = defaults.integer(forKey: Key.videoRemoteCursor)
         // 以系統實際狀態為準，不信 defaults：使用者可能在系統設定裡關掉

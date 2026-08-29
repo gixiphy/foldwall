@@ -458,6 +458,23 @@ private struct VideoSettings: View {
                     .onChange(of: settings.videoEngine) { _, _ in onEngineChange() }
                 }
 
+                // 縮放兩條引擎都吃，所以不在下面那個 if 裡面。
+                controlRow("縮放") {
+                    Picker("", selection: $settings.videoScaleMode) {
+                        ForEach(VideoScaleMode.allCases, id: \.self) { scale in
+                            Text(scale.displayName).tag(scale)
+                        }
+                    }
+                    .onChange(of: settings.videoScaleMode) { _, _ in
+                        coordinator.videoScaleModeDidChange()
+                    }
+                }
+
+                Text(settings.videoScaleMode.summary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 if settings.videoEngine == .desktopWindow {
                     controlRow("圖層") {
                         Picker("", selection: $settings.desktopVideoLayer) {

@@ -38,6 +38,7 @@ struct MenuBarView: View {
                     Button("下一片影片") { coordinator.nextVideo() }
                         .keyboardShortcut("n", modifiers: [.command, .shift])
                     playbackModeMenu
+                    scaleModeMenu
                 }
                 displayMenu
             }
@@ -152,6 +153,22 @@ struct MenuBarView: View {
                         Label(mode.displayName,
                               systemImage: settings.videoPlaybackMode == mode ? "checkmark" : "")
                     }
+                }
+            }
+        }
+    }
+
+    /// 影片怎麼填進螢幕。跟播放方式不同，**兩條引擎都吃**這個設定，
+    /// 所以不必分引擎顯示。
+    private var scaleModeMenu: some View {
+        Menu("影片縮放") {
+            ForEach(VideoScaleMode.allCases, id: \.self) { scale in
+                Button {
+                    settings.videoScaleMode = scale
+                    coordinator.videoScaleModeDidChange()
+                } label: {
+                    Label(scale.displayName,
+                          systemImage: settings.videoScaleMode == scale ? "checkmark" : "")
                 }
             }
         }

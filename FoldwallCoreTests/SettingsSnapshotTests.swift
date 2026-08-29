@@ -22,6 +22,7 @@ final class SettingsSnapshotTests: XCTestCase {
             videoEngine: .desktopWindow,
             desktopVideoLayer: .belowIcons,
             videoPlaybackMode: .shuffle,
+            videoScaleMode: .fit,
             launchAtLogin: true
         )
     }
@@ -89,6 +90,19 @@ final class SettingsSnapshotTests: XCTestCase {
 
         let decoded = try SettingsSnapshotCodec.decode(stripped)
         XCTAssertEqual(decoded.videoPlaybackMode, .repeatAll)
+        XCTAssertEqual(decoded.folders, sample().folders, "其他欄位不受影響")
+    }
+
+    /// 舊版寫下的備份沒有 `videoScaleMode`。`.fill` 就是那時寫死的行為。
+    func testOlderBackupWithoutScaleModeStillDecodes() throws {
+        let encoded = try SettingsSnapshotCodec.encode(sample())
+        var json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        json.removeValue(forKey: "videoScaleMode")
+        let stripped = try JSONSerialization.data(withJSONObject: json)
+
+        let decoded = try SettingsSnapshotCodec.decode(stripped)
+        XCTAssertEqual(decoded.videoScaleMode, .fill)
         XCTAssertEqual(decoded.folders, sample().folders, "其他欄位不受影響")
     }
 
