@@ -326,6 +326,18 @@ private struct VideoSettings: View {
         )
     }
 
+    private func playlistBinding(_ id: UUID) -> Binding<Bool> {
+        Binding(
+            get: { settings.playlistSources.first { $0.id == id }?.isEnabled ?? false },
+            set: { isOn in
+                guard let index = settings.playlistSources.firstIndex(where: { $0.id == id })
+                else { return }
+                settings.playlistSources[index].isEnabled = isOn
+                coordinator.folderUsageDidChange()
+            }
+        )
+    }
+
     @State private var libraryPath = VideoLibrary.documentsURL
 
     /// 由 coordinator 公布，不是自己去數目錄——這扇窗開著的時候背景還在拷，
@@ -373,7 +385,8 @@ private struct VideoSettings: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 6) {
-                    if coordinator.folders.isEmpty && videoSources.isEmpty {
+                    if coordinator.folders.isEmpty && videoSources.isEmpty
+                        && settings.playlistSources.isEmpty {
                         Text("還沒有任何來源。到「來源」分頁加入。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -387,6 +400,15 @@ private struct VideoSettings: View {
                     ForEach(videoSources) { config in
                         Toggle(isOn: remoteBinding(config.id)) {
                             Label(config.displayTitle, systemImage: "globe")
+                        }
+                        .toggleStyle(.checkbox)
+                    }
+                    // 片單也是影片來源。少了這段，加了片單的人在這頁看不到它，
+                    // 只能從「來源」分頁猜它到底有沒有被用到。
+                    ForEach(settings.playlistSources) { source in
+                        Toggle(isOn: playlistBinding(source.id)) {
+                            Label(source.displayTitle,
+                                  systemImage: "list.and.film")
                         }
                         .toggleStyle(.checkbox)
                     }
@@ -1876,6 +1898,28 @@ private struct AboutSettings: View {
                             Text("未安裝——`brew install yt-dlp`")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    // ffmpeg 也要講：YouTube 現在幾乎只給分離的視訊／音訊軌，
+                    // 沒有它 yt-dlp 一支也合不出來（Requested format is not available）。
+                    HStack(spacing: 6) {
+                        if let ffmpeg = VideoDownloadTool.locateFFmpeg() {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                            Text(ffmpeg.path)
+                                .font(.caption.monospaced())
+                                .textSelection(.enabled)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        } else {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            Text("沒有 ffmpeg——`brew install ffmpeg`。"
+                                 + "YouTube 這類站只提供分離的視訊／音訊軌，"
+                                 + "沒有它就合併不了，片單一支也抓不下來。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .textSelection(.enabled)
                         }
                     }
