@@ -40,6 +40,13 @@ final class PlaylistSourceTests: XCTestCase {
         XCTAssertFalse(args.contains("-f"), "解析階段不該挑格式")
     }
 
+    /// yt-dlp 解不動一個片單時常常還是 exit 0，唯一的線索是 stderr 那行 WARNING。
+    /// 關掉警告等於把診斷丟了，錯誤訊息就只能猜。
+    func testListArgumentsKeepWarnings() {
+        let args = VideoDownloadTool.listArguments(url: "https://example.com/list")
+        XCTAssertFalse(args.contains("--no-warnings"), "警告是唯一能分辨『解不動』的線索")
+    }
+
     // MARK: - 解析輸出
 
     private let playlist = Data("""
@@ -83,6 +90,23 @@ final class PlaylistSourceTests: XCTestCase {
         let empty = Data(#"{"title":"空的","entries":[]}"#.utf8)
         XCTAssertThrowsError(try PlaylistCodec.parse(empty)) {
             XCTAssertEqual($0 as? PlaylistCodec.Failure, .empty)
+        }
+    }
+
+    /// yt-dlp 數得出有幾支卻一支也沒給——那不是空片單，是它解不動（多半版本太舊）。
+    /// 兩者要分開，訊息才講得出「去更新 yt-dlp」而不是「你的片單是空的」。
+    func testCountedButUnextractedIsNotAnEmptyPlaylist() {
+        let stale = Data(#"{"title":"最高の夏","playlist_count":5,"entries":[]}"#.utf8)
+        XCTAssertThrowsError(try PlaylistCodec.parse(stale)) {
+            XCTAssertEqual($0 as? PlaylistCodec.Failure, .nothingExtracted(expected: 5))
+        }
+    }
+
+    /// 有 entries 但每一支都沒 id，也算解不動——只要 yt-dlp 說裡面有東西。
+    func testCountedButAllEntriesUnusable() {
+        let stale = Data(#"{"playlist_count":2,"entries":[{"title":"沒有 id"}]}"#.utf8)
+        XCTAssertThrowsError(try PlaylistCodec.parse(stale)) {
+            XCTAssertEqual($0 as? PlaylistCodec.Failure, .nothingExtracted(expected: 2))
         }
     }
 

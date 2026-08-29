@@ -79,6 +79,14 @@ public enum PlaylistCodec {
         case unreadable
         /// 解析得出來但一支都沒有——多半是網址指到的不是片單。
         case empty
+        /// yt-dlp 說裡面有幾支，卻一支也沒吐出來。
+        ///
+        /// **這不是空片單。** yt-dlp 自認成功（exit 0），只是 extractor
+        /// 追不上網站改版——多半是它自己太舊。2026 年中 YouTube 把片單頁
+        /// 換成 lockup view model，舊版就是這個症狀：`playlist_count` 有數字、
+        /// `entries` 全空，stderr 留一行 WARNING。分開這個 case 才講得出
+        /// 「去更新 yt-dlp」，而不是把使用者往「片單是不是空的」帶偏。
+        case nothingExtracted(expected: Int)
     }
 
     /// 解析 `yt-dlp --flat-playlist --dump-single-json` 的輸出。
@@ -97,7 +105,11 @@ public enum PlaylistCodec {
         }
 
         let entries = rawEntries.compactMap(entry(from:))
-        guard !entries.isEmpty else { throw Failure.empty }
+        guard !entries.isEmpty else {
+            // yt-dlp 自己數過有幾支，卻一支也沒給——那就不是空片單，是它解不動。
+            let expected = (root["playlist_count"] as? Int) ?? 0
+            throw expected > 0 ? Failure.nothingExtracted(expected: expected) : Failure.empty
+        }
         return (title, entries)
     }
 
@@ -119,11 +131,15 @@ extension VideoDownloadTool {
     ///
     /// `--flat-playlist` 是關鍵：少了它，yt-dlp 會逐支去抓完整 metadata，
     /// 一個幾百支的片單要跑很久，而我們這一步只需要 id 與標題。
+    ///
+    /// **不加 `--no-warnings`。** yt-dlp 解不動一個片單時常常還是 exit 0，
+    /// 唯一的線索就是 stderr 那行 WARNING；關掉它等於把診斷丟了，
+    /// 上層只能報一句「這個網址裡沒有可用的影片」，方向剛好相反。
+    /// stderr 另外接著，不會混進 stdout 的 JSON。
     public static func listArguments(url: String) -> [String] {
         [
             "--flat-playlist",
             "--dump-single-json",
-            "--no-warnings",
             "--ignore-config",
             url,
         ]

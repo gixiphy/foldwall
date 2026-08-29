@@ -125,22 +125,44 @@ final class PlaylistService {
         process.executableURL = tool
         process.arguments = VideoDownloadTool.listArguments(url: url)
         let output = Pipe()
-        let errors = Pipe()
         process.standardOutput = output
-        process.standardError = errors
+
+        // stderr 收到暫存檔，不用第二條 pipe。
+        //
+        // 兩條 pipe 的話：我們卡在讀 stdout（片單 JSON 可以很大），
+        // 子行程卡在寫 stderr（pipe 只有 64 KB 緩衝，滿了就 block）——互等，死鎖。
+        // 拿掉 `--no-warnings` 之後 stderr 的量不再是可以忽略的一兩行，
+        // 這條路就得堵起來。檔案沒有緩衝上限，寫多少都不會擋住誰。
+        let log = FileManager.default.temporaryDirectory
+            .appending(path: "foldwall-ytdlp-\(UUID().uuidString).log")
+        FileManager.default.createFile(atPath: log.path(percentEncoded: false), contents: nil)
+        let logHandle = try? FileHandle(forWritingTo: log)
+        if let logHandle { process.standardError = logHandle }
+        defer {
+            try? logHandle?.close()
+            try? FileManager.default.removeItem(at: log)
+        }
+
+        // 解析途中要拿它來補說明，所以先在 do 外面備好。
+        var diagnostics = ""
 
         do {
             try process.run()
             let data = output.fileHandleForReading.readDataToEndOfFile()
-            let errorData = errors.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
+            diagnostics = String(decoding: (try? Data(contentsOf: log)) ?? Data(), as: UTF8.self)
 
             guard process.terminationStatus == 0 else {
-                let text = String(decoding: errorData, as: UTF8.self)
-                return .failure(Self.explain(text))
+                return .failure(Self.explain(diagnostics))
             }
             let parsed = try PlaylistCodec.parse(data)
+            // 解出東西了但 yt-dlp 有話說（例如少數幾支跳過）：記一筆就好，不打擾使用者。
+            if let warning = Self.firstWarning(diagnostics) {
+                Log.video.info("yt-dlp 提醒：\(warning, privacy: .public)")
+            }
             return .success(title: parsed.title, entries: parsed.entries)
+        } catch PlaylistCodec.Failure.nothingExtracted(let expected) {
+            return .failure(Self.explainNothingExtracted(expected: expected, diagnostics))
         } catch PlaylistCodec.Failure.empty {
             return .failure("這個網址裡沒有可用的影片")
         } catch PlaylistCodec.Failure.unreadable {
@@ -156,6 +178,31 @@ final class PlaylistService {
         else { return "解析失敗" }
         if let range = line.range(of: "ERROR: ") { return String(line[range.upperBound...]) }
         return String(line)
+    }
+
+    /// yt-dlp 數得出片單裡有幾支，卻一支也沒解出來。
+    ///
+    /// 它自己認為成功（exit 0），所以這裡**不能**說「這個網址裡沒有可用的影片」——
+    /// 那會把人推去檢查片單，而片單好好的。真正的原因幾乎都是 yt-dlp 太舊：
+    /// 網站改版後 extractor 認不得新的頁面結構，只在 stderr 留一行 WARNING。
+    /// 把那行原文一起帶出來，使用者要回報也有東西可貼。
+    nonisolated private static func explainNothingExtracted(
+        expected: Int, _ diagnostics: String
+    ) -> String {
+        var message = "yt-dlp 看得到這個片單有 \(expected) 支，卻一支也解不出來"
+            + "——多半是 yt-dlp 太舊，跟不上網站改版。"
+            + "用 `brew upgrade yt-dlp` 更新後再按「重新解析」。"
+        if let warning = firstWarning(diagnostics) { message += "\n\n\(warning)" }
+        return message
+    }
+
+    /// stderr 裡第一行 WARNING，去掉 yt-dlp 自己的前綴。
+    nonisolated private static func firstWarning(_ text: String) -> String? {
+        guard let line = text.split(separator: "\n").first(where: { $0.contains("WARNING") })
+        else { return nil }
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        if let range = trimmed.range(of: "WARNING: ") { return String(trimmed[range.upperBound...]) }
+        return trimmed
     }
 
     // MARK: - 按需下載
