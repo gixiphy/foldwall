@@ -21,6 +21,19 @@ public enum VideoBudget {
     public static let rotationCount = Int.max
     /// 一輪的總量上限，也是這條管線唯一的煞車。
     public static let rotationBytes: Int64 = 2 * 1024 * 1024 * 1024
+
+    /// **游標一輪往前推多少**——只有額度的四分之一。
+    ///
+    /// 選片窗口是 2 GB，但每輪只把游標推 512 MB，所以連續兩輪的窗口有四分之三
+    /// 重疊。VideoLibrary.sync 本來就只拷「還沒部署的」、只刪「不在這輪裡的」，
+    /// 於是每輪實際搬動的量從 2 GB 掉到 512 MB。
+    ///
+    /// 為什麼不是把額度調小：使用者要的是 container 裡有 2 GB 可播的內容，
+    /// 不是每 30 分鐘從 NAS 上重新拉 2 GB 過來。窗口大小與換片速度是兩件事。
+    ///
+    /// 代價是走完整個片庫要四倍的輪數。輪替本來就不保證多快走完（5114 支影片、
+    /// 一輪 30 分鐘），而每輪少拷 1.5 GB 是使用者當下就感覺得到的。
+    public static let advanceDivisor: Int64 = 4
     /// **單檔上限**。這道關卡最有效：桌布循環素材是幾十 MB，不是幾 GB。
     ///
     /// 實測（2026-08-25）沒有這道關卡時，路徑排序最前面的 5 支完整長片
@@ -50,42 +63,57 @@ public enum VideoBudget {
     /// 為什麼要輪替而不是囤滿：container 是實體拷貝，一座 NAS 全拷過去就是幾百 GB。
     /// 額度花完就收手，下次螢幕亮起再換一批，整個片庫照樣輪得到。
     /// 片庫總量小於額度時整庫都會帶進去，游標繞回原點——那本來就該是全部。
+    /// - Parameter advanceBytes: 游標這一輪最多往前推多少位元組。預設是
+    ///   `totalBytes / advanceDivisor`——窗口重疊，每輪只搬四分之一的量。
+    ///   傳 `totalBytes` 就是舊行為（整個窗口每輪全換）。
     public static func rotate(
         _ videos: [URL],
         cursor: Int,
         count: Int = rotationCount,
         totalBytes: Int64 = rotationBytes,
         maxFileBytes: Int64 = maxFileBytes,
+        advanceBytes: Int64? = nil,
         size: (URL) -> Int64?
     ) -> Rotation {
         let ordered = videos.sorted { $0.standardizedFileURL.path < $1.standardizedFileURL.path }
         guard !ordered.isEmpty else { return Rotation() }
 
+        // 至少 1：0 會讓游標永遠停在原地，每輪都是同一批，片庫再也走不完。
+        let advanceLimit = max(1, advanceBytes ?? (totalBytes / advanceDivisor))
         let start = ordered.indices.contains(cursor) ? cursor : 0
         var rotation = Rotation(nextCursor: start)
         var usedBytes: Int64 = 0
+        // 游標推過的量。第一支一定算得進去（0 < advanceLimit），所以每輪保證前進。
+        var advancedBytes: Int64 = 0
 
         // 最多繞一圈：整批都超過單檔上限時才不會空轉
         for step in 0..<ordered.count {
             let index = (start + step) % ordered.count
 
+            let advancing = advancedBytes < advanceLimit
+
             // 讀不到大小（離線／壞檔）或超過單檔上限：這支永遠進不來，游標推過去。
             guard let bytes = size(ordered[index]), bytes <= maxFileBytes else {
-                rotation.nextCursor = (index + 1) % ordered.count
+                if advancing { rotation.nextCursor = (index + 1) % ordered.count }
                 continue
             }
             // 第一支一定收（否則遇到接近上限的檔會整輪空手）
             guard rotation.selected.isEmpty || usedBytes + bytes <= totalBytes else {
                 // 額度不夠這支——不是它的錯。游標**停在它身上**，下一輪從它接著走；
                 // 推過去的話它每輪都剛好在額度用完的那個位置被跳過，永遠輪不到。
-                rotation.nextCursor = index
+                if advancing { rotation.nextCursor = index }
                 break
             }
 
             rotation.selected.append(ordered[index])
             usedBytes += bytes
             rotation.usedBytes = usedBytes
-            rotation.nextCursor = (index + 1) % ordered.count
+            // 游標只推到 advanceLimit 為止，選片卻繼續填到 totalBytes：
+            // 兩輪的窗口因此重疊，重疊的部分不必重拷。
+            if advancing {
+                advancedBytes += bytes
+                rotation.nextCursor = (index + 1) % ordered.count
+            }
             if rotation.selected.count >= count { break }
         }
         return rotation

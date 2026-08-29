@@ -18,7 +18,8 @@ final class VideoBudgetTests: XCTestCase {
 
         XCTAssertEqual(rotation.selected.count, 60, "600 MB 遠在 2 GB 額度內，全部帶走")
         XCTAssertEqual(rotation.usedBytes, 600 * mb)
-        XCTAssertEqual(rotation.nextCursor, 0, "整庫都帶到了，游標繞回原點")
+        XCTAssertEqual(rotation.nextCursor, 52,
+                       "游標只推 512 MB（52 支）——窗口 2 GB 但每輪只換四分之一")
     }
 
     /// 大檔就少帶幾支——「幾支視影片大小而定」由額度決定。
@@ -33,19 +34,36 @@ final class VideoBudgetTests: XCTestCase {
         XCTAssertEqual(rotation.usedBytes, 2048 * mb)
     }
 
-    /// 額度用完時卡在門口的那一支，下一輪要第一個輪到。
+    /// 額度用完時卡在門口的那一支，下一輪一定要輪到。
     ///
     /// 舊寫法在 break 之前就把游標推過它了：支數上限還在的時候看不太出來，
     /// 改成純額度驅動之後，每輪都會固定漏掉「剛好塞不下」的那一支——
     /// 九支 900 MB 的片庫連續輪五輪只碰得到六支。
-    func testClipThatOverflowsTheBudgetLeadsTheNextRotation() {
+    func testClipThatOverflowsTheBudgetIsNotSkipped() {
         let videos = ["a", "b", "c"].map { url("\($0).mp4") }
         let first = VideoBudget.rotate(videos, cursor: 0) { _ in 900 * self.mb }
-        XCTAssertEqual(first.selected.map(\.lastPathComponent), ["a.mp4", "b.mp4"])
-        XCTAssertEqual(first.nextCursor, 2, "游標停在塞不下的 c 身上，不是推過它")
+        XCTAssertEqual(first.selected.map(\.lastPathComponent), ["a.mp4", "b.mp4"],
+                       "c 這輪塞不下")
 
         let second = VideoBudget.rotate(videos, cursor: first.nextCursor) { _ in 900 * self.mb }
-        XCTAssertEqual(second.selected.first?.lastPathComponent, "c.mp4")
+        XCTAssertTrue(second.selected.map(\.lastPathComponent).contains("c.mp4"),
+                      "下一輪一定要輪到它，不能每輪都剛好卡在額度用完的位置被跳過")
+    }
+
+    /// **重疊才是省下拷貝的地方。** 窗口 2 GB、游標一輪只推 512 MB，
+    /// 所以連續兩輪選到的東西大半相同——VideoLibrary.sync 只拷沒部署過的，
+    /// 每輪實際搬動的量就從 2 GB 掉到 512 MB。
+    func testConsecutiveRotationsOverlapSoMostFilesStay() {
+        let videos = (0..<200).map { url("v\(String(format: "%03d", $0)).mp4") }
+        let size: (URL) -> Int64? = { _ in 20 * self.mb }
+
+        let first = VideoBudget.rotate(videos, cursor: 0, size: size)
+        let second = VideoBudget.rotate(videos, cursor: first.nextCursor, size: size)
+
+        let kept = Set(first.selected).intersection(Set(second.selected))
+        let fresh = second.selected.count - kept.count
+        XCTAssertEqual(first.selected.count, 102, "2 GB ÷ 20 MB")
+        XCTAssertEqual(fresh, 26, "一輪只換 512 MB ÷ 20 MB = 26 支，其餘留在原地")
     }
 
     /// 游標會繞回開頭，整個片庫才輪得到。
@@ -55,20 +73,32 @@ final class VideoBudgetTests: XCTestCase {
 
         XCTAssertEqual(rotation.selected.map(\.lastPathComponent), ["d.mp4", "a.mp4"],
                        "1800 MB 之後再一支就超過 2 GB")
-        XCTAssertEqual(rotation.nextCursor, 1)
+        XCTAssertEqual(rotation.nextCursor, 0, "第一支就用掉 900 MB＞512 MB 的推進上限")
     }
 
     /// 連續輪替走遍全庫，不會卡在同一批。
+    ///
+    /// 900 MB 一支、推進上限 512 MB，所以每輪游標只前進一支——走完九支要八輪。
+    /// 這就是重疊窗口的代價：換得慢，但每輪不必重拷整個窗口。
     func testRotationEventuallyCoversEverything() {
         let videos = (0..<9).map { url("v\($0).mp4") }
         var cursor = 0
         var seen: Set<String> = []
-        for _ in 0..<5 {
+        for _ in 0..<8 {
             let rotation = VideoBudget.rotate(videos, cursor: cursor) { _ in 900 * self.mb }
             seen.formUnion(rotation.selected.map(\.lastPathComponent))
             cursor = rotation.nextCursor
         }
-        XCTAssertEqual(seen.count, 9, "一輪兩支，五輪之後九支都輪過了")
+        XCTAssertEqual(seen.count, 9, "八輪之後九支都輪過了")
+    }
+
+    /// 推進上限再小，游標每輪至少要前進一支——否則片庫永遠走不完。
+    func testCursorAlwaysAdvancesEvenWhenTheAdvanceLimitIsTiny() {
+        let videos = ["a", "b"].map { url("\($0).mp4") }
+        let rotation = VideoBudget.rotate(
+            videos, cursor: 0, advanceBytes: 0
+        ) { _ in 900 * self.mb }
+        XCTAssertEqual(rotation.nextCursor, 1, "停在原地的話每輪都是同一批")
     }
 
     /// GB 級長片是片庫內容，不是桌布素材：直接跳過，繼續看後面的。
