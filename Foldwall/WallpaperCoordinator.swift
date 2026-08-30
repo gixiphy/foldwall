@@ -345,19 +345,29 @@ final class WallpaperCoordinator {
 
     /// 剛切到另一個 Space：把最新那張合成結果補設到它上面（見 observeSystem 的註解）。
     ///
-    /// **extension 引擎有影片在架上時不碰。** 那時桌布選擇是使用者在系統設定裡選的
-    /// extension，從這裡寫圖等於每切一次 Space 就把影片桌布擠掉一次。用 deployedCount
-    /// 而不是 videoReady 當門：規則暫停影片時（影片還在架上）也一樣不該去搶桌布。
+    /// **extension 引擎有影片在架上時，掛著影片桌布的螢幕不碰**（跟 refresh 的
+    /// skipIDs 同一套判斷）：從這裡寫圖等於每切一次 Space 就把使用者選的影片桌布
+    /// 擠掉一次。用 deployedCount 而不是 videoReady 當門：規則暫停影片時（影片還
+    /// 在架上）也一樣不該去搶桌布。關掉開關後 container 清空、deployedCount 歸零，
+    /// 這裡就會把背景 Space 殘留的 extension 選擇換回蒙太奇。
     /// 桌面視窗引擎沒有這個衝突——影片是壓在桌面上的視窗，底下的靜態桌布本來就是我們的。
     private func activeSpaceDidChange() {
-        if settings.videoEngine.needsDeployment, videoLibrary.deployedCount > 0 { return }
-        let displays = ScreenBridge.currentDisplays()
+        var displays = ScreenBridge.currentDisplays()
+        if settings.videoEngine.needsDeployment, videoLibrary.deployedCount > 0 {
+            let presence = Self.extensionPresence()
+            displays = displays.filter { !presence.covers($0.uuid) }
+        }
         guard !displays.isEmpty else { return }
         Task { [pipeline] in
             for display in displays {
                 await pipeline.reapplyLatestStill(display: display)
             }
         }
+    }
+
+    /// 系統設定裡把桌布選成我們 extension 的螢幕（見 WallpaperStoreProbe）。
+    private static func extensionPresence() -> WallpaperStoreProbe.ExtensionPresence {
+        WallpaperStoreProbe.extensionPresence(marker: VideoLibrary.extensionBundleID)
     }
 
     // MARK: - 使用者動作
@@ -709,9 +719,19 @@ final class WallpaperCoordinator {
             && (settings.videoEngine.needsDeployment
                 ? deployed > 0
                 : desktopVideo.activeCount > 0)
-        let skipIDs = videoReady
-            ? Set(displays.filter { settings.videoScreens.contains($0.uuid) }.map(\.id))
-            : Set<CGDirectDisplayID>()
+        let skipIDs: Set<CGDirectDisplayID>
+        if !videoReady {
+            skipIDs = []
+        } else if settings.videoEngine.needsDeployment {
+            // extension 引擎：哪台螢幕播影片是使用者在**系統設定**裡選的，
+            // videoScreens 是空的——改問系統桌布 Store。桌布選擇指著我們
+            // extension 的螢幕不准寫蒙太奇：setDesktopImageURL 會改寫前景
+            // Space 的桌布選擇，等於每輪 refresh 把使用者選的影片桌布擠掉一次。
+            let presence = Self.extensionPresence()
+            skipIDs = Set(displays.filter { presence.covers($0.uuid) }.map(\.id))
+        } else {
+            skipIDs = Set(displays.filter { settings.videoScreens.contains($0.uuid) }.map(\.id))
+        }
         status.videoReady = videoReady
         let tier = currentTier()
 
