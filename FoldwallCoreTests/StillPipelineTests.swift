@@ -299,6 +299,32 @@ final class StillPipelineTests: XCTestCase {
         XCTAssertEqual(remaining.count, 2, "只留當前輪＋上一輪")
     }
 
+    /// Space 切換的補設要拿「最新一輪」那張：nonce 最大的、而且只認自己螢幕的檔。
+    func testLatestStillPicksNewestNonceForOwnDisplay() async throws {
+        let pipeline = makePipeline()
+        for nonce in UInt64(1)...2 {
+            try await pipeline.refresh(displays: [displayA, displayB], skipIDs: [],
+                                       pool: SourcePool(pool), effect: .none, tier: .full,
+                                       cycleNonce: nonce)
+        }
+        let latest = try XCTUnwrap(pipeline.latestStillURL(displayUUID: displayA.uuid))
+        XCTAssertEqual(latest.lastPathComponent, "AAAA-2.jpg")
+        XCTAssertNil(pipeline.latestStillURL(displayUUID: "CCCC"), "沒合成過的螢幕要回 nil")
+    }
+
+    func testReapplyLatestStillSetsNewestAndSkipsUnknownDisplay() async throws {
+        let pipeline = makePipeline()
+        try await pipeline.refresh(displays: [displayA], skipIDs: [], pool: SourcePool(pool),
+                                   effect: .none, tier: .full, cycleNonce: 7)
+        let written = desktop.calls.count
+        await pipeline.reapplyLatestStill(display: displayA)
+        XCTAssertEqual(desktop.calls.count, written + 1)
+        XCTAssertEqual(desktop.calls.last?.url.lastPathComponent, "AAAA-7.jpg")
+
+        await pipeline.reapplyLatestStill(display: displayB)
+        XCTAssertEqual(desktop.calls.count, written + 1, "沒有現成合成結果就什麼都不設")
+    }
+
     func testWallpapersLiveOutsideCaches() {
         XCTAssertFalse(paths.wallpapers.path.contains("/Caches/"),
                        "桌布檔放 Caches 會被系統清掉＝重登入黑屏")

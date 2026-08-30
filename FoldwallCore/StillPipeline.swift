@@ -224,6 +224,34 @@ public struct StillPipeline: Sendable {
         return outcome
     }
 
+    /// 把磁碟上最新那張合成結果補設到這台螢幕**目前的** Space。
+    ///
+    /// `setDesktopImageURL` 只寫得到使用者當下站著的那個 Space——所以每輪 refresh
+    /// 之後，其他 Space 要嘛停在舊圖，要嘛（關掉影片桌布後）還掛著 extension 的
+    /// 影片選擇。Space 切換的那一刻呼叫這支補一次；**不重新合成**，沿用最後寫出
+    /// 的那張，已經是同一張的 Space 系統會自己略過。
+    public func reapplyLatestStill(display: DisplayTarget) async {
+        guard let url = latestStillURL(displayUUID: display.uuid) else { return }
+        try? await desktop.setDesktopImageURL(url, for: display.id)
+    }
+
+    /// 磁碟上這台螢幕最新一輪的合成結果；nil＝還沒合成過（或快取被清）。
+    /// 檔名是 `<uuid>-<nonce>.jpg`（見 `write`），取 nonce 最大的那份。
+    func latestStillURL(displayUUID: String) -> URL? {
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: paths.wallpapers, includingPropertiesForKeys: nil)) ?? []
+        func nonce(_ url: URL) -> UInt64? {
+            url.deletingPathExtension().lastPathComponent.split(separator: "-").last
+                .flatMap { UInt64($0) }
+        }
+        return files
+            .filter {
+                $0.pathExtension == "jpg"
+                    && $0.lastPathComponent.hasPrefix("\(displayUUID)-")
+            }
+            .max { (nonce($0) ?? 0) < (nonce($1) ?? 0) }
+    }
+
     // MARK: - 私有
 
     /// 依 seed 抽片並載入。**只物化抽中的**，不是整池下載。

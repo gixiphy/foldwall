@@ -234,6 +234,17 @@ final class WallpaperCoordinator {
             }
         }
 
+        // Space 切換：setDesktopImageURL 只寫得到**目前的** Space，所以剛切過來的
+        // 桌面可能還停在舊狀態——最要緊的是關掉影片桌布之後，背景 Space 的桌布
+        // 選擇還指著 extension，殭屍影片會一直播下去（前景那個在關閉當下就被
+        // 蒙太奇蓋掉了）。切換的那一刻補設最新那張，兩種情況都會收斂。
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.activeSpaceDidChange() }
+        }
+
         // 磁碟掛上／卸下。NAS 掛回來要是只等下一輪 refresh 的可讀性檢查發現，
         // 最慢是一個換圖間隔（設「每天」就是一天），而重掃本身還要幾分鐘——
         // 早一步知道就早一步開始。
@@ -329,6 +340,23 @@ final class WallpaperCoordinator {
             try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled else { return }
             dispatch(.screensChanged(now: .now))
+        }
+    }
+
+    /// 剛切到另一個 Space：把最新那張合成結果補設到它上面（見 observeSystem 的註解）。
+    ///
+    /// **extension 引擎有影片在架上時不碰。** 那時桌布選擇是使用者在系統設定裡選的
+    /// extension，從這裡寫圖等於每切一次 Space 就把影片桌布擠掉一次。用 deployedCount
+    /// 而不是 videoReady 當門：規則暫停影片時（影片還在架上）也一樣不該去搶桌布。
+    /// 桌面視窗引擎沒有這個衝突——影片是壓在桌面上的視窗，底下的靜態桌布本來就是我們的。
+    private func activeSpaceDidChange() {
+        if settings.videoEngine.needsDeployment, videoLibrary.deployedCount > 0 { return }
+        let displays = ScreenBridge.currentDisplays()
+        guard !displays.isEmpty else { return }
+        Task { [pipeline] in
+            for display in displays {
+                await pipeline.reapplyLatestStill(display: display)
+            }
         }
     }
 

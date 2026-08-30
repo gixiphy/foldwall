@@ -159,6 +159,54 @@ final class PhospheneExtension: NSObject, AppExtension {
         }
     }
 
+    /// Move every surface off videos that are no longer in the library.
+    ///
+    /// The app only ever says "the library changed" — a rotation swapped the deployed
+    /// batch, or the video-wallpaper toggle emptied the container. Deleting the file
+    /// does NOT stop a live renderer: AVPlayer holds the open file handle, so a deleted
+    /// video plays on forever (and pins its disk blocks). The app can't stop it either —
+    /// its montage takeover goes through `setDesktopImageURL`, which only reaches the
+    /// **active** Space, so a background Space keeps the extension choice and the zombie
+    /// video with it.
+    ///
+    /// Empty library (the toggle was switched off): tear every surface down, same as a
+    /// remove-choice from System Settings. Non-empty (a rotation): retarget the orphaned
+    /// surfaces to a surviving video in place — no teardown, no black flash.
+    static func reconcileSurfacesWithLibrary() {
+        Lifecycle.queue.async {
+            let surviving = VideoLibrary.shared.entries.map(\.id)
+            let orphaned = WallpaperState.shared.trackedVideoIDs()
+                .subtracting(surviving)
+                .subtracting([shuffleChoiceID])
+
+            for videoID in orphaned.sorted() {
+                var replacement: String?
+                if let next = surviving.randomElement(),
+                   let url = VideoLibrary.shared.videoURL(for: next) {
+                    replacement = next
+                    for key in WallpaperState.shared.keys(forVideoID: videoID) {
+                        if let renderer = WallpaperState.shared.context(for: key)?.renderer {
+                            renderer.variantSelector = makeVariantSelector(choice: next, fallback: url)
+                            renderer.switchVideo(to: url)
+                        }
+                        WallpaperState.shared.updateVideoID(next, for: key)
+                    }
+                    extensionLog("[Extension] Library lost \(videoID) — retargeted its surface(s) to \(next)")
+                } else {
+                    let stopped = WallpaperState.shared.removeContexts(forVideoID: videoID)
+                    extensionLog("[Extension] Library emptied — tore down \(stopped.count) surface(s) for \(videoID)")
+                }
+                if WallpaperState.shared.currentVideoID == videoID {
+                    WallpaperState.shared.currentVideoID = replacement
+                    WallpaperState.shared.cachedThumbnailURL = nil
+                    WallpaperPrefs.shared.updateCurrentVideo()
+                }
+            }
+            if !orphaned.isEmpty { recomputeAndApplyPolicy() }
+            ShuffleController.shared.reconcileWithLibrary()
+        }
+    }
+
     /// Listen for Darwin notifications from the main app when it adds/removes videos.
     private func observeLibraryChanges() {
         let center = CFNotificationCenterGetDarwinNotifyCenter()
@@ -170,6 +218,7 @@ final class PhospheneExtension: NSObject, AppExtension {
                 VideoLibrary.shared.scan()
                 extensionLog("[Extension] Library changed notification received, re-scanned")
                 SettingsPush.libraryDidChange()
+                PhospheneExtension.reconcileSurfacesWithLibrary()
             },
             "app.foldwall.libraryChanged" as CFString,
             nil,

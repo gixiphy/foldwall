@@ -214,6 +214,21 @@ final class WallpaperState: Sendable {
         }
     }
 
+    /// All distinct choice ids tracked by acquired contexts (the shuffle sentinel
+    /// included when a shuffle surface is live). The library-change reconcile diffs
+    /// this against the surviving entries to find surfaces playing removed videos.
+    func trackedVideoIDs() -> Set<String> {
+        lock.withLock { state in Set(state.contexts.values.compactMap(\.videoID)) }
+    }
+
+    /// The surface keys currently tracking the given choice id. For retargeting a
+    /// surface in place (renderer swap + `updateVideoID`) rather than tearing it down.
+    func keys(forVideoID videoID: String) -> [DisplayKey] {
+        lock.withLock { state in
+            state.contexts.filter { $0.value.videoID == videoID }.map(\.key)
+        }
+    }
+
     /// Live renderers whose context tracks the given choice id (e.g. the shuffle
     /// sentinel). Snapshot copy under lock, safe to use outside.
     func renderers(forVideoID videoID: String) -> [VideoRenderer] {

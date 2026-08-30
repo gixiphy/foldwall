@@ -130,6 +130,44 @@ final class ShuffleController: @unchecked Sendable {
         }
     }
 
+    /// The library changed underneath us (a rotation batch, or the app emptied the
+    /// container). A live renderer keeps playing a deleted file forever — AVPlayer
+    /// holds the open file handle — so shuffle surfaces have to be moved off a
+    /// removed pick here: retarget them to a surviving video, or tear them down
+    /// entirely when nothing remains (the video-wallpaper toggle was switched off).
+    func reconcileWithLibrary() {
+        queue.async { [self] in
+            let library = VideoLibrary.shared.entries.map(\.id)
+            guard !library.isEmpty else {
+                let stopped = WallpaperState.shared.removeContexts(forVideoID: shuffleChoiceID)
+                if !stopped.isEmpty {
+                    extensionLog("[Shuffle] library emptied — tore down \(stopped.count) shuffle surface(s)")
+                }
+                lock.withLock { $0.pick = nil }
+                UserDefaults.standard.removeObject(forKey: Keys.pick)
+                syncActiveWithContexts()
+                return
+            }
+            let current = lock.withLock(\.pick)
+            if let current, library.contains(current) { return }
+            guard let next = library.randomElement(),
+                  let url = VideoLibrary.shared.videoURL(for: next) else { return }
+            setPick(next)
+            let renderers = WallpaperState.shared.renderers(forVideoID: shuffleChoiceID)
+            for renderer in renderers {
+                renderer.variantSelector = makeVariantSelector(choice: next, fallback: url,
+                                                               isShuffle: true)
+                renderer.switchVideo(to: url)
+            }
+            if !renderers.isEmpty {
+                PhospheneExtension.recomputeAndApplyPolicy()
+                WallpaperState.shared.currentVideoID = next
+                WallpaperPrefs.shared.updateCurrentVideo()
+            }
+            extensionLog("[Shuffle] pick left the library — retargeted \(renderers.count) renderer(s) to \(next)")
+        }
+    }
+
     // MARK: - Advance triggers
 
     /// Display woke (or screen unlocked). Applies the onWakeup schedule, flushes a
