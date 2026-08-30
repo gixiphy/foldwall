@@ -345,15 +345,15 @@ final class WallpaperCoordinator {
 
     /// 剛切到另一個 Space：把最新那張合成結果補設到它上面（見 observeSystem 的註解）。
     ///
-    /// **extension 引擎有影片在架上時，掛著影片桌布的螢幕不碰**（跟 refresh 的
-    /// skipIDs 同一套判斷）：從這裡寫圖等於每切一次 Space 就把使用者選的影片桌布
-    /// 擠掉一次。用 deployedCount 而不是 videoReady 當門：規則暫停影片時（影片還
-    /// 在架上）也一樣不該去搶桌布。關掉開關後 container 清空、deployedCount 歸零，
-    /// 這裡就會把背景 Space 殘留的 extension 選擇換回蒙太奇。
+    /// **extension 引擎下，掛著影片桌布的螢幕不碰**（跟 refresh 的 skipIDs 同一套
+    /// 判斷）：從這裡寫圖等於每切一次 Space 就把使用者選的影片桌布擠掉一次。
+    /// 門只有影片桌布總開關——規則暫停影片、或正在換一批影片（container 短暫空著）
+    /// 都不該去搶桌布。關掉開關後 container 清空、選擇失效，這裡就會把背景 Space
+    /// 殘留的 extension 選擇換回蒙太奇。
     /// 桌面視窗引擎沒有這個衝突——影片是壓在桌面上的視窗，底下的靜態桌布本來就是我們的。
     private func activeSpaceDidChange() {
         var displays = ScreenBridge.currentDisplays()
-        if settings.videoEngine.needsDeployment, videoLibrary.deployedCount > 0 {
+        if settings.videoEngine.needsDeployment, settings.videoWallpaperEnabled {
             let presence = Self.extensionPresence()
             displays = displays.filter { !presence.covers($0.uuid) }
         }
@@ -720,15 +720,23 @@ final class WallpaperCoordinator {
                 ? deployed > 0
                 : desktopVideo.activeCount > 0)
         let skipIDs: Set<CGDirectDisplayID>
-        if !videoReady {
-            skipIDs = []
-        } else if settings.videoEngine.needsDeployment {
+        if settings.videoEngine.needsDeployment {
             // extension 引擎：哪台螢幕播影片是使用者在**系統設定**裡選的，
             // videoScreens 是空的——改問系統桌布 Store。桌布選擇指著我們
             // extension 的螢幕不准寫蒙太奇：setDesktopImageURL 會改寫前景
             // Space 的桌布選擇，等於每輪 refresh 把使用者選的影片桌布擠掉一次。
-            let presence = Self.extensionPresence()
-            skipIDs = Set(displays.filter { presence.covers($0.uuid) }.map(\.id))
+            //
+            // **這條不看 videoReady。** 換一批影片時帳本會先清空再重填，
+            // deployedCount 有好幾分鐘是 0（同一輪 refresh 才剛把 sync 丟出去），
+            // 用 videoReady 當門就會在那個空窗裡把選擇擠掉——這正是 0.6.6
+            // 那次「系統桌布 extension 不見了」的成因。判斷交給 extensionSkipIDs。
+            skipIDs = WallpaperStoreProbe.extensionSkipIDs(
+                displays: displays,
+                videoWallpaperEnabled: settings.videoWallpaperEnabled,
+                presence: Self.extensionPresence(),
+            )
+        } else if !videoReady {
+            skipIDs = []
         } else {
             skipIDs = Set(displays.filter { settings.videoScreens.contains($0.uuid) }.map(\.id))
         }

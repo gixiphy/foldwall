@@ -134,6 +134,52 @@ final class WallpaperStoreProbeTests: XCTestCase {
         XCTAssertTrue(probe().isEmpty)
     }
 
+    // MARK: - 這輪要跳過哪些螢幕
+
+    private func target(_ uuid: String, id: CGDirectDisplayID) -> DisplayTarget {
+        DisplayTarget(id: id, uuid: uuid, canvas: CGSize(width: 100, height: 100))
+    }
+
+    /// 換一批影片時 container 會短暫空著。那個空窗裡照樣不准寫蒙太奇——
+    /// 用「備妥幾支」當門就是 0.6.6 那次把使用者的影片桌布擠掉的成因。
+    func testSkipsChosenDisplayWhileTheLibraryIsBeingRedeployed() {
+        let displays = [target("AAAA", id: 1), target("BBBB", id: 2)]
+        let skipped = WallpaperStoreProbe.extensionSkipIDs(
+            displays: displays,
+            videoWallpaperEnabled: true,
+            presence: .init(displayUUIDs: ["AAAA"]),
+        )
+        XCTAssertEqual(skipped, [1])
+    }
+
+    func testEverywhereSkipsAllDisplays() {
+        let displays = [target("AAAA", id: 1), target("BBBB", id: 2)]
+        let skipped = WallpaperStoreProbe.extensionSkipIDs(
+            displays: displays, videoWallpaperEnabled: true, presence: .init(everywhere: true),
+        )
+        XCTAssertEqual(skipped, [1, 2])
+    }
+
+    /// 關掉總開關＝把螢幕交回蒙太奇：container 會被清空，殘留的選擇播不出東西。
+    func testTurningTheVideoWallpaperOffReclaimsTheDisplay() {
+        let displays = [target("AAAA", id: 1)]
+        let skipped = WallpaperStoreProbe.extensionSkipIDs(
+            displays: displays,
+            videoWallpaperEnabled: false,
+            presence: .init(displayUUIDs: ["AAAA"]),
+        )
+        XCTAssertTrue(skipped.isEmpty)
+    }
+
+    /// 沒選我們的螢幕不受影響。
+    func testDisplaysWithoutOurChoiceAreNotSkipped() {
+        let displays = [target("AAAA", id: 1), target("BBBB", id: 2)]
+        let skipped = WallpaperStoreProbe.extensionSkipIDs(
+            displays: displays, videoWallpaperEnabled: true, presence: .init(),
+        )
+        XCTAssertTrue(skipped.isEmpty)
+    }
+
     /// 真機的 Store 讀得動、且目前（全 image）不會誤報。
     /// 在別的環境（CI、沙盒）讀不到檔就跳過，不當失敗。
     func testRealStoreParsesWithoutFalsePositive() throws {

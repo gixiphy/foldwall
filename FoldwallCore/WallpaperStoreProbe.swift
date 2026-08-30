@@ -15,6 +15,7 @@
 //  這棵子樹的某處；搜位元組對格式變動最不敏感。讀不到檔（沙盒、路徑變了）
 //  就回「都沒有」——行為退回修正前，不會反過來把蒙太奇凍住。
 
+import CoreGraphics
 import Foundation
 
 public enum WallpaperStoreProbe {
@@ -36,6 +37,27 @@ public enum WallpaperStoreProbe {
         }
 
         public var isEmpty: Bool { !everywhere && displayUUIDs.isEmpty }
+    }
+
+    /// extension 引擎下，這輪靜態要跳過哪些螢幕。
+    ///
+    /// **只看總開關與桌布選擇，不看 container 裡當下備妥幾支影片。** 換一批影片
+    /// 時帳本會先清空再重填（走 SMB 是好幾分鐘），中間 deployedCount 是 0；
+    /// 拿它當門，那個空窗裡的每一輪 refresh 都會對所有螢幕寫蒙太奇，把使用者
+    /// 在系統設定裡選好的影片桌布擠成圖片。選擇一旦被改寫就回不去：
+    /// WallpaperAgent 不再拉起 appex，系統設定裡的 Foldwall 區塊也跟著空掉
+    /// （host 只在 extension 重裝或系統更新後才重新問一次）。
+    ///
+    /// 影片還沒拷完不是問題——那台螢幕上原本的影片桌布會繼續播（或短暫停在
+    /// 最後一格），拷完就接上。要收回那台螢幕的唯一條件是**關掉影片桌布總開關**：
+    /// 那時 container 會被清空，選擇也失效，蒙太奇該把它接回來。
+    public static func extensionSkipIDs(
+        displays: [DisplayTarget],
+        videoWallpaperEnabled: Bool,
+        presence: ExtensionPresence
+    ) -> Set<CGDirectDisplayID> {
+        guard videoWallpaperEnabled else { return [] }
+        return Set(displays.filter { presence.covers($0.uuid) }.map(\.id))
     }
 
     public static func defaultStoreURL(
