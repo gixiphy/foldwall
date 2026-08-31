@@ -136,11 +136,19 @@ extension VideoDownloadTool {
     /// 唯一的線索就是 stderr 那行 WARNING；關掉它等於把診斷丟了，
     /// 上層只能報一句「這個網址裡沒有可用的影片」，方向剛好相反。
     /// stderr 另外接著，不會混進 stdout 的 JSON。
-    public static func listArguments(url: String) -> [String] {
+    ///
+    /// **cookie 也要帶。** 會員限定、私人、年齡限制的片單沒有登入狀態就是解不出來，
+    /// 而 YouTube 的反機器人也是在這一步先擋（`Sign in to confirm you're not a bot`）。
+    /// 只在下載那一步帶的話，症狀會變成「片單一支都列不出來」，而使用者在設定裡
+    /// 明明已經授權過了。
+    public static func listArguments(
+        url: String, cookies: VideoCookieSource = .none
+    ) -> [String] {
         [
             "--flat-playlist",
             "--dump-single-json",
             "--ignore-config",
+        ] + cookies.arguments + [
             url,
         ]
     }

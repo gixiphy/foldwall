@@ -65,6 +65,13 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
     public var videoPlaybackMode: VideoPlaybackMode
     /// 影片怎麼填進螢幕。兩條引擎都吃，跟硬體無關，可以跨機搬。
     public var videoScaleMode: VideoScaleMode
+    /// 片單影片的下載畫質上限。跟硬體無關，是純粹的偏好，可以跨機搬。
+    ///
+    /// **`videoCookieSource` 刻意不收。** 那是「借哪個瀏覽器的登入狀態」，
+    /// 而另一台不見得裝了那個瀏覽器，就算裝了 TCC 與鑰匙串的授權也得重來一次。
+    /// 同步它只會讓另一台顯示成「已設定 Chrome」，實際上一個 cookie 都讀不到——
+    /// 跟 `videoScreens` 是同一類錯誤：看起來搬過去了，其實是搬了個空殼。
+    public var videoDownloadQuality: VideoDownloadQuality
 
     public var launchAtLogin: Bool
 
@@ -86,6 +93,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         desktopVideoLayer: DesktopVideoLayer,
         videoPlaybackMode: VideoPlaybackMode = .repeatAll,
         videoScaleMode: VideoScaleMode = .fill,
+        videoDownloadQuality: VideoDownloadQuality = .default,
         launchAtLogin: Bool
     ) {
         self.version = version
@@ -105,6 +113,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         self.desktopVideoLayer = desktopVideoLayer
         self.videoPlaybackMode = videoPlaybackMode
         self.videoScaleMode = videoScaleMode
+        self.videoDownloadQuality = videoDownloadQuality
         self.launchAtLogin = launchAtLogin
     }
 
@@ -115,7 +124,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         case remoteSources, playlistSources, sourceRules
         case intervalMinutes, effect, montagePieceCount
         case videoWallpaperEnabled, videoEngine, desktopVideoLayer
-        case videoPlaybackMode, videoScaleMode
+        case videoPlaybackMode, videoScaleMode, videoDownloadQuality
         case launchAtLogin
     }
 
@@ -149,6 +158,9 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         // 舊備份沒有縮放：.fill 就是 0.6.2 以前寫死的行為，還原後畫面不會變。
         videoScaleMode = try c.decodeIfPresent(
             VideoScaleMode.self, forKey: .videoScaleMode) ?? .fill
+        // 舊備份沒有畫質上限：.p1080 就是 0.6.8 以前寫死的值，還原後畫質不會變。
+        videoDownloadQuality = try c.decodeIfPresent(
+            VideoDownloadQuality.self, forKey: .videoDownloadQuality) ?? .default
     }
 
     /// 內容是否等價——**不看 `savedAt` 與 `deviceName`**。

@@ -692,7 +692,8 @@ final class WallpaperCoordinator {
         // 兩條路的池都是從那裡撈（見 RemoteVideoPool.cachedFiles），所以只要
         // 「解析」與「按需下載」有跑，播放端不必各接一次。
         if !effects.contains(.pauseVideo) {
-            playlists.refreshIfNeeded(settings.playlistSources)
+            playlists.refreshIfNeeded(settings.playlistSources,
+                                      cookies: settings.videoCookieSource)
             requestPlaylistDownloadIfNeeded(wanted: videoScreenCount())
         }
 
@@ -1012,7 +1013,8 @@ final class WallpaperCoordinator {
         }
 
         guard let next = playlists.pending(for: sources).first else { return }
-        playlists.requestDownload(next)
+        playlists.requestDownload(next, quality: settings.videoDownloadQuality,
+                                  cookies: settings.videoCookieSource)
     }
 
     /// 把 0.5.1 以前存在 `~/Movies/Foldwall` 的下載影片搬進影片快取。
@@ -1184,6 +1186,7 @@ final class WallpaperCoordinator {
             desktopVideoLayer: settings.desktopVideoLayer,
             videoPlaybackMode: settings.videoPlaybackMode,
             videoScaleMode: settings.videoScaleMode,
+            videoDownloadQuality: settings.videoDownloadQuality,
             launchAtLogin: settings.launchAtLogin
         )
     }
@@ -1225,6 +1228,7 @@ final class WallpaperCoordinator {
         settings.desktopVideoLayer = snapshot.desktopVideoLayer
         settings.videoPlaybackMode = snapshot.videoPlaybackMode
         settings.videoScaleMode = snapshot.videoScaleMode
+        settings.videoDownloadQuality = snapshot.videoDownloadQuality
         // videoScreens 刻意不套：它是這台機器的硬體設定，見 SettingsSnapshot 檔頭。
         settings.launchAtLogin = snapshot.launchAtLogin
         settings.photoAlbums = Self.matchAlbums(snapshot.albums, against: albums)

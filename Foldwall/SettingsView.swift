@@ -804,6 +804,7 @@ private struct RemoteSourceSettings: View {
                     PlaylistSourceDetail(
                         source: $settings.playlistSources[index],
                         service: coordinator.playlistService,
+                        settings: settings,
                         onChange: { coordinator.sourcesDidChange() }
                     )
                     .id(settings.playlistSources[index].id)
@@ -857,7 +858,13 @@ private struct PlaylistSourceDetail: View {
 
     @Binding var source: PlaylistSource
     @Bindable var service: PlaylistService
+    /// 畫質與登入狀態是**所有片單共用**的一份設定，不是每條片單各一份：
+    /// 那是「這台機器怎麼跟 yt-dlp 打交道」，跟片單是誰無關。
+    @Bindable var settings: AppSettings
     var onChange: () -> Void
+
+    @State private var check: VideoCookieCheck?
+    @State private var isChecking = false
 
     private static var note: AttributedString {
         let text = String(localized: """
@@ -910,6 +917,90 @@ private struct PlaylistSourceDetail: View {
             }
 
             Section {
+                Picker("畫質上限", selection: $settings.videoDownloadQuality) {
+                    ForEach(VideoDownloadQuality.allCases) { quality in
+                        Text(quality.displayName).tag(quality)
+                    }
+                }
+                Text(settings.videoDownloadQuality.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("""
+                    只抓視訊軌，不抓音訊——桌布本來就靜音播放，音訊抓下來只是佔空間。\
+                    同一個解析度底下挑位元率最高的那條流：站方常常把最糊的那條排在最前面。
+                    """)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("改了只影響之後才抓的影片。已經在快取裡的不會重抓——要換掉就去「快取位置」清掉。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                Text("下載畫質")
+            } footer: {
+                Text("所有片單共用這一份設定。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Picker("借登入狀態", selection: $settings.videoCookieSource) {
+                    ForEach(VideoCookieSource.allCases) { browser in
+                        if browser.isInstalled() {
+                            Text(browser.displayName).tag(browser)
+                        } else {
+                            // 沒裝的還是列出來但標明白：直接藏掉的話，
+                            // 使用者只會覺得「怎麼沒有 Brave」而不知道是沒裝。
+                            Text("\(browser.displayName)（這台沒裝）").tag(browser)
+                        }
+                    }
+                }
+                .onChange(of: settings.videoCookieSource) { _, _ in check = nil }
+
+                Text("""
+                    會員限定、年齡限制、私人的片單，沒有登入狀態就是解不出來；\
+                    有些站也把較好的那幾條流留給登入的人。YouTube 擋自動化時\
+                    （「Sign in to confirm you're not a bot」）同樣要靠它才過得去。
+                    """)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if settings.videoCookieSource != .none {
+                    HStack {
+                        if isChecking {
+                            ProgressView().controlSize(.small)
+                            Text("測試中…").font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            checkStatus
+                        }
+                        Spacer()
+                        Button("測試授權", action: runCheck)
+                            .disabled(isChecking)
+                    }
+                    checkGuidance
+                }
+            } header: {
+                Text("借瀏覽器的登入狀態")
+            } footer: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("""
+                        Foldwall 自己不讀、不存、也不傳送任何 cookie——只是把「去哪個瀏覽器拿」\
+                        這個選擇交給 yt-dlp，讀取跟使用都發生在它的行程裡，全程在這台電腦上。\
+                        設定裡存下來的只有瀏覽器的名字。
+                        """)
+                    Text("""
+                        要留意的一件事：拿已登入的帳號去大量抓片，該站有可能把那個帳號\
+                        判成自動化行為。在意的話用備用帳號登入那個瀏覽器。
+                        """)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section {
                 Text(Self.note)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -923,6 +1014,92 @@ private struct PlaylistSourceDetail: View {
         .onAppear { if service.entryCount(for: source) == 0 { reload() } }
     }
 
+    /// 測試結果的一行摘要。
+    @ViewBuilder private var checkStatus: some View {
+        switch check {
+        case nil:
+            Text("還沒測試過。").font(.caption).foregroundStyle(.secondary)
+        case .ok(let count, let stream):
+            Label(okSummary(count: count, stream: stream), systemImage: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.green)
+        case .needsFullDiskAccess:
+            Label("還要一道系統授權", systemImage: "lock.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        case .needsKeychain:
+            Label("鑰匙串那關沒過", systemImage: "key.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        case .browserNotFound:
+            Label("在這台機器上找不到它的 cookie", systemImage: "questionmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+        case .failed(let reason):
+            Label(reason, systemImage: "exclamationmark.circle")
+                .font(.caption)
+                .foregroundStyle(.red)
+                .lineLimit(3)
+        }
+    }
+
+    /// 一句一個 key，不用「開頭 ＋ 續句」拼——中文接得順的兩截，
+    /// 換成英文的語序不一定還接得起來。
+    private func okSummary(count: Int?, stream: String?) -> String {
+        switch (count, stream) {
+        case let (count?, stream?):
+            String(localized: "讀到 \(count) 個 cookie，這支目前會拿到 \(stream)。")
+        case let (count?, nil):
+            String(localized: "讀到 \(count) 個 cookie。")
+        case let (nil, stream?):
+            String(localized: "可以用，這支目前會拿到 \(stream)。")
+        case (nil, nil):
+            String(localized: "可以用。")
+        }
+    }
+
+    /// 失敗時要做什麼。**每一種失敗都給得出下一步**，否則測試只是換個地方說「不行」。
+    @ViewBuilder private var checkGuidance: some View {
+        switch check {
+        case .needsFullDiskAccess:
+            VStack(alignment: .leading, spacing: 6) {
+                Text("""
+                    Safari 的 cookie 放在系統保護的位置。要授權的是 **Foldwall**，不是 yt-dlp——\
+                    子行程的授權判定歸屬於把它叫起來的那個 app。
+                    """)
+                Text("""
+                    在「完全取用磁碟」裡把 Foldwall 打開，然後回來再測一次。\
+                    清單裡沒有 Foldwall 的話，用左下角的 ＋ 從「應用程式」裡加進去。
+                    """)
+                Button("打開「完全取用磁碟」", action: openFullDiskAccess)
+                    .controlSize(.small)
+                Text("不想開這道權限的話，改用 Firefox：它的 cookie 不在保護區裡，不必授權。")
+            }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        case .needsKeychain:
+            Text("""
+                \(settings.videoCookieSource.displayName) 的 cookie 是加密的，金鑰在鑰匙串裡。\
+                再測一次，跳出詢問時選「總是允許」。剛才如果按了「拒絕」，\
+                到「鑰匙串存取」裡把那筆 Safe Storage 的權限改回來。
+                """)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        case .browserNotFound:
+            Text("""
+                這台機器上沒有它的 cookie 資料庫——多半是沒裝，或裝了但還沒開過。\
+                先開一次那個瀏覽器並登入要抓的站，再回來測。
+                """)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        case .ok, .failed, nil:
+            EmptyView()
+        }
+    }
+
     private var status: String {
         guard source.url != nil else { return String(localized: "還沒填網址。") }
         let total = service.entryCount(for: source)
@@ -933,8 +1110,29 @@ private struct PlaylistSourceDetail: View {
 
     private func reload() {
         guard source.url != nil else { return }
-        service.forceRefresh(source)
+        service.forceRefresh(source, cookies: settings.videoCookieSource)
         onChange()
+    }
+
+    private func runCheck() {
+        isChecking = true
+        let quality = settings.videoDownloadQuality
+        let cookies = settings.videoCookieSource
+        Task {
+            let result = await service.verifyCookies(quality: quality, cookies: cookies)
+            // 測試跑的時候使用者可能又換了一個瀏覽器——那份結果講的是舊選擇，丟掉。
+            guard cookies == settings.videoCookieSource else { isChecking = false; return }
+            check = result
+            isChecking = false
+        }
+    }
+
+    /// 系統設定的「隱私權與安全性 → 完全取用磁碟」。
+    private func openFullDiskAccess() {
+        guard let url = URL(string:
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")
+        else { return }
+        NSWorkspace.shared.open(url)
     }
 }
 

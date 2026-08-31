@@ -111,7 +111,7 @@ final class PlaylistService {
     // MARK: - 解析
 
     /// 需要的話在背景重新解析片單。**不阻塞呼叫端。**
-    func refreshIfNeeded(_ sources: [PlaylistSource]) {
+    func refreshIfNeeded(_ sources: [PlaylistSource], cookies: VideoCookieSource) {
         // 版本提示要打一次網路，所以綁在「真的有片單來源」上：沒用到這功能的人
         // 不該因為開了 App 就多一個對外請求。
         if !sources.isEmpty { readToolVersion() }
@@ -138,15 +138,15 @@ final class PlaylistService {
                 .map { Date.now.timeIntervalSince($0) > Self.refreshInterval } ?? true
             guard stale, !refreshing.contains(source.id) else { continue }
             Log.video.info("片單開始解析：\(source.displayTitle, privacy: .public)")
-            resolve(source)
+            resolve(source, cookies: cookies)
         }
     }
 
     /// 使用者按「重新整理」或剛改完網址：跳過節流。
-    func forceRefresh(_ source: PlaylistSource) {
+    func forceRefresh(_ source: PlaylistSource, cookies: VideoCookieSource) {
         lastRefresh[source.id] = nil
         guard !refreshing.contains(source.id) else { return }
-        resolve(source)
+        resolve(source, cookies: cookies)
     }
 
     func entryCount(for source: PlaylistSource) -> Int { entries[source.id]?.count ?? 0 }
@@ -159,7 +159,7 @@ final class PlaylistService {
         return (entries[source.id] ?? []).count { downloaded[$0.id] != nil }
     }
 
-    private func resolve(_ source: PlaylistSource) {
+    private func resolve(_ source: PlaylistSource, cookies: VideoCookieSource) {
         guard let url = source.url, let tool = VideoDownloadTool.locate() else {
             lastError = String(localized: "找不到 yt-dlp。用 `brew install yt-dlp` 安裝後再試。")
             // 以前只寫進 lastError，而那要打開設定視窗才看得到——
@@ -176,7 +176,7 @@ final class PlaylistService {
 
         Task { @MainActor [weak self] in
             let outcome = await Task.detached(priority: .utility) {
-                Self.runList(tool: tool, url: url.absoluteString,
+                Self.runList(tool: tool, url: url.absoluteString, cookies: cookies,
                              version: version, latest: latest, outdated: outdated)
             }.value
 
@@ -209,11 +209,12 @@ final class PlaylistService {
     }
 
     nonisolated private static func runList(
-        tool: URL, url: String, version: String?, latest: String?, outdated: Bool
+        tool: URL, url: String, cookies: VideoCookieSource,
+        version: String?, latest: String?, outdated: Bool
     ) -> ListOutcome {
         let process = Process()
         process.executableURL = tool
-        process.arguments = VideoDownloadTool.listArguments(url: url)
+        process.arguments = VideoDownloadTool.listArguments(url: url, cookies: cookies)
         let output = Pipe()
         process.standardOutput = output
 
@@ -316,6 +317,55 @@ final class PlaylistService {
         return trimmed
     }
 
+    // MARK: - 借登入狀態
+
+    /// 測試「借瀏覽器登入狀態」這件事到底成不成。**真的跑一次 yt-dlp，不用猜的。**
+    ///
+    /// 為什麼不從外面判斷：能不能讀到 cookie 牽涉 TCC、鑰匙串、瀏覽器版本三件事，
+    /// 而 Safari 的 cookie 檔沒授權時連「存不存在」都問不出來——用檔案在不在去猜，
+    /// 猜出來的會是「你沒裝 Safari」。跑一次就沒有模糊空間了。
+    ///
+    /// 靶子優先用**使用者自己片單裡的第一支**：他要抓的是那個站，不是 YouTube。
+    /// 一支片單都還沒解析出來時才退回 yt-dlp 官方那支測試影片。
+    func verifyCookies(
+        quality: VideoDownloadQuality, cookies: VideoCookieSource
+    ) async -> VideoCookieCheck {
+        guard let tool = VideoDownloadTool.locate() else {
+            return .failed(String(localized: "找不到 yt-dlp。用 `brew install yt-dlp` 安裝後再試。"))
+        }
+        let url = entries.values.first(where: { !$0.isEmpty })?.first?.urlString
+            ?? VideoDownloadTool.cookieProbeURL
+        let arguments = VideoDownloadTool.cookieCheckArguments(
+            url: url, quality: quality, cookies: cookies)
+        return await Task.detached(priority: .userInitiated) {
+            Self.runCookieCheck(tool: tool, arguments: arguments)
+        }.value
+    }
+
+    nonisolated private static func runCookieCheck(
+        tool: URL, arguments: [String]
+    ) -> VideoCookieCheck {
+        let process = Process()
+        process.executableURL = tool
+        process.arguments = arguments
+        // stdout 與 stderr 併一條：`--print` 印在 stdout，而診斷（要授權、解不開
+        // 鑰匙串）全在 stderr，兩邊都要看。`--simulate` 的輸出只有幾行，
+        // 不會有 runList 那種塞爆 pipe 的死鎖問題。
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        do {
+            try process.run()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            return VideoDownloadTool.explainCookieCheck(
+                String(decoding: data, as: UTF8.self),
+                succeeded: process.terminationStatus == 0)
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+    }
+
     // MARK: - 按需下載
 
     /// 目前**已經在磁碟上**的片單影片。這些才進得了播放池。
@@ -346,7 +396,9 @@ final class PlaylistService {
     }
 
     /// 抓這一支。已經在抓、或同時下載數滿了就跳過。
-    func requestDownload(_ entry: PlaylistEntry) {
+    func requestDownload(
+        _ entry: PlaylistEntry, quality: VideoDownloadQuality, cookies: VideoCookieSource
+    ) {
         guard downloading.count < Self.maximumConcurrentDownloads,
               !downloading.contains(entry.id),
               let tool = VideoDownloadTool.locate()
@@ -361,7 +413,8 @@ final class PlaylistService {
         let title = entry.title
         Task { @MainActor [weak self] in
             let failure = await Task.detached(priority: .utility) {
-                Self.runDownload(tool: tool, url: urlString, destination: destination)
+                Self.runDownload(tool: tool, url: urlString, destination: destination,
+                                 quality: quality, cookies: cookies)
             }.value
 
             guard let self else { return }
@@ -384,7 +437,8 @@ final class PlaylistService {
     /// 以前回 Bool，失敗只記進冷卻表——從外面看就是「片單一直在抓、一支也沒出現」，
     /// 而真正的原因（extractor 壞掉、影片下架、要登入）就寫在 yt-dlp 的輸出裡。
     nonisolated private static func runDownload(
-        tool: URL, url: String, destination: URL
+        tool: URL, url: String, destination: URL,
+        quality: VideoDownloadQuality, cookies: VideoCookieSource
     ) -> String? {
         do {
             try FileManager.default.createDirectory(
@@ -393,7 +447,8 @@ final class PlaylistService {
             process.executableURL = tool
             // ffmpeg 有就用：YouTube 現在幾乎只給分離軌，不合併就一支也抓不下來。
             process.arguments = VideoDownloadTool.arguments(
-                url: url, destination: destination, ffmpeg: VideoDownloadTool.locateFFmpeg())
+                url: url, destination: destination, ffmpeg: VideoDownloadTool.locateFFmpeg(),
+                quality: quality, cookies: cookies)
             let pipe = Pipe()
             process.standardOutput = pipe
             process.standardError = pipe

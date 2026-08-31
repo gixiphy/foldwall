@@ -49,6 +49,22 @@
         }
       }
     },
+    "27 吋以上才看得出跟 1080p 的差別。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only tells apart from 1080p on 27-inch displays and larger."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "27 吋以上才看得出跟 1080p 的差別。"
+          }
+        }
+      }
+    },
     "Flickr（公開搜尋）": {
       "localizations": {
         "en": {
@@ -189,6 +205,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "下載中…"
+          }
+        }
+      }
+    },
+    "不使用（未登入）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don’t borrow (signed out)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不使用（未登入）"
+          }
+        }
+      }
+    },
+    "不設上限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No limit"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不設上限"
           }
         }
       }
@@ -417,6 +465,22 @@
         }
       }
     },
+    "多數螢幕夠用。一小時約 1 GB。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enough for most displays. Around 1 GB per hour."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多數螢幕夠用。一小時約 1 GB。"
+          }
+        }
+      }
+    },
     "完全暫停輪換": {
       "localizations": {
         "en": {
@@ -529,6 +593,22 @@
         }
       }
     },
+    "最省空間。外接大螢幕上看得出來。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smallest files. Visibly soft on a large external display."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最省空間。外接大螢幕上看得出來。"
+          }
+        }
+      }
+    },
     "桌面視窗": {
       "localizations": {
         "en": {
@@ -557,6 +637,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "棕褐"
+          }
+        }
+      }
+    },
+    "檔案大好幾倍，解碼也更吃電。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Files several times larger, and decoding costs more power."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案大好幾倍，解碼也更吃電。"
           }
         }
       }
@@ -605,6 +701,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "測試中…"
+          }
+        }
+      }
+    },
+    "測試失敗": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test failed"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "測試失敗"
           }
         }
       }
@@ -669,6 +781,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "直接播來源檔，不拷貝、不佔額外磁碟，整個片庫都能播。全公開 API。**鎖屏不會播。**"
+          }
+        }
+      }
+    },
+    "站上有多好就拿多好。快取會很快滿。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Takes the best the site offers. The cache fills up fast."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "站上有多好就拿多好。快取會很快滿。"
           }
         }
       }

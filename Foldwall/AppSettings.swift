@@ -30,6 +30,8 @@ final class AppSettings {
         static let showCredits = "showCredits"
         static let iCloudSyncEnabled = "iCloudSyncEnabled"
         static let playlistSources = "playlistSources"
+        static let videoDownloadQuality = "videoDownloadQuality"
+        static let videoCookieSource = "videoCookieSource"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -162,6 +164,20 @@ final class AppSettings {
         }
     }
 
+    /// 片單影片的下載畫質上限。**0.6.8 以前是寫死的 1080p**，預設維持一樣，
+    /// 升上來的人畫質不會突然變（也不會突然把快取撐爆）。
+    var videoDownloadQuality: VideoDownloadQuality {
+        didSet { defaults.set(videoDownloadQuality.rawValue, forKey: Key.videoDownloadQuality) }
+    }
+
+    /// 下載時要不要借某個瀏覽器的登入狀態。**預設不借**——那是把使用者的登入身分
+    /// 交給一個子行程去用，要由他明確選擇，不該是預設行為。
+    ///
+    /// 存的只有瀏覽器名字。cookie 本身 Foldwall 不碰（見 `VideoCookieSource`）。
+    var videoCookieSource: VideoCookieSource {
+        didSet { defaults.set(videoCookieSource.rawValue, forKey: Key.videoCookieSource) }
+    }
+
     /// 選中的「照片」相簿 localIdentifier。
     var photoAlbums: Set<String> {
         didSet { defaults.set(Array(photoAlbums), forKey: Key.photoAlbums) }
@@ -197,6 +213,10 @@ final class AppSettings {
             .flatMap(VideoPlaybackMode.init(rawValue:))) ?? .repeatAll
         self.videoScaleMode = (defaults.string(forKey: Key.videoScaleMode)
             .flatMap(VideoScaleMode.init(rawValue:))) ?? .fill
+        self.videoDownloadQuality = (defaults.string(forKey: Key.videoDownloadQuality)
+            .flatMap(VideoDownloadQuality.init(rawValue:))) ?? .default
+        self.videoCookieSource = (defaults.string(forKey: Key.videoCookieSource)
+            .flatMap(VideoCookieSource.init(rawValue:))) ?? .none
         self.videoRotationCursor = defaults.integer(forKey: Key.videoRotationCursor)   // 缺 key = 0
         self.videoRemoteCursor = defaults.integer(forKey: Key.videoRemoteCursor)
         // 以系統實際狀態為準，不信 defaults：使用者可能在系統設定裡關掉

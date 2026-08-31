@@ -36,6 +36,22 @@
         }
       }
     },
+    "%@ 的 cookie 是加密的，金鑰在鑰匙串裡。再測一次，跳出詢問時選「總是允許」。剛才如果按了「拒絕」，到「鑰匙串存取」裡把那筆 Safe Storage 的權限改回來。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ encrypts its cookies, and the key lives in your keychain. Test again and choose “Always Allow” when macOS asks. If you already clicked “Deny”, reset that Safe Storage entry in Keychain Access."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 的 cookie 是加密的，金鑰在鑰匙串裡。再測一次，跳出詢問時選「總是允許」。剛才如果按了「拒絕」，到「鑰匙串存取」裡把那筆 Safe Storage 的權限改回來。"
+          }
+        }
+      }
+    },
     "%@・%@・%lld 個資料夾・%lld 個相簿": {
       "localizations": {
         "en": {
@@ -144,6 +160,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@（build %2$@）"
+          }
+        }
+      }
+    },
+    "%@（這台沒裝）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (not installed on this Mac)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（這台沒裝）"
           }
         }
       }
@@ -309,6 +341,22 @@
         }
       }
     },
+    "Foldwall 自己不讀、不存、也不傳送任何 cookie——只是把「去哪個瀏覽器拿」這個選擇交給 yt-dlp，讀取跟使用都發生在它的行程裡，全程在這台電腦上。設定裡存下來的只有瀏覽器的名字。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall never reads, stores, or transmits a single cookie. It only passes your choice of browser to yt-dlp; the reading and the using both happen inside that process, entirely on this Mac. All that is saved here is the name of a browser."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall 自己不讀、不存、也不傳送任何 cookie——只是把「去哪個瀏覽器拿」這個選擇交給 yt-dlp，讀取跟使用都發生在它的行程裡，全程在這台電腦上。設定裡存下來的只有瀏覽器的名字。"
+          }
+        }
+      }
+    },
     "Foldwall 需要讀取權限才能把相簿當成桌布來源。": {
       "localizations": {
         "en": {
@@ -337,6 +385,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "RSS／Atom feed 的網址。"
+          }
+        }
+      }
+    },
+    "Safari 的 cookie 放在系統保護的位置。要授權的是 **Foldwall**，不是 yt-dlp——子行程的授權判定歸屬於把它叫起來的那個 app。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safari keeps its cookies in a system-protected location. The app that needs permission is **Foldwall**, not yt-dlp: a child process is judged by whichever app launched it."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safari 的 cookie 放在系統保護的位置。要授權的是 **Foldwall**，不是 yt-dlp——子行程的授權判定歸屬於把它叫起來的那個 app。"
           }
         }
       }
@@ -622,6 +686,22 @@
         }
       }
     },
+    "下載畫質": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download Quality"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載畫質"
+          }
+        }
+      }
+    },
     "不含": {
       "localizations": {
         "en": {
@@ -634,6 +714,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "不含"
+          }
+        }
+      }
+    },
+    "不想開這道權限的話，改用 Firefox：它的 cookie 不在保護區裡，不必授權。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If you would rather not grant that permission, use Firefox instead: its cookies are not in a protected location, so nothing needs authorising."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不想開這道權限的話，改用 Firefox：它的 cookie 不在保護區裡，不必授權。"
           }
         }
       }
@@ -842,6 +938,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "例如：靠電池時停用網路來源；工作模式時暫停影片桌布。"
+          }
+        }
+      }
+    },
+    "借瀏覽器的登入狀態": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrow a Browser Sign-In"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "借瀏覽器的登入狀態"
+          }
+        }
+      }
+    },
+    "借登入狀態": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrow sign-in from"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "借登入狀態"
           }
         }
       }
@@ -1150,6 +1278,54 @@
         }
       }
     },
+    "只抓視訊軌，不抓音訊——桌布本來就靜音播放，音訊抓下來只是佔空間。同一個解析度底下挑位元率最高的那條流：站方常常把最糊的那條排在最前面。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video track only, no audio: wallpapers play muted, so an audio track would just take up space. Within a resolution, the highest-bitrate stream wins — sites often list the blurriest one first."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只抓視訊軌，不抓音訊——桌布本來就靜音播放，音訊抓下來只是佔空間。同一個解析度底下挑位元率最高的那條流：站方常常把最糊的那條排在最前面。"
+          }
+        }
+      }
+    },
+    "可以用。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Working."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可以用。"
+          }
+        }
+      }
+    },
+    "可以用，這支目前會拿到 %@。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Working. This video currently resolves to %@."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可以用，這支目前會拿到 %@。"
+          }
+        }
+      }
+    },
     "可被系統清除": {
       "localizations": {
         "en": {
@@ -1406,6 +1582,22 @@
         }
       }
     },
+    "在「完全取用磁碟」裡把 Foldwall 打開，然後回來再測一次。清單裡沒有 Foldwall 的話，用左下角的 ＋ 從「應用程式」裡加進去。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch Foldwall on under Full Disk Access, then come back and test again. If Foldwall is not in the list, add it from Applications with the + button at the bottom left."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在「完全取用磁碟」裡把 Foldwall 打開，然後回來再測一次。清單裡沒有 Foldwall 的話，用左下角的 ＋ 從「應用程式」裡加進去。"
+          }
+        }
+      }
+    },
     "在你自己的 Immich：帳號設定 → API Keys → 新增。": {
       "localizations": {
         "en": {
@@ -1418,6 +1610,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "在你自己的 Immich：帳號設定 → API Keys → 新增。"
+          }
+        }
+      }
+    },
+    "在這台機器上找不到它的 cookie": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No cookies for it on this Mac"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在這台機器上找不到它的 cookie"
           }
         }
       }
@@ -2062,6 +2270,22 @@
         }
       }
     },
+    "所有片單共用這一份設定。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All playlists share this setting."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有片單共用這一份設定。"
+          }
+        }
+      }
+    },
     "打開 系統設定 → 桌布": {
       "localizations": {
         "en": {
@@ -2106,6 +2330,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "打開 系統設定 → 桌布，往下找到 **Foldwall** 區塊。"
+          }
+        }
+      }
+    },
+    "打開「完全取用磁碟」": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Full Disk Access"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打開「完全取用磁碟」"
           }
         }
       }
@@ -2270,6 +2510,22 @@
         }
       }
     },
+    "改了只影響之後才抓的影片。已經在快取裡的不會重抓——要換掉就去「快取位置」清掉。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changing this affects future downloads only. Videos already cached are not re-fetched; clear them under Cache Location to replace them."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改了只影響之後才抓的影片。已經在快取裡的不會重抓——要換掉就去「快取位置」清掉。"
+          }
+        }
+      }
+    },
     "新增規則": {
       "localizations": {
         "en": {
@@ -2330,6 +2586,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "最多 %lld 張"
+          }
+        }
+      }
+    },
+    "會員限定、年齡限制、私人的片單，沒有登入狀態就是解不出來；有些站也把較好的那幾條流留給登入的人。YouTube 擋自動化時（「Sign in to confirm you're not a bot」）同樣要靠它才過得去。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Members-only, age-restricted, and private playlists simply cannot be resolved without a signed-in session, and some sites reserve their better streams for signed-in viewers. It is also what gets you past YouTube’s “Sign in to confirm you’re not a bot”."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "會員限定、年齡限制、私人的片單，沒有登入狀態就是解不出來；有些站也把較好的那幾條流留給登入的人。YouTube 擋自動化時（「Sign in to confirm you're not a bot」）同樣要靠它才過得去。"
           }
         }
       }
@@ -2718,6 +2990,38 @@
         }
       }
     },
+    "測試中…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testing…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "測試中…"
+          }
+        }
+      }
+    },
+    "測試授權": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test Access"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "測試授權"
+          }
+        }
+      }
+    },
     "測試連線": {
       "localizations": {
         "en": {
@@ -2970,6 +3274,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "留空則取精選／隨機內容。"
+          }
+        }
+      }
+    },
+    "畫質上限": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quality limit"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "畫質上限"
           }
         }
       }
@@ -3502,6 +3822,22 @@
         }
       }
     },
+    "要留意的一件事：拿已登入的帳號去大量抓片，該站有可能把那個帳號判成自動化行為。在意的話用備用帳號登入那個瀏覽器。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One thing to keep in mind: downloading heavily with a signed-in account can lead a site to flag that account as automated. If that worries you, sign that browser into a spare account."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要留意的一件事：拿已登入的帳號去大量抓片，該站有可能把那個帳號判成自動化行為。在意的話用備用帳號登入那個瀏覽器。"
+          }
+        }
+      }
+    },
     "解析中…": {
       "localizations": {
         "en": {
@@ -3594,6 +3930,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "讀不到（未掛載或無權限）"
+          }
+        }
+      }
+    },
+    "讀到 %lld 個 cookie。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read %lld cookies."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讀到 %lld 個 cookie。"
+          }
+        }
+      }
+    },
+    "讀到 %lld 個 cookie，這支目前會拿到 %@。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read %1$lld cookies. This video currently resolves to %2$@."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "new",
+            "value": "讀到 %1$lld 個 cookie，這支目前會拿到 %2$@。"
           }
         }
       }
@@ -3706,6 +4074,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "這個網址裡沒有可用的影片"
+          }
+        }
+      }
+    },
+    "這台機器上沒有它的 cookie 資料庫——多半是沒裝，或裝了但還沒開過。先開一次那個瀏覽器並登入要抓的站，再回來測。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There is no cookie database for it on this Mac — most likely it is not installed, or it is but has never been opened. Launch that browser once, sign in to the site you want, then test again."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這台機器上沒有它的 cookie 資料庫——多半是沒裝，或裝了但還沒開過。先開一次那個瀏覽器並登入要抓的站，再回來測。"
           }
         }
       }
@@ -3854,6 +4238,22 @@
         }
       }
     },
+    "還沒測試過。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not tested yet."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒測試過。"
+          }
+        }
+      }
+    },
     "還沒解析過。": {
       "localizations": {
         "en": {
@@ -3866,6 +4266,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "還沒解析過。"
+          }
+        }
+      }
+    },
+    "還要一道系統授權": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs one more system permission"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還要一道系統授權"
           }
         }
       }
@@ -3914,6 +4330,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "重新解析"
+          }
+        }
+      }
+    },
+    "鑰匙串那關沒過": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keychain access was refused"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鑰匙串那關沒過"
           }
         }
       }
