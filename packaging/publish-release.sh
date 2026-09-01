@@ -92,6 +92,17 @@ if ! STAPLE="$(xcrun stapler validate "$DMG" 2>&1)"; then
 fi
 echo "    公證票證 ✓"
 
+# 票證存在只代表「釘上了」。這行才是使用者雙擊 DMG 時 Gatekeeper 實際跑的評估——
+# 憑證被撤銷、票證與內容對不起來這類問題，只有在這裡才會現形，而 Release 一旦
+# 發出去就換不掉已經下載的人手上那份。
+if ! GATEKEEPER="$(spctl -a -t open --context context:primary-signature -vv "$DMG" 2>&1)"; then
+  echo "✗ Gatekeeper 拒絕這個 DMG，使用者打不開："
+  printf '%s\n' "$GATEKEEPER" | sed 's/^/    /'
+  echo "  重打包：NOTARY_PROFILE=<側寫名> ./packaging/make-dmg.sh"
+  exit 1
+fi
+echo "    Gatekeeper ✓"
+
 # DMG 裡的版本要和 tag 對得起來——dist/ 裡放著好幾版，很容易傳錯一個。
 DMG_APP_VERSION="$(
   MOUNT="$(mktemp -d)"

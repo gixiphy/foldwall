@@ -161,6 +161,13 @@ if [ -n "${NOTARY_PROFILE:-}" ]; then
   echo "==> 釘上票證"
   xcrun stapler staple "$DMG"
   xcrun stapler validate "$DMG"
+
+  # 票證釘上了不代表 Gatekeeper 會放行：stapler validate 只確認票證存在且能讀。
+  # 這行才是使用者雙擊 DMG 時系統實際跑的那套評估，是離「別人的機器打不打得開」
+  # 最近的一次檢查。
+  echo "==> Gatekeeper 評估"
+  spctl -a -t open --context context:primary-signature -vv "$DMG"
+
   echo "已公證，可以給任何 Mac 安裝。"
 else
   echo
