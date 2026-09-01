@@ -52,18 +52,18 @@
         }
       }
     },
-    "%@・%@・%lld 個資料夾・%lld 個相簿": {
+    "%@・%@・%lld 個資料夾・%lld 個網路來源": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ · %@ · %lld folders · %lld albums"
+            "value": "%1$@ · %2$@ · %3$lld folders · %4$lld network sources"
           }
         },
         "zh-Hant": {
           "stringUnit": {
-            "state": "translated",
-            "value": "%1$@・%2$@・%3$lld 個資料夾・%4$lld 個相簿"
+            "state": "new",
+            "value": "%1$@・%2$@・%3$lld 個資料夾・%4$lld 個網路來源"
           }
         }
       }
@@ -446,50 +446,42 @@
         }
       }
     },
-    "iCloud 上的備份：%@": {
+    "iCloud 上的來源目錄：%@": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Backup in iCloud: %@"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud 上的備份：%@"
+            "value": "Source catalog on iCloud: %@"
           }
         }
       }
     },
-    "iCloud 上還沒有備份": {
+    "iCloud 上還沒有任何一台的桌布設定。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No backup in iCloud yet"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud 上還沒有備份"
+            "value": "No Mac has backed up its wallpaper settings to iCloud yet."
           }
         }
       }
     },
-    "iCloud 上還沒有備份。": {
+    "iCloud 上還沒有來源目錄": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No backup in iCloud yet."
+            "value": "There's no source catalog on iCloud yet"
           }
-        },
-        "zh-Hant": {
+        }
+      }
+    },
+    "iCloud 上還沒有來源目錄。": {
+      "localizations": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud 上還沒有備份。"
+            "value": "There's no source catalog on iCloud yet."
           }
         }
       }
@@ -574,6 +566,16 @@
         }
       }
     },
+    "「備份到 iCloud」會寫兩層；「更新來源」只拉共用的那層，不會動這台的桌布設定。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Back up to iCloud” writes both layers. “Update sources” pulls only the shared layer and leaves this Mac's wallpaper settings alone."
+          }
+        }
+      }
+    },
     "「照片」目前無法存取": {
       "localizations": {
         "en": {
@@ -602,22 +604,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "「照片」裡沒有含影像的相簿。"
-          }
-        }
-      }
-    },
-    "「輪到第幾支影片了」這種執行狀態，以及**哪台螢幕改用影片**。前者兩台同步只會互相打斷輪替；後者存的是顯示器 UUID，內建螢幕每台機器都不同——同步它只會把另一台的勾清掉。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Runtime state such as which video the rotation is on, and **which displays use video**. Syncing the former would just make two Macs interrupt each other’s rotation; the latter stores display UUIDs, and a built-in display’s UUID differs on every Mac — syncing it would only clear the other machine’s checkmarks."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「輪到第幾支影片了」這種執行狀態，以及**哪台螢幕改用影片**。前者兩台同步只會互相打斷輪替；後者存的是顯示器 UUID，內建螢幕每台機器都不同——同步它只會把另一台的勾清掉。"
           }
         }
       }
@@ -702,22 +688,6 @@
         }
       }
     },
-    "不含": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not included"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不含"
-          }
-        }
-      }
-    },
     "不想開這道權限的話，改用 Firefox：它的 cookie 不在保護區裡，不必授權。": {
       "localizations": {
         "en": {
@@ -730,6 +700,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "不想開這道權限的話，改用 Firefox：它的 cookie 不在保護區裡，不必授權。"
+          }
+        }
+      }
+    },
+    "不會備份的": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not backed up"
           }
         }
       }
@@ -830,6 +810,26 @@
         }
       }
     },
+    "來源 → 三台通用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sources → shared by every Mac"
+          }
+        }
+      }
+    },
+    "來源已同步到 iCloud（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sources synced to iCloud (%@)"
+          }
+        }
+      }
+    },
     "來源無可用影像": {
       "localizations": {
         "en": {
@@ -846,34 +846,12 @@
         }
       }
     },
-    "來源設定會備份，**API key 不會**——備份檔是明文 JSON，放在 iCloud Drive 裡會被 Spotlight 索引。換機器時到「來源」分頁重輸一次。": {
+    "來源目錄是較新的格式（v%lld），請先更新這台的 Foldwall": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Source settings are backed up, **API keys are not** — the backup is plain-text JSON and Spotlight indexes it inside iCloud Drive. Re-enter them in the Sources tab on the new machine."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "來源設定會備份，**API key 不會**——備份檔是明文 JSON，放在 iCloud Drive 裡會被 Spotlight 索引。換機器時到「來源」分頁重輸一次。"
-          }
-        }
-      }
-    },
-    "來源資料夾": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Source folders"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "來源資料夾"
+            "value": "The source catalog is in a newer format (v%lld). Update Foldwall on this Mac first."
           }
         }
       }
@@ -1006,50 +984,22 @@
         }
       }
     },
-    "備份失敗：%@": {
+    "備份檔是明文 JSON，放在 iCloud Drive 裡會被 Spotlight 索引。換機器時到「來源」分頁重輸一次。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Backup failed: %@"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "備份失敗：%@"
+            "value": "The backup is plain-text JSON, and Spotlight indexes it in iCloud Drive. Re-enter it on the Sources tab when you switch machines."
           }
         }
       }
     },
-    "備份是較新的格式（v%lld），請先更新這台的 Foldwall": {
+    "備份這台的設定失敗：%@": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The backup uses a newer format (v%lld); update Foldwall on this Mac first"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "備份是較新的格式（v%lld），請先更新這台的 Foldwall"
-          }
-        }
-      }
-    },
-    "備份裡有什麼": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "What a backup contains"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "備份裡有什麼"
+            "value": "Couldn't back up this Mac's settings: %@"
           }
         }
       }
@@ -1102,6 +1052,16 @@
         }
       }
     },
+    "兩層": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Two layers"
+          }
+        }
+      }
+    },
     "兩組都在 ~/Library/Caches 底下，磁碟空間不足時 macOS 會自己刪。Foldwall 會重新下載，但螢幕保護程式那邊會暫時沒圖可播。目前掛在桌面上的桌布放在 Application Support，不會被清掉。": {
       "localizations": {
         "en": {
@@ -1114,22 +1074,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "兩組都在 ~/Library/Caches 底下，磁碟空間不足時 macOS 會自己刪。Foldwall 會重新下載，但螢幕保護程式那邊會暫時沒圖可播。目前掛在桌面上的桌布放在 Application Support，不會被清掉。"
-          }
-        }
-      }
-    },
-    "其他": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Other"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "其他"
           }
         }
       }
@@ -1150,18 +1094,12 @@
         }
       }
     },
-    "切換間隔、後製、同時抽取張數、狀態規則、影片引擎、圖層與播放方式、登入時啟動。": {
+    "切換間隔、後製、同時抽取張數、影片引擎／圖層／播放／縮放／畫質、狀態規則、登入時啟動——全部各台各自一份，寫在 `devices/` 底下以機器命名的檔案裡，**只有同一台會自動讀回來**。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Change interval, effect, images per round, status rules, video engine, layer and playback mode, launch at login."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "切換間隔、後製、同時抽取張數、狀態規則、影片引擎、圖層與播放方式、登入時啟動。"
+            "value": "Interval, effect, pieces per round, video engine / layer / playback / scaling / quality, state rules, launch at login — each Mac keeps its own copy in a file named after it under `devices/`, and **only that same Mac reads it back automatically**."
           }
         }
       }
@@ -1226,6 +1164,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "加入資料夾…"
+          }
+        }
+      }
+    },
+    "匯入": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import"
           }
         }
       }
@@ -1354,6 +1302,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "可讀取"
+          }
+        }
+      }
+    },
+    "各台的桌布設定": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallpaper settings per Mac"
+          }
+        }
+      }
+    },
+    "同步來源失敗：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't sync sources: %@"
           }
         }
       }
@@ -1694,18 +1662,12 @@
         }
       }
     },
-    "存**路徑**不是書籤——書籤綁著建立它的那台機器。另一台沒掛那顆磁碟的路徑會被跳過。": {
+    "存的是**路徑**不是書籤——書籤綁著建立它的那台機器。另一台沒掛那顆磁碟的路徑會被跳過，但**不會**從共用目錄裡消失。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stores **paths**, not bookmarks — a bookmark is tied to the Mac that created it. Paths whose volume is not mounted on the other Mac are skipped."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "存**路徑**不是書籤——書籤綁著建立它的那台機器。另一台沒掛那顆磁碟的路徑會被跳過。"
+            "value": "**Paths** are stored, not bookmarks — a bookmark is tied to the Mac that created it. A path whose volume isn't mounted on another Mac is skipped there, but it is **not** dropped from the shared catalog."
           }
         }
       }
@@ -1838,22 +1800,6 @@
         }
       }
     },
-    "已備份到 iCloud（%@）": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Backed up to iCloud (%@)"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已備份到 iCloud（%@）"
-          }
-        }
-      }
-    },
     "已備妥 **%lld** 支影片": {
       "localizations": {
         "en": {
@@ -1886,18 +1832,18 @@
         }
       }
     },
-    "已從 iCloud 匯入（%@・%@）": {
+    "已從 iCloud 更新來源（%@・%@）": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Restored from iCloud (%@ · %@)"
+            "value": "Sources updated from iCloud (%@ · %@)"
           }
         },
         "zh-Hant": {
           "stringUnit": {
-            "state": "translated",
-            "value": "已從 iCloud 匯入（%1$@・%2$@）"
+            "state": "new",
+            "value": "已從 iCloud 更新來源（%1$@・%2$@）"
           }
         }
       }
@@ -2174,18 +2120,12 @@
         }
       }
     },
-    "從 iCloud 匯入": {
+    "從 iCloud 更新來源": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Restore from iCloud"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "從 iCloud 匯入"
+            "value": "Update sources from iCloud"
           }
         }
       }
@@ -2458,6 +2398,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "授權"
+          }
+        }
+      }
+    },
+    "換掉一台 Mac 時用這裡把舊機的桌布設定接過來。**會覆蓋這台目前的設定。**從**別台**匯入時會跳過「此螢幕改用影片」與「借瀏覽器 cookie」——前者存的是顯示器 UUID、每台都不同，後者的授權在新機器上本來就要重來。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use this to carry an old Mac's wallpaper settings over when you replace it. **It overwrites this Mac's current settings.** Importing from **another** Mac skips “play video on this screen” and “borrow browser cookies”: the first stores display UUIDs, which differ on every machine, and the second needs its permissions granted again on the new one anyway."
           }
         }
       }
@@ -2750,6 +2700,16 @@
         }
       }
     },
+    "桌布怎麼播 → 依設備": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How the wallpaper plays → per device"
+          }
+        }
+      }
+    },
     "桌布清單裡沒有 Foldwall？先把 app 從 /Applications 啟動一次，系統才會登錄它的 extension。": {
       "localizations": {
         "en": {
@@ -2810,6 +2770,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "此螢幕改用影片"
+          }
+        }
+      }
+    },
+    "每個來源的**開關**、資料夾用途、選中的相簿都留在這台。在筆電關掉 Pexels 不會讓桌機也跟著關；目錄裡新出現的來源在每台都是**預設開著**。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each source's **on/off switch**, folder roles and selected albums stay on this Mac. Turning Pexels off on the laptop won't turn it off on the desktop; a source that newly appears in the catalog arrives **enabled** on every Mac."
           }
         }
       }
@@ -3082,22 +3052,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "照片由 Unsplash／Pexels／Pixabay／Wallhaven 等來源提供，各自的使用規範以該站條款為準。"
-          }
-        }
-      }
-    },
-    "照片相簿": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Photo albums"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "照片相簿"
           }
         }
       }
@@ -3438,6 +3392,16 @@
         }
       }
     },
+    "確定覆蓋這台": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overwrite this Mac"
+          }
+        }
+      }
+    },
     "移除": {
       "localizations": {
         "en": {
@@ -3594,22 +3558,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "網路 %lld"
-          }
-        }
-      }
-    },
-    "網路來源": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Web sources"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "網路來源"
           }
         }
       }
@@ -3966,18 +3914,22 @@
         }
       }
     },
-    "讀取備份失敗：%@": {
+    "讀取「%@」的設定失敗": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Could not read the backup: %@"
+            "value": "Couldn't read the settings from “%@”"
           }
-        },
-        "zh-Hant": {
+        }
+      }
+    },
+    "讀取來源目錄失敗：%@": {
+      "localizations": {
+        "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "讀取備份失敗：%@"
+            "value": "Couldn't read the source catalog: %@"
           }
         }
       }
@@ -4010,6 +3962,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "資料夾 %lld"
+          }
+        }
+      }
+    },
+    "資料夾、網路來源、片單的**定義**寫在共用的 `sources.json`。在一台加的來源，別台也會出現；在一台刪掉的，別台也會清掉。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The **definitions** of folders, network sources and playlists live in a shared `sources.json`. Add a source on one Mac and it shows up on the others; delete it on one and it clears everywhere."
+          }
+        }
+      }
+    },
+    "資料夾書籤": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Folder bookmarks"
+          }
+        }
+      }
+    },
+    "輪到第幾支影片了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Which video is up next"
           }
         }
       }
@@ -4110,6 +4092,26 @@
         }
       }
     },
+    "這台用哪些 → 依設備": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What this Mac uses → per device"
+          }
+        }
+      }
+    },
+    "這台的設定已備份（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Mac's settings backed up (%@)"
+          }
+        }
+      }
+    },
     "通用": {
       "localizations": {
         "en": {
@@ -4122,22 +4124,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "通用"
-          }
-        }
-      }
-    },
-    "連**名稱**一起存。相簿的 localIdentifier 每台機器都不同，就算兩台是同一個 iCloud 圖庫也對不上，所以跨機時靠名稱比對。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stored with their **names**. An album’s localIdentifier differs on every Mac and will not match even across one shared iCloud library, so names are what get matched across machines."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "連**名稱**一起存。相簿的 localIdentifier 每台機器都不同，就算兩台是同一個 iCloud 圖庫也對不上，所以跨機時靠名稱比對。"
           }
         }
       }
@@ -4286,6 +4272,16 @@
         }
       }
     },
+    "那是執行狀態不是設定，跨機同步只會讓兩台互相打斷輪替。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That's runtime state, not a setting; syncing it would just make two Macs interrupt each other's rotation."
+          }
+        }
+      }
+    },
     "部分允許": {
       "localizations": {
         "en": {
@@ -4382,18 +4378,12 @@
         }
       }
     },
-    "開著的話，這台的設定一改就寫上去，另一台也會自動套用。同一輪裡兩邊都改過就**以 iCloud 上那份為準**——沒有合併，後寫的贏。只想要單向搬家的話，用上面兩顆按鈕就好。": {
+    "開著的話，這台的來源一改就寫上去，別台也會自動跟上；同一輪裡兩邊都改過就**以 iCloud 上那份為準**——沒有合併，後寫的贏。桌布設定只會**往上備份**，不會自動套到別台。只想要單向搬家的話，用上面兩顆按鈕就好。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "With this on, any change here is written up immediately and applied on your other Mac. If both changed in the same round, **the copy in iCloud wins** — there is no merging; the last write takes it. If all you want is a one-way move, the two buttons above are enough."
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "開著的話，這台的設定一改就寫上去，另一台也會自動套用。同一輪裡兩邊都改過就**以 iCloud 上那份為準**——沒有合併，後寫的贏。只想要單向搬家的話，用上面兩顆按鈕就好。"
+            "value": "With this on, a change to this Mac's sources is written out at once and the other Macs follow. If both sides changed in the same round, **the copy on iCloud wins** — there's no merge, last write wins. Wallpaper settings are only **backed up**; they're never applied to another Mac automatically. For a one-way move, just use the two buttons above."
           }
         }
       }
@@ -4570,6 +4560,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "（這個站只提供分離的視訊／音訊軌，合併需要 ffmpeg：`brew install ffmpeg`）"
+          }
+        }
+      }
+    },
+    "（這台）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(this Mac)"
           }
         }
       }

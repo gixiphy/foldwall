@@ -1955,12 +1955,18 @@ private struct MontageSettings: View {
 
 // MARK: - 備份
 
-/// 設定備份與 iCloud 同步。手動兩顆按鈕是主角，自動同步是可選的開關——
-/// 「另一台機器改的設定會自動蓋掉這台」該由使用者明確選，不是預設行為。
+/// 設定備份與 iCloud 同步。
+///
+/// 這一頁的重點是講清楚**兩層**：來源三台通用，桌布設定每台一份。
+/// 使用者第一次看到「同步」兩個字時的預期是「全部一樣」，而這裡刻意不是——
+/// 沒講清楚的話，他會以為在筆電關掉的來源沒同步成功。
 private struct BackupSettings: View {
 
     @Bindable var coordinator: WallpaperCoordinator
     @Bindable var settings: AppSettings
+
+    /// 要匯入哪一台的桌布設定。挑了才顯示確認按鈕——這個動作會蓋掉這台的設定。
+    @State private var pendingImport: SettingsBackup.DeviceFile?
 
     var body: some View {
         ScrollView {
@@ -1971,6 +1977,29 @@ private struct BackupSettings: View {
                               systemImage: "exclamationmark.triangle")
                             .padding(4)
                     }
+                }
+
+                GroupBox("兩層") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        row("來源 → 三台通用",
+                            String(localized: """
+                                資料夾、網路來源、片單的**定義**寫在共用的 `sources.json`。\
+                                在一台加的來源，別台也會出現；在一台刪掉的，別台也會清掉。
+                                """))
+                        row("這台用哪些 → 依設備",
+                            String(localized: """
+                                每個來源的**開關**、資料夾用途、選中的相簿都留在這台。\
+                                在筆電關掉 Pexels 不會讓桌機也跟著關；\
+                                目錄裡新出現的來源在每台都是**預設開著**。
+                                """))
+                        row("桌布怎麼播 → 依設備",
+                            String(localized: """
+                                切換間隔、後製、同時抽取張數、影片引擎／圖層／播放／縮放／畫質、\
+                                狀態規則、登入時啟動——全部各台各自一份，寫在 \
+                                `devices/` 底下以機器命名的檔案裡，**只有同一台會自動讀回來**。
+                                """))
+                    }
+                    .padding(4)
                 }
 
                 GroupBox {
@@ -1984,18 +2013,23 @@ private struct BackupSettings: View {
                             Button {
                                 coordinator.restoreSettingsFromICloud()
                             } label: {
-                                Label("從 iCloud 匯入", systemImage: "icloud.and.arrow.down")
+                                Label("從 iCloud 更新來源", systemImage: "icloud.and.arrow.down")
                             }
                             Spacer()
                             Button("在 Finder 顯示") { coordinator.backup.revealInFinder() }
                         }
 
-                        if let summary = coordinator.backup.remoteSummary {
-                            Label("iCloud 上的備份：\(summary)", systemImage: "checkmark.icloud")
+                        Text("「備份到 iCloud」會寫兩層；「更新來源」只拉共用的那層，不會動這台的桌布設定。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if let summary = coordinator.backup.catalogSummary {
+                            Label("iCloud 上的來源目錄：\(summary)", systemImage: "checkmark.icloud")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else {
-                            Text("iCloud 上還沒有備份。")
+                            Text("iCloud 上還沒有來源目錄。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -2039,34 +2073,23 @@ private struct BackupSettings: View {
                 }
                 .disabled(!coordinator.backup.isAvailable)
 
-                GroupBox("備份裡有什麼") {
+                deviceImport
+
+                GroupBox("不會備份的") {
                     VStack(alignment: .leading, spacing: 6) {
-                        row("來源資料夾",
+                        row("API key",
                             String(localized: """
-                                存**路徑**不是書籤——書籤綁著建立它的那台機器。\
-                                另一台沒掛那顆磁碟的路徑會被跳過。
+                                備份檔是明文 JSON，放在 iCloud Drive 裡會被 Spotlight 索引。\
+                                換機器時到「來源」分頁重輸一次。
                                 """))
-                        row("照片相簿",
+                        row("資料夾書籤",
                             String(localized: """
-                                連**名稱**一起存。相簿的 localIdentifier 每台機器都不同，\
-                                就算兩台是同一個 iCloud 圖庫也對不上，所以跨機時靠名稱比對。
+                                存的是**路徑**不是書籤——書籤綁著建立它的那台機器。\
+                                另一台沒掛那顆磁碟的路徑會被跳過，但**不會**從共用目錄裡消失。
                                 """))
-                        row("網路來源",
+                        row("輪到第幾支影片了",
                             String(localized: """
-                                來源設定會備份，**API key 不會**——備份檔是明文 JSON，放在 \
-                                iCloud Drive 裡會被 Spotlight 索引。換機器時到「來源」\
-                                分頁重輸一次。
-                                """))
-                        row("其他",
-                            String(localized: """
-                                切換間隔、後製、同時抽取張數、狀態規則、影片引擎、\
-                                圖層與播放方式、登入時啟動。
-                                """))
-                        row("不含",
-                            String(localized: """
-                                「輪到第幾支影片了」這種執行狀態，以及**哪台螢幕改用影片**。\
-                                前者兩台同步只會互相打斷輪替；後者存的是顯示器 UUID，\
-                                內建螢幕每台機器都不同——同步它只會把另一台的勾清掉。
+                                那是執行狀態不是設定，跨機同步只會讓兩台互相打斷輪替。
                                 """))
                     }
                     .padding(4)
@@ -2074,7 +2097,57 @@ private struct BackupSettings: View {
             }
             .padding()
         }
-        .onAppear { coordinator.backup.refreshRemoteSummary() }
+        .onAppear { coordinator.backup.refreshSummaries() }
+    }
+
+    /// 別台（或這台的舊備份）的桌布設定。平常用不到——它是換機器時的那條路。
+    @ViewBuilder
+    private var deviceImport: some View {
+        GroupBox("各台的桌布設定") {
+            VStack(alignment: .leading, spacing: 8) {
+                if coordinator.backup.deviceFiles.isEmpty {
+                    Text("iCloud 上還沒有任何一台的桌布設定。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(coordinator.backup.deviceFiles) { file in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 1) {
+                                HStack(spacing: 4) {
+                                    Text(file.deviceName).font(.caption.bold())
+                                    if file.isSelf {
+                                        Text("（這台）")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                Text(file.savedAt.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if pendingImport == file {
+                                Button("確定覆蓋這台") {
+                                    coordinator.importDeviceSettings(from: file)
+                                    pendingImport = nil
+                                }
+                                .buttonStyle(.borderedProminent)
+                                Button("取消") { pendingImport = nil }
+                            } else {
+                                Button("匯入") { pendingImport = file }
+                            }
+                        }
+                    }
+                }
+                Text(Self.deviceImportNote)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(4)
+        }
+        .disabled(!coordinator.backup.isAvailable)
     }
 
     /// `Text(.init(字串))` 只會把 `**` 吃掉不上粗體——那條路是查本地化鍵，
@@ -2085,9 +2158,18 @@ private struct BackupSettings: View {
 
     private static var autoSyncNote: AttributedString {
         markdown(String(localized: """
-            開著的話，這台的設定一改就寫上去，另一台也會自動套用。\
-            同一輪裡兩邊都改過就**以 iCloud 上那份為準**——沒有合併，後寫的贏。\
+            開著的話，這台的來源一改就寫上去，別台也會自動跟上；同一輪裡兩邊都改過\
+            就**以 iCloud 上那份為準**——沒有合併，後寫的贏。\
+            桌布設定只會**往上備份**，不會自動套到別台。\
             只想要單向搬家的話，用上面兩顆按鈕就好。
+            """))
+    }
+
+    private static var deviceImportNote: AttributedString {
+        markdown(String(localized: """
+            換掉一台 Mac 時用這裡把舊機的桌布設定接過來。**會覆蓋這台目前的設定。**\
+            從**別台**匯入時會跳過「此螢幕改用影片」與「借瀏覽器 cookie」——\
+            前者存的是顯示器 UUID、每台都不同，後者的授權在新機器上本來就要重來。
             """))
     }
 

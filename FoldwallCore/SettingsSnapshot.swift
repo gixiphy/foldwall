@@ -1,26 +1,22 @@
 //  SettingsSnapshot.swift
-//  一份可以搬到另一台 Mac 的設定。備份／還原與 iCloud 同步都用這個型別。
+//  **0.6.x 的舊備份格式。留著只為了讀得回來。**
 //
-//  **不是 UserDefaults 的鏡像。** 有三個欄位直接複製過去在另一台是廢的：
+//  0.7.0 起設定分成兩層——共用的 `SourceCatalog` 與每台一份的 `DeviceSettings`，
+//  理由見 SyncSnapshots.swift。新的備份不再寫這個型別；這裡剩下的工作只有一件：
+//  把使用者 iCloud Drive 裡那份 `settings.json` 拆成兩層（見 `split()`）。
 //
-//  1. `folders` 存的是 bookmark，綁著建立它的那台機器。這裡改存**路徑**，
-//     另一台用路徑重建。v1 不沙盒、bookmark 也沒有 security scope，做得到。
-//  2. `photoAlbums` 存的是 `PHAssetCollection.localIdentifier`，**每台機器不同**，
-//     就算兩台連的是同一個 iCloud 圖庫也對不上。這裡連**名稱**一起存，
-//     還原時先比 id（同機還原）、比不到再比名稱（跨機）。
-//  3. API key 在 Keychain，本來就不在 UserDefaults 裡，也**刻意不收進**這份快照——
-//     備份檔是明文 JSON，躺在 iCloud Drive 裡會被 Spotlight 索引。
-//     （鑰匙串的 iCloud 同步試過，需要受限 entitlement，見 KeychainStore。）
+//  下面的註解說明的是這份舊格式當初為什麼長這樣，拆解時要照著搬：
 //
-//  沒收錄的還有 `videoRotationCursor`／`videoRemoteCursor`：那是「輪到第幾支了」，
-//  是執行狀態不是設定，跨機同步只會讓兩台互相打斷輪替。
+//  1. `folders` 存的是**路徑**不是 bookmark——bookmark 綁著建立它的那台機器。
+//  2. `photoAlbums` 存的 `PHAssetCollection.localIdentifier` **每台機器不同**，
+//     就算兩台連的是同一個 iCloud 圖庫也對不上，所以連**名稱**一起存。
+//  3. API key 在 Keychain，**刻意不收**——備份檔是明文 JSON，躺在 iCloud Drive
+//     裡會被 Spotlight 索引。（鑰匙串的 iCloud 同步試過，需要受限 entitlement。）
 //
-//  **`videoScreens` 也不收**（0.6.0 移除）。它存的是顯示器 UUID，而內建螢幕的 UUID
-//  每台機器都不同——同步它只可能做減法：另一台的快照裡沒有這台內建螢幕的 UUID，
-//  套下來就是把「此螢幕改用影片」的勾清掉，影片螢幕被蒙太奇蓋住。
-//  而且會自我固化：清空之後下一拍又把「空的」推回 iCloud，永遠出不來。
-//  哪台螢幕播影片是**這台機器的硬體設定**，跟輪到第幾支一樣不該跨機。
-//  舊的備份檔仍可解——多出來的鍵 JSONDecoder 本來就會忽略。
+//  沒收錄的還有 `videoRotationCursor`／`videoRemoteCursor`：那是執行狀態不是設定。
+//  `videoScreens` 也不在（0.6.0 移除）——它存的是顯示器 UUID，跨機同步只會做減法。
+//  0.7.0 之後 `videoScreens` 收進了 `DeviceSettings`：那份檔案只有同一台會讀回來，
+//  當初排除它的理由消失了。
 
 import Foundation
 
@@ -199,5 +195,47 @@ public enum SettingsSnapshotCodec {
             throw Failure.unsupportedVersion(snapshot.version)
         }
         return snapshot
+    }
+}
+
+// MARK: - 拆成兩層
+
+extension SettingsSnapshot {
+
+    /// 把舊的單層備份拆成 0.7.0 的兩層。
+    ///
+    /// 只搬這份舊備份裡真的有的東西。`videoScreens`／`videoCookieSource`／`showCredits`
+    /// 舊格式本來就沒收，所以拆出來的裝置設定在那幾欄是型別預設值——呼叫端要拿**本機當下**
+    /// 的值去補，不要用這裡的預設蓋掉使用者已經設好的（見 `WallpaperCoordinator.migrateLegacyBackup`）。
+    public func split() -> (catalog: SourceCatalog, device: DeviceSettings) {
+        let catalog = SourceCatalog(
+            savedAt: savedAt,
+            deviceName: deviceName,
+            folders: folders,
+            remoteSources: remoteSources.map(SourceCatalog.Remote.init),
+            playlistSources: playlistSources.map(SourceCatalog.Playlist.init)
+        )
+        let device = DeviceSettings(
+            savedAt: savedAt,
+            deviceName: deviceName,
+            deviceID: "",
+            folderUsage: folderUsage,
+            albums: albums.map { DeviceSettings.Album(id: $0.id, title: $0.title) },
+            // 舊格式把開關存在來源定義裡；拆出來之後那是這台的事
+            disabledRemoteSources: remoteSources.filter { !$0.isEnabled }.map(\.id),
+            disabledPlaylists: playlistSources.filter { !$0.isEnabled }.map(\.id),
+            sourceRules: sourceRules,
+            intervalMinutes: intervalMinutes,
+            effect: effect,
+            montagePieceCount: montagePieceCount,
+            videoWallpaperEnabled: videoWallpaperEnabled,
+            videoEngine: videoEngine,
+            desktopVideoLayer: desktopVideoLayer,
+            videoPlaybackMode: videoPlaybackMode,
+            videoScaleMode: videoScaleMode,
+            videoDownloadQuality: videoDownloadQuality,
+            launchAtLogin: launchAtLogin
+        )
+        return (catalog, device)
     }
 }

@@ -95,6 +95,12 @@ final class WallpaperCoordinator {
     @ObservationIgnored private var lastVideoSync: Date?
     /// 本機設定變更比對的節流（見 syncSettingsTick）。
     @ObservationIgnored private var lastLocalSyncCheck: Date?
+    /// 已經解析過一次資料夾了。啟動當下 `indexRoots` 是空的，
+    /// 這時把目錄推上去就是替別台把來源刪光（見 syncSettingsTick）。
+    @ObservationIgnored private var hasLoadedFolders = false
+    /// 共用目錄裡有、但這台建不出 bookmark 的路徑（那顆碟沒接在這台上）。
+    /// 推目錄時要帶上，理由見 sourceCatalog。
+    @ObservationIgnored private var unreachableCatalogFolders: [String] = []
     /// 使用者動作（改來源、切開關）要跳過節流，立刻同步一次。
     @ObservationIgnored private var forceVideoSync = false
     /// 螢幕剛亮起，這輪 refresh 要順便換一批影片。
@@ -566,6 +572,7 @@ final class WallpaperCoordinator {
     private func reloadFolders() async {
         folders = await bookmarks.resolvedFoldersInBackground()
         offlineFolders = bookmarks.offlineFolders
+        hasLoadedFolders = true
         status.sourceCount = folders.count
         status.offlineCount = bookmarks.offlineCount
     }
@@ -1160,33 +1167,58 @@ final class WallpaperCoordinator {
 
     // MARK: - 設定備份／iCloud 同步
 
-    /// 目前設定的可搬移快照。
+    /// 三台共用的來源目錄。
     ///
-    /// `folders` 存路徑而不是 bookmark、相簿連名稱一起存——理由見 SettingsSnapshot。
-    func settingsSnapshot() -> SettingsSnapshot {
-        let albumsByID = Dictionary(uniqueKeysWithValues: albums.map { ($0.id, $0.title) })
-        return SettingsSnapshot(
+    /// 資料夾清單有兩個地方容易寫少，寫少了就是把別台的來源刪掉：
+    ///
+    /// 1. 用 `indexRoots` 而不是 `folders`——後者只有這一刻**讀得到**的根。
+    ///    NAS 沒掛時 `folders` 少一項，推上去就等於替使用者刪了它。
+    /// 2. 加上 `unreachableCatalogFolders`——目錄裡有、但這台**建不出 bookmark**
+    ///    的路徑（那顆碟根本沒接在這台上）。它們進不了 `indexRoots`，
+    ///    少了這一步，這台每次推目錄都在替別台做減法。
+    ///
+    /// 排序過：三台各自的加入順序不同，不排的話同一份內容會被判成不一樣，
+    /// 於是互相覆寫個不停。
+    func sourceCatalog() -> SourceCatalog {
+        let local = indexRoots.map(Self.plainPath)
+        let folders = Set(local).union(unreachableCatalogFolders).sorted()
+        return SourceCatalog(
             savedAt: .now,
-            deviceName: Host.current().localizedName ?? String(localized: "未命名 Mac"),
-            folders: folders.map(Self.plainPath),
+            deviceName: backup.deviceName,
+            folders: folders,
+            remoteSources: settings.remoteSources.map(SourceCatalog.Remote.init),
+            playlistSources: settings.playlistSources.map(SourceCatalog.Playlist.init)
+        )
+    }
+
+    /// 這台自己的設定：開哪些來源，以及桌布怎麼播。
+    func deviceSettings() -> DeviceSettings {
+        let albumsByID = Dictionary(uniqueKeysWithValues: albums.map { ($0.id, $0.title) })
+        return DeviceSettings(
+            savedAt: .now,
+            deviceName: backup.deviceName,
+            deviceID: backup.deviceID,
             folderUsage: settings.folderUsage,
             // 相簿清單是背景列舉的，還沒回來時查不到名稱——那就只帶 id，
             // 至少同機還原是對的。
             albums: settings.photoAlbums.sorted().map {
-                SettingsSnapshot.Album(id: $0, title: albumsByID[$0] ?? "")
+                DeviceSettings.Album(id: $0, title: albumsByID[$0] ?? "")
             },
-            remoteSources: settings.remoteSources,
-            playlistSources: settings.playlistSources,
+            disabledRemoteSources: settings.remoteSources.filter { !$0.isEnabled }.map(\.id),
+            disabledPlaylists: settings.playlistSources.filter { !$0.isEnabled }.map(\.id),
             sourceRules: settings.sourceRules,
             intervalMinutes: settings.intervalMinutes,
             effect: settings.effect.rawValue,
             montagePieceCount: settings.montagePieceCount,
+            showCredits: settings.showCredits,
             videoWallpaperEnabled: settings.videoWallpaperEnabled,
             videoEngine: settings.videoEngine,
             desktopVideoLayer: settings.desktopVideoLayer,
             videoPlaybackMode: settings.videoPlaybackMode,
             videoScaleMode: settings.videoScaleMode,
             videoDownloadQuality: settings.videoDownloadQuality,
+            videoCookieSource: settings.videoCookieSource,
+            videoScreens: settings.videoScreens.sorted(),
             launchAtLogin: settings.launchAtLogin
         )
     }
@@ -1194,65 +1226,135 @@ final class WallpaperCoordinator {
     /// 目錄 URL 的 `path(percentEncoded:)` 會帶結尾斜線，兩邊表示法不一致就會
     /// 判成不同的資料夾（FolderIndex 踩過同一個坑）。統一剝掉。
     private static func plainPath(_ url: URL) -> String {
-        let path = url.standardizedFileURL.path(percentEncoded: false)
-        return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
+        SourceMerge.normalized(url.path(percentEncoded: false))
     }
 
+    // MARK: 手動
+
+    /// 兩層一起寫上去。
     @discardableResult
     func backupSettingsToICloud() -> Bool {
-        backup.export(settingsSnapshot())
+        let catalogOK = backup.exportCatalog(sourceCatalog())
+        let deviceOK = backup.exportDevice(deviceSettings())
+        return catalogOK && deviceOK
     }
 
+    /// 從 iCloud 拉來源目錄下來。**不碰桌布設定**——那要在 UI 上明確挑哪一台。
     @discardableResult
     func restoreSettingsFromICloud() -> Bool {
-        guard let snapshot = backup.load() else { return false }
-        apply(snapshot)
-        backup.didApply(settingsSnapshot())
+        guard let catalog = backup.loadCatalog() else { return false }
+        applyCatalog(catalog, joining: !backup.hasCatalogBaseline)
+        backup.didApplyCatalog(sourceCatalog())
         return true
     }
 
-    /// 套用一份快照。順序有講究：先把資料夾接回來（那要重建 bookmark），
-    /// 再套其他設定，最後才一次性重掃——中間每改一個欄位就重掃是浪費。
-    private func apply(_ snapshot: SettingsSnapshot) {
-        let existing = Set(folders.map(Self.plainPath))
-        bookmarks.addFolders(paths: snapshot.folders.filter { !existing.contains($0) })
+    /// 匯入某一台的裝置設定。同一台（換過機器、重灌）才會連顯示器與瀏覽器一起套。
+    @discardableResult
+    func importDeviceSettings(from file: SettingsBackup.DeviceFile) -> Bool {
+        guard let device = backup.loadDevice(file) else { return false }
+        apply(device, sameMachine: file.isSelf)
+        return true
+    }
 
-        settings.folderUsage = snapshot.folderUsage
-        settings.remoteSources = snapshot.remoteSources
-        settings.playlistSources = snapshot.playlistSources
-        settings.sourceRules = snapshot.sourceRules
-        settings.intervalMinutes = snapshot.intervalMinutes
-        settings.effect = PostProcess(rawValue: snapshot.effect) ?? settings.effect
-        settings.montagePieceCount = snapshot.montagePieceCount
-        settings.videoEngine = snapshot.videoEngine
-        settings.desktopVideoLayer = snapshot.desktopVideoLayer
-        settings.videoPlaybackMode = snapshot.videoPlaybackMode
-        settings.videoScaleMode = snapshot.videoScaleMode
-        settings.videoDownloadQuality = snapshot.videoDownloadQuality
-        // videoScreens 刻意不套：它是這台機器的硬體設定，見 SettingsSnapshot 檔頭。
-        settings.launchAtLogin = snapshot.launchAtLogin
-        settings.photoAlbums = Self.matchAlbums(snapshot.albums, against: albums)
+    // MARK: 套用
 
-        // 這個開關會動到 extension container（幾十 GB 的拷貝），走它自己那條路。
-        if settings.videoWallpaperEnabled != snapshot.videoWallpaperEnabled {
-            settings.videoWallpaperEnabled = snapshot.videoWallpaperEnabled
-            videoWallpaperEnabledDidChange()
+    /// 把共用目錄併回本機。**開關全部留著**：合併規則見 SourceMerge。
+    ///
+    /// - Parameter joining: 這台第一次跟目錄對帳。此時一律**不做減法**——
+    ///   這台手上的來源還沒進過目錄，照減法套下去，打開自動同步的當下就被清光了。
+    private func applyCatalog(_ catalog: SourceCatalog, joining: Bool) {
+        let localPaths = indexRoots.map(Self.plainPath)
+        let delta = SourceMerge.folderDelta(
+            catalog: catalog.folders, local: localPaths, keepingExtras: joining)
+        let added = Set(bookmarks.addFolders(paths: delta.add).map(Self.plainPath))
+        for path in delta.remove {
+            let url = URL(filePath: path, directoryHint: .isDirectory)
+            do { try bookmarks.removeFolder(url) } catch {
+                Log.sources.error("同步時移除資料夾失敗：\(path, privacy: .public)")
+            }
         }
 
-        scheduler = Scheduler(intervalMinutes: settings.intervalMinutes, now: .now)
+        // 目錄裡有、這台加不進來的（碟沒接在這台上）。記著，下次推目錄時要帶上——
+        // 不然這台每一次推都在替別台刪來源。每次對帳都重算，
+        // 所以別台真的刪掉某個路徑時，它自然就從這裡消失了。
+        let reachable = Set(localPaths).union(added)
+        unreachableCatalogFolders = catalog.folders
+            .map(SourceMerge.normalized)
+            .filter { !reachable.contains($0) }
+
+        settings.remoteSources = SourceMerge.apply(
+            catalog.remoteSources, to: settings.remoteSources, keepingExtras: joining)
+        settings.playlistSources = SourceMerge.apply(
+            catalog.playlistSources, to: settings.playlistSources, keepingExtras: joining)
+
         forceVideoSync = true
         Task { @MainActor in
             await self.reloadFolders()
             await self.folderIndex.invalidate(
                 roots: self.indexRoots, offline: self.offlineFolders)
-            self.refreshNow("匯入設定")
+            self.refreshNow("同步來源")
         }
+    }
+
+    /// 套用一份裝置設定。
+    ///
+    /// - Parameter sameMachine: 這份是不是這台自己寫的。`false` 時**跳過
+    ///   `videoScreens` 與 `videoCookieSource`**：前者存顯示器 UUID，內建螢幕的
+    ///   UUID 每台不同，套下去只會把這台的勾清掉；後者是「借哪個瀏覽器的登入狀態」，
+    ///   而這台不見得裝了那個瀏覽器，就算裝了 TCC 與鑰匙串的授權也得重來一次。
+    ///   兩個都是「看起來搬過去了，其實是搬了個空殼」。
+    private func apply(_ device: DeviceSettings, sameMachine: Bool) {
+        settings.folderUsage = device.folderUsage
+        settings.sourceRules = device.sourceRules
+        settings.intervalMinutes = device.intervalMinutes
+        settings.effect = PostProcess(rawValue: device.effect) ?? settings.effect
+        settings.montagePieceCount = device.montagePieceCount
+        settings.showCredits = device.showCredits
+        settings.videoEngine = device.videoEngine
+        settings.desktopVideoLayer = device.desktopVideoLayer
+        settings.videoPlaybackMode = device.videoPlaybackMode
+        settings.videoScaleMode = device.videoScaleMode
+        settings.videoDownloadQuality = device.videoDownloadQuality
+        settings.launchAtLogin = device.launchAtLogin
+        if sameMachine {
+            settings.videoScreens = Set(device.videoScreens)
+            settings.videoCookieSource = device.videoCookieSource
+        }
+
+        // 相簿清單是背景列舉的。還沒回來（或沒授權）時 `albums` 是空的，
+        // 這時去比對只會比出空集合，把使用者選好的相簿清掉。寧可不動。
+        if !albums.isEmpty {
+            settings.photoAlbums = Self.matchAlbums(device.albums, against: albums)
+        }
+
+        let disabledRemote = Set(device.disabledRemoteSources)
+        settings.remoteSources = settings.remoteSources.map {
+            var config = $0
+            config.isEnabled = !disabledRemote.contains(config.id)
+            return config
+        }
+        let disabledPlaylists = Set(device.disabledPlaylists)
+        settings.playlistSources = settings.playlistSources.map {
+            var source = $0
+            source.isEnabled = !disabledPlaylists.contains(source.id)
+            return source
+        }
+
+        // 這個開關會動到 extension container（幾十 GB 的拷貝），走它自己那條路。
+        if settings.videoWallpaperEnabled != device.videoWallpaperEnabled {
+            settings.videoWallpaperEnabled = device.videoWallpaperEnabled
+            videoWallpaperEnabledDidChange()
+        }
+
+        scheduler = Scheduler(intervalMinutes: settings.intervalMinutes, now: .now)
+        forceVideoSync = true
+        refreshNow("匯入裝置設定")
     }
 
     /// id 優先（同機還原），比不到再比名稱（跨機——localIdentifier 每台不同）。
     /// 兩邊都比不到就丟掉：那台機器根本沒有這個相簿。
     static func matchAlbums(
-        _ wanted: [SettingsSnapshot.Album], against available: [PhotoAlbum]
+        _ wanted: [DeviceSettings.Album], against available: [PhotoAlbum]
     ) -> Set<String> {
         let ids = Set(available.map(\.id))
         var byTitle: [String: String] = [:]
@@ -1271,40 +1373,82 @@ final class WallpaperCoordinator {
         return result
     }
 
-    /// 心跳上的一拍。**遠端優先**：同一拍裡兩邊都變了就以遠端為準，
-    /// 套用完本機快照就等於遠端那份，也就不會再寫回去。
+    // MARK: 自動同步
+
+    /// 心跳上的一拍。兩層的規則不一樣：
+    ///
+    /// - **來源目錄雙向。遠端優先**：同一拍裡兩邊都變了就以遠端為準，
+    ///   套用完本機目錄就等於遠端那份，也就不會再寫回去。
+    /// - **裝置設定只寫**。這台的真相在 UserDefaults，iCloud 上那份是備份；
+    ///   理由見 SettingsBackup 檔頭。
     private func syncSettingsTick() {
         guard settings.iCloudSyncEnabled, backup.isAvailable else { return }
+        // **資料夾還沒解析完就什麼都別做。** 啟動當下 `indexRoots` 是空的，
+        // 這時推上去就是一份空目錄，別台照著它把來源全刪了。
+        guard hasLoadedFolders else { return }
+        migrateLegacyBackupIfNeeded()
 
-        // 先問便宜的：hasNewerRemote 只比檔案 mtime。沒有遠端更新時，
+        // 先問便宜的：hasNewerCatalog 只比檔案 mtime。沒有遠端更新時，
         // 本機變更的比對（要把整份設定組成快照）節流到每分鐘一次就夠——
-        // 心跳 15 秒一拍，沒必要每拍都重組一次快照。
-        if !backup.hasNewerRemote() {
+        // 心跳 15 秒一拍，沒必要每拍都重組兩份快照。
+        if !backup.hasNewerCatalog() {
             let sinceLast = lastLocalSyncCheck.map { Date.now.timeIntervalSince($0) } ?? .infinity
             guard sinceLast > 60 else { return }
             lastLocalSyncCheck = .now
-            let snapshot = settingsSnapshot()
-            if backup.hasLocalChanges(comparedTo: snapshot) {
-                backup.export(snapshot)
-            }
+            pushLocalChanges()
             return
         }
 
         // 遠端有更新。每次啟動的第一拍一定會走到這裡（還沒有比較基準）。
         // 內容一樣就只是記下基準，不要真的套用——套用會連帶重跑一輪合成，
         // 而什麼都沒變。
-        let snapshot = settingsSnapshot()
-        if let remote = backup.peekRemote(), remote.hasSameContent(as: snapshot) {
-            backup.didApply(snapshot, quietly: true)
+        let catalog = sourceCatalog()
+        if let remote = backup.peekCatalog(), remote.hasSameContent(as: catalog) {
+            backup.didApplyCatalog(catalog, quietly: true)
             return
         }
         _ = restoreSettingsFromICloud()
+    }
+
+    /// 本機兩層各自有變就各自寫上去。
+    private func pushLocalChanges() {
+        let catalog = sourceCatalog()
+        if backup.catalogHasLocalChanges(comparedTo: catalog) {
+            backup.exportCatalog(catalog)
+        }
+        let device = deviceSettings()
+        if backup.deviceHasLocalChanges(comparedTo: device) {
+            backup.exportDevice(device)
+        }
+    }
+
+    /// iCloud 上還是 0.6.x 那份單層 `settings.json`：拆成兩層，一次就好。
+    ///
+    /// 拆出來的**裝置設定丟掉不用**——這台當下的 UserDefaults 才是真相，
+    /// 而那份舊備份可能是別台寫的。裝置層直接寫這台現在的狀態。
+    ///
+    /// 來源那層走「第一次加入」那條路（聯集），推上去的才會是舊備份與這台的**union**。
+    /// 直接把拆出來的目錄推上去是不行的：這台有、舊備份沒有的來源會就此消失，
+    /// 而舊備份有、這台掛不到的路徑下一拍又會被這台減掉。
+    ///
+    /// 舊檔留著不刪：還沒更新的機器仍在讀它，而它終究是使用者的檔案。
+    private func migrateLegacyBackupIfNeeded() {
+        guard backup.needsLegacyMigration, let legacy = backup.loadLegacy() else { return }
+        applyCatalog(legacy.split().catalog, joining: true)
+        backup.exportCatalog(sourceCatalog())
+        backup.exportDevice(deviceSettings())
+        Log.app.info("已把 0.6.x 的 settings.json 拆成 sources.json ＋ devices/")
     }
 
     /// 使用者剛把自動同步打開：立刻推一份上去當基準，
     /// 不然要等到下一次設定變動才會有東西。
     func iCloudSyncDidChange() {
         guard settings.iCloudSyncEnabled else { return }
+        migrateLegacyBackupIfNeeded()
+        // 目錄上已經有別台的來源了：先聯集再推，否則這一按就把別台的來源刪光。
+        if !backup.hasCatalogBaseline, let remote = backup.peekCatalog() {
+            applyCatalog(remote, joining: true)
+        }
         backupSettingsToICloud()
     }
 
