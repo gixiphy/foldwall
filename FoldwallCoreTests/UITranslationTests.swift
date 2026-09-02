@@ -177,6 +177,66 @@ struct CLIEngineTests {
         }
     }
 
+    /// 三種格式都是照實機輸出寫的（2026-09-02 於 agy 1.1.22／grok／opencode 1.18.26），
+    /// 猜錯的症狀是下拉選單空的或塞滿雜訊行。
+    @Test("模型清單解析：agy 的 tab、grok 的項目符號、opencode 的每行一個")
+    func parseModels() {
+        let agy = """
+        Fetching available models...
+        gemini-3.7-flash-high\tGemini 3.7 Flash (High)
+        gemini-3.7-flash-medium\tGemini 3.7 Flash (Medium)
+        """
+        #expect(CLIModelLister.parseModels(agy, format: .tabSeparated)
+            == ["gemini-3.7-flash-high", "gemini-3.7-flash-medium"])
+
+        let grok = """
+        You are logged in with grok.com.
+
+        Default model: grok-4.6
+
+        Available models:
+          * grok-4.6 (default)
+          - grok-4.5
+        """
+        #expect(CLIModelLister.parseModels(grok, format: .markerList) == ["grok-4.6", "grok-4.5"])
+
+        let opencode = """
+        opencode/claude-opus-5
+        opencode/gemini-3.1-pro
+        這行沒有斜線
+        """
+        #expect(CLIModelLister.parseModels(opencode, format: .plainLines)
+            == ["opencode/claude-opus-5", "opencode/gemini-3.1-pro"])
+    }
+
+    /// codex 標 hide 的是它自己不放進選單的（legacy／內部），我們也不該列；
+    /// 但沒有 visibility 欄位時要保守納入——欄位是新加的話不該讓整份清單變空。
+    @Test("codex 模型快取只取 visibility 是 list 的")
+    func parseCodexModelsCache() throws {
+        let json = """
+        {"models": [
+          {"slug": "gpt-5.6-terra", "visibility": "list"},
+          {"slug": "gpt-5-legacy", "visibility": "hide"},
+          {"slug": "gpt-5.6-mini"},
+          {"slug": ""}
+        ]}
+        """
+        #expect(CLIModelLister.parseCodexModelsCache(Data(json.utf8))
+            == ["gpt-5.6-terra", "gpt-5.6-mini"])
+        #expect(CLIModelLister.parseCodexModelsCache(Data("不是 JSON".utf8)).isEmpty)
+    }
+
+    /// 沒有可靠列舉方式的引擎不該編一份清單出來；claude 只給設計上穩定的別名。
+    @Test("目錄裡每家的模型列舉方式")
+    func modelListing() throws {
+        #expect(try #require(KnownCLIEngine.named("claude")).modelListing == nil)
+        #expect(try #require(KnownCLIEngine.named("claude")).suggestedModels.contains("opus"))
+        for id in ["agy", "grok", "opencode", "codex"] {
+            #expect(try #require(KnownCLIEngine.named(id)).modelListing != nil, "\(id) 少了列舉方式")
+            #expect(try #require(KnownCLIEngine.named(id)).suggestedModels.isEmpty, "\(id) 不該有靜態清單")
+        }
+    }
+
     @Test("錯誤訊息裡的 token 被遮蔽")
     func sanitized() {
         let text = CLIExecution.sanitized("failed: Bearer abc.def sk-1234567890abcdef")

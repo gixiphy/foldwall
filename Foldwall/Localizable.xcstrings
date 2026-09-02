@@ -1182,6 +1182,28 @@
         }
       }
     },
+    "使用預設": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use Default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用默认"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用預設"
+          }
+        }
+      }
+    },
     "來源": {
       "localizations": {
         "en": {
@@ -3136,6 +3158,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "後製"
+          }
+        }
+      }
+    },
+    "從 %@ 回報的清單挑選": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick from the list %@ reports"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从 %@ 报告的列表中挑选"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "從 %@ 回報的清單挑選"
           }
         }
       }

@@ -2343,6 +2343,24 @@ private struct LanguageSettings: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 220)
                         .help(engine.modelHint)
+                        // 列得到清單的引擎給下拉，但**欄位永遠可以自由輸入**——
+                        // 清單可能過期或列不全，不該因此擋住使用者想用的模型。
+                        let options = registry.models[engine.id] ?? []
+                        if !options.isEmpty {
+                            Menu {
+                                Button("使用預設") { translator.setModel("", for: engine.id) }
+                                Divider()
+                                ForEach(options, id: \.self) { slug in
+                                    Button(slug) { translator.setModel(slug, for: engine.id) }
+                                }
+                            } label: {
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .imageScale(.small)
+                            }
+                            .menuStyle(.borderlessButton)
+                            .fixedSize()
+                            .help("從 \(engine.displayName) 回報的清單挑選")
+                        }
                         Spacer(minLength: 0)
                     }
                 }

@@ -37,6 +37,43 @@ public struct KnownCLIEngine: Identifiable, Sendable {
         }
     }
 
+    /// 可靠的模型列舉方式；沒有就 nil（欄位維持純輸入，不編造清單）。
+    /// claude 沒有非互動的列舉指令，改用 `suggestedModels` 的穩定別名。
+    public var modelListing: ModelListing? {
+        switch id {
+        case "agy": .command(arguments: ["models"], format: .tabSeparated)
+        case "grok": .command(arguments: ["models"], format: .markerList)
+        case "opencode": .command(arguments: ["models"], format: .plainLines)
+        case "codex": .codexModelsCache
+        default: nil
+        }
+    }
+
+    /// 靜態建議項。只放**設計上穩定**的東西（claude 的別名恆指向當代最新模型），
+    /// 不放具體版本號——那種清單放著就會過期。
+    public var suggestedModels: [String] {
+        id == "claude" ? ["opus", "sonnet", "fable", "haiku"] : []
+    }
+
+    /// 模型清單的來源。各家不同，照實反映。
+    public enum ModelListing: Sendable {
+        /// 跑 `<cli> <arguments>` 取得清單。
+        case command(arguments: [String], format: CommandFormat)
+        /// codex 沒有非互動的列舉指令（`codex models` 會轉進互動式 TUI 並因非 TTY 失敗），
+        /// 但它自己在 `~/.codex/models_cache.json` 維護一份抓好的清單——直接讀那份，
+        /// 唯讀、不動使用者的檔案。
+        case codexModelsCache
+
+        public enum CommandFormat: Sendable {
+            /// 每行一個 slug（opencode：`provider/model`）。
+            case plainLines
+            /// 散文清單，項目以 `*`／`-` 起頭（grok：`  * grok-4.6 (default)`）。
+            case markerList
+            /// `<slug>\t<顯示名>`（agy）。
+            case tabSeparated
+        }
+    }
+
     /// 單發呼叫需要的執行期資訊。
     public struct RunContext: Sendable {
         /// 這次呼叫的沙箱目錄——只放 schema 檔。需要明示宣告工作目錄的 CLI
@@ -187,6 +224,99 @@ public enum CLIEngineLocator {
         return String(data: data, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .components(separatedBy: .newlines).first
+    }
+}
+
+// MARK: - 模型列舉
+
+/// 問 CLI 有哪些模型可用。存在的理由：模型字串各家寫法不同（opencode 要
+/// `provider/model`，只填模型名直接失敗），讓使用者自己猜是不合理的。
+/// 解析是純函式，可單獨測；抓取會打網路，由呼叫端決定何時做與怎麼快取。
+public enum CLIModelLister {
+
+    /// `<cli> models` 的輸出解析。
+    public static func parseModels(
+        _ output: String,
+        format: KnownCLIEngine.ModelListing.CommandFormat
+    ) -> [String] {
+        let lines = output.components(separatedBy: .newlines)
+        switch format {
+        case .tabSeparated:
+            // agy：`<slug>\t<顯示名>`。沒有 tab 的行（"Fetching available models..."
+            // 之類）一律略過。
+            return lines.compactMap { line in
+                let parts = line.split(separator: "\t", maxSplits: 1)
+                guard parts.count == 2 else { return nil }
+                let slug = parts[0].trimmingCharacters(in: .whitespaces)
+                return slug.isEmpty ? nil : slug
+            }
+        case .plainLines:
+            // opencode：每行就是一個 provider/model。沒有斜線的是雜訊行。
+            return lines
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { $0.contains("/") && !$0.contains(" ") }
+        case .markerList:
+            // grok：`  * grok-4.6 (default)`／`  - grok-4.5`；
+            // 標題行（"Available models:"）沒有項目符號，自然被濾掉。
+            return lines.compactMap { line -> String? in
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                guard trimmed.hasPrefix("* ") || trimmed.hasPrefix("- ") else { return nil }
+                let body = trimmed.dropFirst(2).trimmingCharacters(in: .whitespaces)
+                // 去掉 "(default)" 之類的尾註
+                let slug = body.split(separator: " ").first.map(String.init) ?? body
+                return slug.isEmpty ? nil : slug
+            }
+        }
+    }
+
+    public static var codexModelsCachePath: String {
+        NSString(string: "~/.codex/models_cache.json").expandingTildeInPath
+    }
+
+    /// codex 的模型快取：取 `visibility == "list"` 的 slug——標 `hide` 的是它自己
+    /// 不放進選單的（legacy／內部），我們也不該列。
+    public static func parseCodexModelsCache(_ data: Data) -> [String] {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let models = object["models"] as? [[String: Any]]
+        else { return [] }
+        return models.compactMap { model in
+            guard let slug = model["slug"] as? String, !slug.isEmpty else { return nil }
+            // 沒有 visibility 欄位時保守納入（欄位是新加的就不該整份變空）
+            guard (model["visibility"] as? String ?? "list") == "list" else { return nil }
+            return slug
+        }
+    }
+
+    /// 依 `listing` 取得清單；失敗回空陣列——沒有下拉選單而已，輸入欄位照常可用。
+    /// **會阻塞**（列舉要打網路，實測 grok／opencode 各十餘秒），呼叫端請丟到背景。
+    public static func fetch(_ listing: KnownCLIEngine.ModelListing, executable: URL) -> [String] {
+        switch listing {
+        case let .command(arguments, format):
+            guard let output = runListing(at: executable, arguments: arguments) else { return [] }
+            return parseModels(output, format: format)
+        case .codexModelsCache:
+            guard let data = FileManager.default.contents(atPath: codexModelsCachePath) else { return [] }
+            return parseCodexModelsCache(data)
+        }
+    }
+
+    private static func runListing(at url: URL, arguments: [String]) -> String? {
+        let process = Process()
+        process.executableURL = url
+        process.arguments = arguments
+        process.environment = CLIProcessRunner.whitelistedEnvironment(
+            executableDirectory: url.deletingLastPathComponent().path)
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = Pipe()
+        do { try process.run() } catch { return nil }
+        let deadline = Date().addingTimeInterval(30)
+        while process.isRunning, Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        if process.isRunning { process.terminate(); return nil }
+        guard process.terminationStatus == 0 else { return nil }
+        return String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)
     }
 }
 
