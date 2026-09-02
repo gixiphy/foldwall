@@ -20,9 +20,16 @@ struct FoldwallApp: App {
         // 使用者自翻的介面語言要在**任何 View 建立前**裝上：SwiftUI 已渲染的 Text
         // 不會因 Bundle 改變而重繪，晚一步就只有半套。裝不上（檔被刪了）就退回內建。
         let translationStore = UITranslationStore(directory: AppPaths.standard().uiTranslations)
-        if let language = settings.uiTranslationLanguage,
-           !translationStore.installOverride(language: language, bundles: UITranslator.sourceBundles) {
-            Log.app.error("介面翻譯 \(language, privacy: .public) 裝不上（翻譯檔不在？），退回內建語言")
+        if let language = settings.uiTranslationLanguage {
+            if translationStore.installOverride(language: language, bundles: UITranslator.sourceBundles) {
+                UITranslator.runningSelection = .translated(language)
+            } else {
+                Log.app.error("介面翻譯 \(language, privacy: .public) 裝不上（翻譯檔不在？），退回內建語言")
+            }
+        } else if let builtin = settings.builtinLanguage {
+            // AppleLanguages 已經在選定當下寫進 App domain，這裡只是記下這個行程跑的是哪個，
+            // 讓設定頁判斷得出「選了別的、要重啟」。
+            UITranslator.runningSelection = .builtin(builtin)
         }
         let translator = UITranslator(
             store: translationStore, settings: settings,

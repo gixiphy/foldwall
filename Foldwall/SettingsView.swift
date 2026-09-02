@@ -2198,21 +2198,26 @@ private struct LanguageSettings: View {
 
     @Bindable var translator: UITranslator
 
-    /// Picker 的 tag：nil（內建）在 SwiftUI 裡不好當 tag，用空字串代表。
-    private static let builtinTag = ""
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 GroupBox("介面語言") {
                     VStack(alignment: .leading, spacing: 8) {
                         Picker("介面語言", selection: Binding(
-                            get: { translator.selectedLanguage ?? Self.builtinTag },
-                            set: { translator.selectedLanguage = $0 == Self.builtinTag ? nil : $0 }
+                            get: { translator.selection },
+                            set: { translator.selection = $0 }
                         )) {
-                            Text("內建（繁體中文／简体中文／English，跟隨系統）").tag(Self.builtinTag)
-                            ForEach(translator.installedLanguages, id: \.self) { code in
-                                Text(UITranslator.displayName(for: code)).tag(code)
+                            Text("跟隨系統").tag(UITranslator.Selection.system)
+                            ForEach(UITranslationStore.builtinLanguages, id: \.self) { code in
+                                Text(UITranslator.displayName(for: code))
+                                    .tag(UITranslator.Selection.builtin(code))
+                            }
+                            if !translator.installedLanguages.isEmpty {
+                                Divider()
+                                ForEach(translator.installedLanguages, id: \.self) { code in
+                                    Text(UITranslator.displayName(for: code))
+                                        .tag(UITranslator.Selection.translated(code))
+                                }
                             }
                         }
                         .disabled(translator.isRunning)
@@ -2233,10 +2238,10 @@ private struct LanguageSettings: View {
                         }
 
                         Text("""
-                            Foldwall 內建繁體中文、簡體中文與英文。其他語言可以交給**本機的 AI CLI**\
-                            （Claude Code、Codex 等，用你自己登入的帳號）翻譯全部介面文字；\
-                            翻好的檔只存在這台 Mac，隨時可以切回內建語言。\
-                            這是機器翻譯，翻不好的字串會退回英文。
+                            Foldwall 內建繁體中文、简体中文與英文，跟隨系統或在上面直接指定。\
+                            其他語言可以交給**本機的 AI CLI**（Claude Code、Codex 等，用你自己\
+                            登入的帳號）翻譯全部介面文字；翻好的檔只存在這台 Mac，隨時可以切回\
+                            內建語言。這是機器翻譯，翻不好或還沒翻的字串會顯示英文。
                             """)
                             .font(.caption)
                             .foregroundStyle(.secondary)

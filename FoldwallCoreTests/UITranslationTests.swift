@@ -268,8 +268,7 @@ struct UITranslationStoreTests {
         // 沒翻的 key 退回內建（這條 Core 有英文／繁中），不會變成 sentinel 或空字串
         let fallback = String(localized: "照片", bundle: .foldwallCore)
         #expect(!fallback.isEmpty && !fallback.contains("\u{1}"))
-        // 裝好的語言只有 Bundle.main 被換掉時才算生效（這裡沒動 Bundle.main）
-        #expect(TranslatedBundle.activeLanguage == nil)
+        // 沒有這個語言的翻譯檔就不該裝上去
         #expect(!store.installOverride(language: "ko", bundles: [core]))
     }
 

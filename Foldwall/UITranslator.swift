@@ -50,11 +50,47 @@ final class UITranslator {
 
     // MARK: - 狀態
 
-    /// 使用者選定要用的介面語言：nil＝內建（跟隨系統）。
-    /// 選回內建**不會**刪翻譯檔，之後還能再切回來。
-    var selectedLanguage: String? {
-        get { settings.uiTranslationLanguage }
-        set { settings.uiTranslationLanguage = newValue }
+    /// 介面語言的三種選法。內建語言靠 App domain 的 `AppleLanguages` 生效，
+    /// 自翻語言靠 `TranslatedBundle` 覆蓋 Bundle 查表——兩者都要重啟才會換，
+    /// Foundation 在行程啟動時就把語言決定好了。
+    enum Selection: Hashable {
+        /// 跟隨系統：系統語言是三種內建語言之一就用它，否則由 Foundation 挑。
+        case system
+        /// 指定一種內建語言（zh-Hant／zh-Hans／en）。
+        case builtin(String)
+        /// 使用者自翻的語言；沒翻到的字串退回英文。
+        case translated(String)
+    }
+
+    /// 這個行程實際跑的是哪個語言：App.init 掛完覆蓋後設一次。
+    nonisolated(unsafe) static var runningSelection: Selection = .system
+
+    /// 使用者選定要用的介面語言。切走**不會**刪翻譯檔，之後還能再切回來。
+    var selection: Selection {
+        get {
+            if let language = settings.uiTranslationLanguage { return .translated(language) }
+            if let builtin = settings.builtinLanguage { return .builtin(builtin) }
+            return .system
+        }
+        set {
+            switch newValue {
+            case .system:
+                settings.uiTranslationLanguage = nil
+                settings.builtinLanguage = nil
+                settings.applyInterfaceLanguage(nil)
+            case let .builtin(code):
+                settings.uiTranslationLanguage = nil
+                settings.builtinLanguage = code
+                settings.applyInterfaceLanguage(code)
+            case let .translated(code):
+                settings.uiTranslationLanguage = code
+                settings.builtinLanguage = nil
+                // 覆蓋查不到的 key 會落到內建語言：釘成英文，才是翻譯的來源那一份。
+                // 不釘的話，沒翻到的字串會顯示系統語言（在這台就是繁中），
+                // 而不是說明裡講的「退回英文」。
+                settings.applyInterfaceLanguage("en")
+            }
+        }
     }
 
     /// 已翻好、檔還在的語言。
@@ -62,10 +98,12 @@ final class UITranslator {
 
     func manifest(for language: String) -> UITranslationStore.Manifest? { store.manifest(for: language) }
 
-    /// 選定的與正在執行的不同：要重啟才會生效（含選回內建）。
+    /// 選定的與正在執行的不同：要重啟才會生效（含切回內建語言）。
     var needsRelaunch: Bool {
-        let selected = selectedLanguage.flatMap { store.manifest(for: $0) != nil ? $0 : nil }
-        return TranslatedBundle.activeLanguage != selected
+        var desired = selection
+        // 翻譯檔不在（被手動刪掉）就當作沒選——重啟也救不回來，別掛著一個假提示
+        if case let .translated(code) = desired, store.manifest(for: code) == nil { desired = .system }
+        return desired != Self.runningSelection
     }
 
     /// 某個已翻語言裡，內建字串尚未翻的條數（升版後會長出來）。
@@ -152,19 +190,34 @@ final class UITranslator {
     var candidateLanguages: [String] {
         var list: [String] = []
         if let suggested = Self.suggestedLanguage(preferred: Locale.preferredLanguages) { list.append(suggested) }
+        // 不列內建語言（zh-Hant／zh-Hans／en）——那三個在上面的「介面語言」選單裡
         for code in ["ja", "ko", "de", "fr", "es", "pt-BR", "it", "ru", "vi", "th", "id", "nl", "pl", "tr", "uk"]
-        where !list.contains(code) {
+        where !list.contains(code) && !UITranslationStore.builtinLanguages.contains(code) {
             list.append(code)
         }
         if !list.contains(targetLanguage) { list.insert(targetLanguage, at: 0) }
         return list
     }
 
-    /// 「日本語（Japanese）」：本地名＋介面語言裡的名字。
+    /// 「한국어（韓文）」：本地名＋目前介面語言裡的名字。
+    ///
+    /// 括號存在的理由是「讀不懂本地名的人也知道那是什麼語言」。所以兩邊都是漢字時
+    /// 就不加括號——繁中介面下的 `简体中文` 本來就看得懂，補一句「簡體中文」只是雜訊。
+    /// 英文介面下 `简体中文（Chinese, Simplified）` 的括號則留著，因為那時它有用。
     static func displayName(for language: String) -> String {
         let endonym = Locale(identifier: language).localizedString(forIdentifier: language) ?? language
         let exonym = Locale.current.localizedString(forIdentifier: language) ?? language
-        return endonym == exonym ? endonym : "\(endonym)（\(exonym)）"
+        if endonym == exonym { return endonym }
+        if isAllHan(endonym), isAllHan(exonym) { return endonym }
+        return "\(endonym)（\(exonym)）"
+    }
+
+    /// 整串都是漢字（不含假名、諺文、拉丁字母）。
+    private static func isAllHan(_ text: String) -> Bool {
+        !text.isEmpty && text.unicodeScalars.allSatisfy { scalar in
+            (0x3400...0x4DBF).contains(scalar.value) || (0x4E00...0x9FFF).contains(scalar.value)
+                || (0xF900...0xFAFF).contains(scalar.value)
+        }
     }
 
     /// 語言代碼 → 英文語言名，給 prompt 用（模型看英文名最不會誤解）。
@@ -256,7 +309,7 @@ final class UITranslator {
                     self.phase = .running(done: done, total: total)
                 }
                 guard let self else { return }
-                self.settings.uiTranslationLanguage = language
+                self.selection = .translated(language)
                 self.phase = .finished(translated: strings.count + plurals.count, skipped: skipped.count)
                 Log.app.notice("介面翻譯完成：\(language, privacy: .public) \(strings.count + plurals.count) 條、跳過 \(skipped.count)，引擎 \(engine.id, privacy: .public)")
             } catch is CancellationError {
@@ -279,7 +332,7 @@ final class UITranslator {
     /// 刪掉某個語言的翻譯檔；若它正被選用，選回內建。覆蓋還在記憶體裡，重啟才變。
     func remove(language: String) {
         try? store.remove(language: language)
-        if settings.uiTranslationLanguage == language { settings.uiTranslationLanguage = nil }
+        if settings.uiTranslationLanguage == language { selection = .system }
         phase = .idle
     }
 

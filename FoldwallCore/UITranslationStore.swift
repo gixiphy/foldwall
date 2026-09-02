@@ -237,11 +237,6 @@ public final class TranslatedBundle: Bundle, @unchecked Sendable {
     nonisolated(unsafe) public static var overlay: Bundle?
     nonisolated(unsafe) public static var language: String?
 
-    /// 目前生效的覆蓋語言（nil＝沒有裝）。設定頁靠它判斷「已翻好但要重啟」。
-    public static var activeLanguage: String? {
-        object_getClass(Bundle.main) == TranslatedBundle.self ? language : nil
-    }
-
     private static let missing = "\u{1}foldwall.missing\u{1}"
 
     /// 純函式的核心，方便單獨測：overlay 有這個 key 就回譯文，沒有回 nil。

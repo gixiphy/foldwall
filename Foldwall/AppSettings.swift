@@ -33,6 +33,7 @@ final class AppSettings {
         static let videoDownloadQuality = "videoDownloadQuality"
         static let videoCookieSource = "videoCookieSource"
         static let uiTranslationLanguage = "uiTranslationLanguage"
+        static let builtinLanguage = "builtinLanguage"
         static let translationEngineID = "translationEngineID"
         static let translationModelIDs = "translationModelIDs"
         static let translationCustomPaths = "translationCustomPaths"
@@ -187,10 +188,31 @@ final class AppSettings {
         didSet { defaults.set(Array(photoAlbums), forKey: Key.photoAlbums) }
     }
 
-    /// 使用者用本機 AI CLI 自翻的介面語言（見 UITranslationStore）；nil＝內建、跟隨系統。
+    /// 使用者用本機 AI CLI 自翻的介面語言（見 UITranslationStore）；nil＝用內建語言。
     /// 啟動時由 App.init 讀來裝覆蓋——**不進備份**：翻譯檔本來就只在這台。
     var uiTranslationLanguage: String? {
         didSet { defaults.set(uiTranslationLanguage, forKey: Key.uiTranslationLanguage) }
+    }
+
+    /// 使用者指定的內建語言（zh-Hant／zh-Hans／en）；nil＝跟隨系統。
+    /// 真正讓語言生效的是 App domain 的 `AppleLanguages`（見 `applyInterfaceLanguage`），
+    /// 這個鍵只是記住使用者選了什麼，好在設定頁顯示與判斷要不要重啟。
+    var builtinLanguage: String? {
+        didSet { defaults.set(builtinLanguage, forKey: Key.builtinLanguage) }
+    }
+
+    /// 寫 App 自己 domain 的 `AppleLanguages`；nil＝拿掉，回到系統語言。
+    /// **只有下次啟動才生效**——Foundation 在行程啟動時就把語言決定好了，
+    /// 這也是設定頁一律提示重啟的原因。
+    ///
+    /// 寫進 `defaults`（而不是寫死 `.standard`）是為了讓 Preview／測試用自己的 suite 時，
+    /// 不會把使用者本尊的介面語言改掉。
+    func applyInterfaceLanguage(_ code: String?) {
+        if let code {
+            defaults.set([code], forKey: "AppleLanguages")
+        } else {
+            defaults.removeObject(forKey: "AppleLanguages")
+        }
     }
 
     /// 翻譯用哪個 CLI（KnownCLIEngine.catalog 的 id）。預設 claude。
@@ -252,6 +274,7 @@ final class AppSettings {
             .map(RemoteSourceConfig.decodeList) ?? []
         self.photoAlbums = Set(defaults.stringArray(forKey: Key.photoAlbums) ?? [])
         self.uiTranslationLanguage = defaults.string(forKey: Key.uiTranslationLanguage)
+        self.builtinLanguage = defaults.string(forKey: Key.builtinLanguage)
         self.translationEngineID = defaults.string(forKey: Key.translationEngineID) ?? "claude"
         self.translationModelIDs = (defaults.dictionary(forKey: Key.translationModelIDs) as? [String: String]) ?? [:]
         self.translationCustomPaths = (defaults.dictionary(forKey: Key.translationCustomPaths) as? [String: String]) ?? [:]
