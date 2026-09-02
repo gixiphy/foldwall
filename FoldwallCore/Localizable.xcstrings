@@ -1,12 +1,84 @@
 {
   "sourceLanguage": "zh-Hant",
   "strings": {
+    "%@ 未登入或憑證已失效，請在終端重新登入後再試": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is not logged in or its credentials have expired. Log in again in Terminal and retry."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 未登录或凭证已失效，请在终端重新登录后再试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 未登入或憑證已失效，請在終端重新登入後再試"
+          }
+        }
+      }
+    },
+    "%@ 沒有產出回應，可重試": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ produced no response. You can retry."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 没有产生回应，可重试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 沒有產出回應，可重試"
+          }
+        }
+      }
+    },
+    "%@ 沒有產出回應：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ produced no response: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 没有产生回应：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 沒有產出回應：%@"
+          }
+        }
+      }
+    },
     "%@：隨機": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
             "value": "%@: Random"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：随机"
           }
         },
         "zh-Hant": {
@@ -25,6 +97,12 @@
             "value": "%lld minutes"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 分钟"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -39,6 +117,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "1 hour"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 小时"
           }
         },
         "zh-Hant": {
@@ -57,6 +141,12 @@
             "value": "Only tells apart from 1080p on 27-inch displays and larger."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "27 英寸以上才看得出跟 1080p 的差别。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -71,6 +161,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Flickr (public search)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flickr（公开搜索）"
           }
         },
         "zh-Hant": {
@@ -89,6 +185,12 @@
             "value": "HTTP %lld: wrong key, or no permission"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP %lld：key 不对或没有权限"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -103,6 +205,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "HTTP %lld: the other end errored"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP %lld：对方服务器出错"
           }
         },
         "zh-Hant": {
@@ -121,6 +229,12 @@
             "value": "HTTP 404: no such route or URL"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP 404：路由或网址不存在"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -135,6 +249,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "HTTP 429: rate limit exceeded, try again later"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTP 429：超出速率上限，稍后再试"
           }
         },
         "zh-Hant": {
@@ -153,6 +273,12 @@
             "value": "Pexels Video"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pexels 视频"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -169,10 +295,60 @@
             "value": "RSS photo feed"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RSS 照片来源"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "RSS 相片來源"
+          }
+        }
+      }
+    },
+    "provider/model 格式": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "provider/model format"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "provider/model 格式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "provider/model 格式"
+          }
+        }
+      }
+    },
+    "slug，如 gemini-3.1-pro-high、claude-sonnet-4-6": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A slug such as gemini-3.1-pro-high or claude-sonnet-4-6"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "slug，如 gemini-3.1-pro-high、claude-sonnet-4-6"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "slug，如 gemini-3.1-pro-high、claude-sonnet-4-6"
           }
         }
       }
@@ -183,6 +359,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Plays one video through, then loops back to its start — always the same video. The loop is seamless."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一个放到底再接回开头，永远是同一个。接回开头是无缝的。"
           }
         },
         "zh-Hant": {
@@ -201,6 +383,12 @@
             "value": "Downloading…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载中…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -215,6 +403,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Don’t borrow (signed out)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不使用（未登录）"
           }
         },
         "zh-Hant": {
@@ -233,6 +427,12 @@
             "value": "No limit"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不设上限"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -247,6 +447,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scales to the screen **width**: the video meets the left and right edges; anything taller is cropped, anything shorter leaves bars above and below. Aspect ratio unchanged."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以屏幕**宽度**为准等比缩放：视频的左右刚好贴齐屏幕，上下超出的裁掉、不够高的留上下黑边。长宽比不变。"
           }
         },
         "zh-Hant": {
@@ -265,6 +471,12 @@
             "value": "Scales to the screen **height**: the video meets the top and bottom edges; anything wider is cropped, anything narrower leaves bars left and right. Aspect ratio unchanged."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以屏幕**高度**为准等比缩放：视频的上下刚好贴齐屏幕，左右超出的裁掉、不够宽的留左右黑边。长宽比不变。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -279,6 +491,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Disable photo albums"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停用照片相册"
           }
         },
         "zh-Hant": {
@@ -297,6 +515,12 @@
             "value": "Disable web sources"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停用网络来源"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -311,6 +535,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Disable folder sources"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停用文件夹来源"
           }
         },
         "zh-Hant": {
@@ -329,10 +559,38 @@
             "value": "Loop All"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部循环"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "全部循環"
+          }
+        }
+      }
+    },
+    "別名 opus／sonnet／fable，或完整名稱如 claude-opus-5": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An alias (opus / sonnet / fable) or a full name such as claude-opus-5"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "别名 opus／sonnet／fable，或完整名称如 claude-opus-5"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別名 opus／sonnet／fable，或完整名稱如 claude-opus-5"
           }
         }
       }
@@ -343,6 +601,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Desaturate"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去饱和"
           }
         },
         "zh-Hant": {
@@ -361,6 +625,12 @@
             "value": "The only way to get video onto the **lock screen**. Videos have to be copied into the extension (subject to the rotation budget) and picked in System Settings → Wallpaper. Relies on private API, so a major macOS release may break it."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "唯一能让视频出现在**锁屏**的做法。视频需拷进 extension（受轮换上限管制），且要在“系统设置 → 墙纸”选片。依赖私有 API，macOS 大版本可能失效。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -375,6 +645,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Loop One"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单片循环"
           }
         },
         "zh-Hant": {
@@ -393,6 +669,12 @@
             "value": "Unexpected response format — this may not be a URL for this source"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "响应格式不符，可能不是这个来源的网址"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -407,6 +689,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Below desktop icons"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在桌面图标之下"
           }
         },
         "zh-Hant": {
@@ -425,6 +713,12 @@
             "value": "Fill Width"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填满宽度"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -439,6 +733,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fill Screen"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填满屏幕"
           }
         },
         "zh-Hant": {
@@ -457,6 +757,12 @@
             "value": "Fill Height"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填满高度"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -471,6 +777,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enough for most displays. Around 1 GB per hour."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多数屏幕够用。一小时约 1 GB。"
           }
         },
         "zh-Hant": {
@@ -489,6 +801,12 @@
             "value": "Pause rotation entirely"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完全暂停轮换"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -503,6 +821,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Done: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成：%@"
           }
         },
         "zh-Hant": {
@@ -521,6 +845,12 @@
             "value": "Not tested"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未测试"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -537,10 +867,38 @@
             "value": "Videos"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "影片"
+          }
+        }
+      }
+    },
+    "找不到 %@，請確認已安裝": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ was not found. Make sure it is installed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到 %@，请确认已安装"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到 %@，請確認已安裝"
           }
         }
       }
@@ -551,6 +909,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Moves to the next video when one ends, wrapping back to the first at the end of the list."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播完接下一个，走到底回到第一个。"
           }
         },
         "zh-Hant": {
@@ -569,6 +933,12 @@
             "value": "Picks the next video at random when one ends. Never the one that just played."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播完随机挑下一个。下一个不会是刚播完的那个。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -583,6 +953,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pause video wallpaper"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂停视频壁纸"
           }
         },
         "zh-Hant": {
@@ -601,6 +977,12 @@
             "value": "Smallest files. Visibly soft on a large external display."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最省空间。外接大屏幕上看得出来。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -615,6 +997,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Desktop window"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌面窗口"
           }
         },
         "zh-Hant": {
@@ -633,10 +1021,82 @@
             "value": "Sepia"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "棕褐"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "棕褐"
+          }
+        }
+      }
+    },
+    "模型 ID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model ID"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型 ID"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型 ID"
+          }
+        }
+      }
+    },
+    "模型名稱，如 gpt-5.6-terra": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A model name such as gpt-5.6-terra"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型名称，如 gpt-5.6-terra"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型名稱，如 gpt-5.6-terra"
+          }
+        }
+      }
+    },
+    "模型回覆無法解析：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model's reply could not be parsed: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型回复无法解析：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型回覆無法解析：%@"
           }
         }
       }
@@ -647,6 +1107,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Files several times larger, and decoding costs more power."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件大好几倍，解码也更耗电。"
           }
         },
         "zh-Hant": {
@@ -665,6 +1131,12 @@
             "value": "Daily"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每天"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -679,6 +1151,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Each video draws its own mode (Fill Screen / Fit to Screen). The same video on the same display always draws the same one."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个视频各自抽一种（填满屏幕／符合屏幕大小）。同一个在同一台屏幕上抽到的固定不变。"
           }
         },
         "zh-Hant": {
@@ -697,6 +1175,12 @@
             "value": "Testing…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试中…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -711,6 +1195,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Test failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试失败"
           }
         },
         "zh-Hant": {
@@ -729,6 +1219,12 @@
             "value": "Grayscale"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "灰度"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -743,6 +1239,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "None"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无"
           }
         },
         "zh-Hant": {
@@ -761,6 +1263,12 @@
             "value": "Photos"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -775,6 +1283,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Plays source files directly — no copying, no extra disk, your whole library is playable. Public API only. **Does not play on the lock screen.**"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直接播来源文件，不拷贝、不占额外磁盘，整个视频库都能播。全公开 API。**锁屏不会播。**"
           }
         },
         "zh-Hant": {
@@ -793,6 +1307,12 @@
             "value": "Takes the best the site offers. The cache fills up fast."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "站上有多好就拿多好。缓存会很快满。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -807,6 +1327,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fit to Screen"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符合屏幕大小"
           }
         },
         "zh-Hant": {
@@ -825,6 +1351,12 @@
             "value": "Scales up until the screen is covered and crops the overflow. No bars, but part of the frame may be cut off."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等比放大到盖满屏幕，超出画面的裁掉。不会有黑边，但拍到的东西可能被切到。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -839,6 +1371,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scales down until the whole frame is visible. Leaves bars whenever the aspect ratio differs from the screen."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等比缩到整个视频都看得见。长宽比跟屏幕不一样就会留黑边。"
           }
         },
         "zh-Hant": {
@@ -857,6 +1395,12 @@
             "value": "System wallpaper extension"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统壁纸 extension"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -871,6 +1415,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Malformed URL: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网址格式错误：%@"
           }
         },
         "zh-Hant": {
@@ -889,6 +1439,12 @@
             "value": "Full-size images downloaded from web sources, exports from photo albums, and copies pulled back from network volumes before compositing. To let the screen saver play these, point its source at the path below."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络来源下载的原图、照片相册导出，以及合成前从网络磁盘拷回来的副本。想让屏幕保护程序播这些，来源就指下面这个路径。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -903,6 +1459,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Videos fetched from web sources, videos you downloaded by URL under Sources → Web, and the few copied into the video extension for this rotation. Capped at 2 GB; the oldest go first."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络来源抓的视频、你在“来源 → 网络”用网址下载的视频，以及这一轮轮换中、已拷进视频 extension 的那几个。有 2 GB 上限，超过会从最旧的开始淘汰。"
           }
         },
         "zh-Hant": {
@@ -921,6 +1483,12 @@
             "value": "Missing API key"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少 API key"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -937,10 +1505,82 @@
             "value": "Missing URL or route"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少网址或路由"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "缺少網址或路由"
+          }
+        }
+      }
+    },
+    "翻譯失敗（退出碼 %d），CLI 未提供錯誤訊息": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation failed (exit code %d); the CLI gave no error message."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻译失败（退出码 %d），CLI 未提供错误信息"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻譯失敗（退出碼 %d），CLI 未提供錯誤訊息"
+          }
+        }
+      }
+    },
+    "翻譯失敗（退出碼 %d）：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation failed (exit code %d): %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻译失败（退出码 %d）：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻譯失敗（退出碼 %d）：%@"
+          }
+        }
+      }
+    },
+    "翻譯逾時，可重試": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translation timed out. You can retry."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻译超时，可重试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻譯逾時，可重試"
           }
         }
       }
@@ -951,6 +1591,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Above desktop icons"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "盖住桌面图标"
           }
         },
         "zh-Hant": {
@@ -969,6 +1615,12 @@
             "value": "Connected — got %lld items"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通了，取得 %lld 项"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -983,6 +1635,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Connected, but this query returned nothing"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连得上，但这个查询没有内容"
           }
         },
         "zh-Hant": {
@@ -1001,6 +1659,12 @@
             "value": "Random"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "随机"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1015,6 +1679,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Shuffle"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "随机播放"
           }
         },
         "zh-Hant": {

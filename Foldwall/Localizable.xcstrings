@@ -12,6 +12,12 @@
             "value": "In %@ Focus"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 模式时"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -26,6 +32,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "In %@ Focus…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 模式时…"
           }
         },
         "zh-Hant": {
@@ -44,6 +56,12 @@
             "value": "%@ encrypts its cookies, and the key lives in your keychain. Test again and choose “Always Allow” when macOS asks. If you already clicked “Deny”, reset that Safe Storage entry in Keychain Access."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 的 cookie 是加密的，密钥在钥匙串里。再测一次，弹出询问时选“始终允许”。刚才如果按了“拒绝”，到“钥匙串访问”里把那条 Safe Storage 的权限改回来。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -58,6 +76,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ · %2$@ · %3$lld folders · %4$lld network sources"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@・%2$@・%3$lld 个文件夹・%4$lld 个网络来源"
           }
         },
         "zh-Hant": {
@@ -76,6 +100,12 @@
             "value": "%@ · next %@"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@・下次 %2$@"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -90,6 +120,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ · paused"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@・已暂停"
           }
         },
         "zh-Hant": {
@@ -108,6 +144,12 @@
             "value": "%@ · scanning"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@・扫描中"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -122,6 +164,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ (%lld×%lld)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@（%2$lld×%3$lld）"
           }
         },
         "zh-Hant": {
@@ -140,6 +188,12 @@
             "value": "%@ (%lld)"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@（%2$lld）"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -156,10 +210,38 @@
             "value": "%@ (build %@)"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@（build %2$@）"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "%1$@（build %2$@）"
+          }
+        }
+      }
+    },
+    "%@（未安裝）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ (not installed)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（未安装）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（未安裝）"
           }
         }
       }
@@ -170,6 +252,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ (not installed on this Mac)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@（这台没装）"
           }
         },
         "zh-Hant": {
@@ -191,6 +279,12 @@
             "value": "%lld items · %@"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 个・%2$@"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -207,10 +301,38 @@
             "value": "%lld videos, %lld of them already on this Mac."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld 个，其中 %2$lld 个已在本机。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "%1$lld 支，其中 %2$lld 支已在本機。"
+          }
+        }
+      }
+    },
+    "%lld 條・%@・%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld strings・%@・%@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 条・%@・%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 條・%@・%@"
           }
         }
       }
@@ -234,6 +356,12 @@
             "value": "**A URL is stored, not the videos.** Adding one only asks what videos the playlist contains; nothing is downloaded. A video is fetched when the rotation actually draws it.\nDisk use therefore scales with **how many you have actually played**, not with the size of the playlist — a playlist of several hundred will not fill your disk in one go.\nWhat is fetched lands in the **video cache**, the same place as videos from web sources, under the same 2 GB cap and eviction."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**存网址，不是存视频。** 加进来只会去问“这个播放列表里有哪些视频”，不下载任何东西。等轮换真的抽到某一个，才去抓那一个。\n所以磁盘用量跟**你真的播过几个**成正比，而不是整个播放列表的大小——几百个的列表也不会一次塞爆磁盘。\n抓下来的视频存进**视频缓存**，跟网络来源的视频同一个地方，受同一份 2 GB 上限与淘汰规则管。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -248,6 +376,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "1"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 张"
           }
         },
         "zh-Hant": {
@@ -266,6 +400,12 @@
             "value": "1–%lld"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1–%lld 张"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -277,6 +417,12 @@
     "API key": {
       "localizations": {
         "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key"
+          }
+        },
+        "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "API key"
@@ -298,6 +444,12 @@
             "value": "API key (optional, raises the rate limit)"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key（选填，可提高速率上限）"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -312,6 +464,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Feed URL"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Feed 网址"
           }
         },
         "zh-Hant": {
@@ -333,10 +491,38 @@
             "value": "Foldwall is released under the MIT license."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall 以 MIT 许可证发布。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "Foldwall 以 MIT 授權釋出。"
+          }
+        }
+      }
+    },
+    "Foldwall 內建繁體中文、簡體中文與英文。其他語言可以交給**本機的 AI CLI**（Claude Code、Codex 等，用你自己登入的帳號）翻譯全部介面文字；翻好的檔只存在這台 Mac，隨時可以切回內建語言。這是機器翻譯，翻不好的字串會退回英文。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall ships with Traditional Chinese, Simplified Chinese and English. Any other language can be translated by a **local AI CLI** (Claude Code, Codex, etc., using your own login) for the entire interface. The translation stays on this Mac, and you can switch back to a built-in language at any time. It is machine translation: strings that come out wrong fall back to English."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall 内置繁体中文、简体中文与英文。其他语言可以交给**本机的 AI CLI**（Claude Code、Codex 等，用你自己登录的账号）翻译全部界面文字；翻好的文件只保存在这台 Mac，随时可以切回内置语言。这是机器翻译，翻不好的字符串会回退到英文。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall 內建繁體中文、簡體中文與英文。其他語言可以交給**本機的 AI CLI**（Claude Code、Codex 等，用你自己登入的帳號）翻譯全部介面文字；翻好的檔只存在這台 Mac，隨時可以切回內建語言。這是機器翻譯，翻不好的字串會退回英文。"
           }
         }
       }
@@ -347,6 +533,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Foldwall never reads, stores, or transmits a single cookie. It only passes your choice of browser to yt-dlp; the reading and the using both happen inside that process, entirely on this Mac. All that is saved here is the name of a browser."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall 自己不读、不存、也不发送任何 cookie——只是把“去哪个浏览器拿”这个选择交给 yt-dlp，读取跟使用都发生在它的进程里，全程在这台电脑上。设置里存下来的只有浏览器的名字。"
           }
         },
         "zh-Hant": {
@@ -365,6 +557,12 @@
             "value": "Foldwall needs read access before it can use albums as a wallpaper source."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall 需要读取权限才能把相册当成壁纸来源。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -379,6 +577,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "The URL of an RSS or Atom feed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "RSS／Atom feed 的网址。"
           }
         },
         "zh-Hant": {
@@ -397,6 +601,12 @@
             "value": "Safari keeps its cookies in a system-protected location. The app that needs permission is **Foldwall**, not yt-dlp: a child process is judged by whichever app launched it."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safari 的 cookie 放在系统保护的位置。要授权的是 **Foldwall**，不是 yt-dlp——子进程的权限判定归属于把它叫起来的那个 app。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -411,6 +621,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Wallhaven’s public content **needs no key** — just use it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wallhaven 的公开内容**不需要 key**，直接用就行。"
           }
         },
         "zh-Hant": {
@@ -438,6 +654,12 @@
             "value": "iCloud Drive is not enabled"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 云盘未启用"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -453,6 +675,12 @@
             "state": "translated",
             "value": "Source catalog on iCloud: %@"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 上的来源目录：%@"
+          }
         }
       }
     },
@@ -462,6 +690,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "No Mac has backed up its wallpaper settings to iCloud yet."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 上还没有任何一台的壁纸设置。"
           }
         }
       }
@@ -473,6 +707,12 @@
             "state": "translated",
             "value": "There's no source catalog on iCloud yet"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 上还没有来源目录"
+          }
         }
       }
     },
@@ -483,6 +723,12 @@
             "state": "translated",
             "value": "There's no source catalog on iCloud yet."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 上还没有来源目录。"
+          }
         }
       }
     },
@@ -492,6 +738,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "macOS 26+ · Apple Silicon"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 26+・Apple Silicon"
           }
         },
         "zh-Hant": {
@@ -510,6 +762,12 @@
             "value": "yt-dlp can see %lld videos in this playlist but resolved none of them — you have %@ installed and upstream is already at %@. Update with `brew upgrade yt-dlp`, then press Resolve Again."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp 看得到这个播放列表有 %1$lld 个，却一个也解不出来——你装的是 %2$@，上游已经出到 %3$@。用 `brew upgrade yt-dlp` 更新后再按“重新解析”。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -524,6 +782,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "yt-dlp can see %lld videos in this playlist but resolved none of them — this site’s extractor has fallen behind a site change. Your yt-dlp%@ has no newer version to install, so updating will not help; wait for an upstream fix, or report it on the yt-dlp issue tracker."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "yt-dlp 看得到这个播放列表有 %1$lld 个，却一个也解不出来——这个站的 extractor 追不上网站改版。你的 yt-dlp%2$@没有更新的版本可装，更新它没有用；等上游修好，或到 yt-dlp 的 issue 区反馈。"
           }
         },
         "zh-Hant": {
@@ -542,6 +806,12 @@
             "value": "…or add photo albums / web sources in Settings"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "…或在设置里加照片相册／网络来源"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -556,6 +826,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Could not download “%@”: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%1$@”抓不下来：%2$@"
           }
         },
         "zh-Hant": {
@@ -573,6 +849,12 @@
             "state": "translated",
             "value": "“Back up to iCloud” writes both layers. “Update sources” pulls only the shared layer and leaves this Mac's wallpaper settings alone."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“备份到 iCloud”会写两层；“更新来源”只拉共用的那层，不会动这台的壁纸设置。"
+          }
         }
       }
     },
@@ -582,6 +864,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Photos is currently unavailable"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“照片”目前无法访问"
           }
         },
         "zh-Hant": {
@@ -600,6 +888,12 @@
             "value": "Photos has no albums containing images."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“照片”里没有含图像的相册。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -614,6 +908,12 @@
           "stringUnit": {
             "state": "translated",
             "value": " · "
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "・"
           }
         },
         "zh-Hant": {
@@ -632,6 +932,12 @@
             "value": "A limit of 1 means one large image every round, with no randomness. Every display still draws on its own. Under power saving it stays 1."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上限 1 张＝每轮固定单张大图，不再随机。每台屏幕各自抽图。降载时一样是 1 张。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -646,6 +952,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Next Image"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一张"
           }
         },
         "zh-Hant": {
@@ -664,6 +976,12 @@
             "value": "Next Video"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一个视频"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -678,6 +996,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Download Quality"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载画质"
           }
         },
         "zh-Hant": {
@@ -696,6 +1020,12 @@
             "value": "If you would rather not grant that permission, use Firefox instead: its cookies are not in a protected location, so nothing needs authorising."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不想开这道权限的话，改用 Firefox：它的 cookie 不在保护区里，不必授权。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -711,6 +1041,12 @@
             "state": "translated",
             "value": "Not backed up"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不会备份的"
+          }
         }
       }
     },
@@ -722,10 +1058,38 @@
             "value": "Swap a fresh batch into the extension now, without waiting for the display to sleep"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不等屏幕睡着，现在就换一批进 extension"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "不等螢幕睡著，現在就換一批進 extension"
+          }
+        }
+      }
+    },
+    "介面語言": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Interface language"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "界面语言"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "介面語言"
           }
         }
       }
@@ -736,6 +1100,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "In any Focus"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任何专注模式时"
           }
         },
         "zh-Hant": {
@@ -754,6 +1124,12 @@
             "value": "In any Focus…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任何专注模式时…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -768,6 +1144,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Server URL"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务器网址"
           }
         },
         "zh-Hant": {
@@ -786,6 +1168,12 @@
             "value": "The credit is printed along the bottom edge of each photo’s print; prints too small to hold one are listed together in the bottom-right corner."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作者印在每张照片的相纸下缘；相纸太小放不下的，收到右下角一起列。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -800,6 +1188,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sources"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源"
           }
         },
         "zh-Hant": {
@@ -817,6 +1211,12 @@
             "state": "translated",
             "value": "Sources → shared by every Mac"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源 → 三台通用"
+          }
         }
       }
     },
@@ -827,6 +1227,12 @@
             "state": "translated",
             "value": "Sources synced to iCloud (%@)"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源已同步到 iCloud（%@）"
+          }
         }
       }
     },
@@ -836,6 +1242,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "No usable images in your sources"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源无可用图像"
           }
         },
         "zh-Hant": {
@@ -853,6 +1265,12 @@
             "state": "translated",
             "value": "The source catalog is in a newer format (v%lld). Update Foldwall on this Mac first."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源目录是较新的格式（v%lld），请先更新这台的 Foldwall"
+          }
         }
       }
     },
@@ -862,6 +1280,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld sources offline"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源离线 %lld 个"
           }
         },
         "zh-Hant": {
@@ -880,6 +1304,12 @@
             "value": "Sources offline or unreadable (%lld)…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源离线／无权限（%lld）…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -894,6 +1324,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "For example https://photos.example.com (a hostname alone is fine)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例如 https://photos.example.com（可只填主机名）。"
           }
         },
         "zh-Hant": {
@@ -912,6 +1348,12 @@
             "value": "For example: disable web sources on battery; pause video wallpaper in Work focus."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例如：靠电池时停用网络来源；工作模式时暂停视频壁纸。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -926,6 +1368,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Borrow a Browser Sign-In"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "借浏览器的登录状态"
           }
         },
         "zh-Hant": {
@@ -944,6 +1392,12 @@
             "value": "Borrow sign-in from"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "借登录状态"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -958,6 +1412,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Backup"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份"
           }
         },
         "zh-Hant": {
@@ -976,6 +1436,12 @@
             "value": "Back Up to iCloud"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份到 iCloud"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -991,6 +1457,12 @@
             "state": "translated",
             "value": "The backup is plain-text JSON, and Spotlight indexes it in iCloud Drive. Re-enter it on the Sources tab when you switch machines."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份文件是明文 JSON，放在 iCloud 云盘里会被 Spotlight 索引。换机器时到“来源”分页重输一次。"
+          }
         }
       }
     },
@@ -1001,6 +1473,12 @@
             "state": "translated",
             "value": "Couldn't back up this Mac's settings: %@"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份这台的设置失败：%@"
+          }
         }
       }
     },
@@ -1010,6 +1488,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Save"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存"
           }
         },
         "zh-Hant": {
@@ -1028,6 +1512,12 @@
             "value": "Allow Access to Photos…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许访问照片…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1044,10 +1534,60 @@
             "value": "Contents"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "內容"
+          }
+        }
+      }
+    },
+    "內建（繁體中文／简体中文／English，跟隨系統）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Built-in (Traditional Chinese / Simplified Chinese / English, follows the system)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内置（繁体中文／简体中文／English，跟随系统）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內建（繁體中文／简体中文／English，跟隨系統）"
+          }
+        }
+      }
+    },
+    "全部重翻": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retranslate All"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部重翻"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部重翻"
           }
         }
       }
@@ -1059,6 +1599,12 @@
             "state": "translated",
             "value": "Two layers"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "两层"
+          }
         }
       }
     },
@@ -1068,6 +1614,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Both live under ~/Library/Caches, so macOS deletes them on its own when disk space runs low. Foldwall re-downloads, but the screen saver has nothing to play in the meantime. The wallpaper currently on your desktop lives in Application Support and is never purged."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "两组都在 ~/Library/Caches 底下，磁盘空间不足时 macOS 会自己删。Foldwall 会重新下载，但屏幕保护程序那边会暂时没图可播。目前挂在桌面上的壁纸放在 Application Support，不会被清掉。"
           }
         },
         "zh-Hant": {
@@ -1086,6 +1638,12 @@
             "value": "Change interval"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换间隔"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1101,6 +1659,34 @@
             "state": "translated",
             "value": "Interval, effect, pieces per round, video engine / layer / playback / scaling / quality, state rules, launch at login — each Mac keeps its own copy in a file named after it under `devices/`, and **only that same Mac reads it back automatically**."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换间隔、后期、同时抽取张数、视频引擎／图层／播放／缩放／画质、状态规则、登录时启动——全部各台各自一份，写在 `devices/` 底下以机器命名的文件里，**只有同一台会自动读回来**。"
+          }
+        }
+      }
+    },
+    "到終端機執行：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Run in Terminal:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在终端执行："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "到終端機執行："
+          }
         }
       }
     },
@@ -1110,6 +1696,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sign up (free)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往申请（免费）"
           }
         },
         "zh-Hant": {
@@ -1128,6 +1720,12 @@
             "value": "Add"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1142,6 +1740,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Add a folder with photos in it and the rotation starts."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入一个有照片的文件夹就会开始轮播。"
           }
         },
         "zh-Hant": {
@@ -1160,6 +1764,12 @@
             "value": "Add Folder…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入文件夹…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1175,6 +1785,12 @@
             "state": "translated",
             "value": "Import"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入"
+          }
         }
       }
     },
@@ -1184,6 +1800,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Source code (GitHub)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "源代码（GitHub）"
           }
         },
         "zh-Hant": {
@@ -1202,6 +1824,12 @@
             "value": "Cancel"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1216,6 +1844,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "restricted"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受限"
           }
         },
         "zh-Hant": {
@@ -1234,6 +1868,12 @@
             "value": "Video track only, no audio: wallpapers play muted, so an audio track would just take up space. Within a resolution, the highest-bitrate stream wins — sites often list the blurriest one first."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只抓视频轨，不抓音频——壁纸本来就静音播放，音频抓下来只是占空间。同一个分辨率底下挑比特率最高的那条流：网站常常把最糊的那条排在最前面。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1248,6 +1888,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Working."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可以用。"
           }
         },
         "zh-Hant": {
@@ -1266,6 +1912,12 @@
             "value": "Working. This video currently resolves to %@."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可以用，这个视频目前会拿到 %@。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1280,6 +1932,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Purgeable by the system"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可被系统清除"
           }
         },
         "zh-Hant": {
@@ -1298,6 +1956,12 @@
             "value": "Readable"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可读取"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1313,6 +1977,12 @@
             "state": "translated",
             "value": "Wallpaper settings per Mac"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "各台的壁纸设置"
+          }
         }
       }
     },
@@ -1323,6 +1993,12 @@
             "state": "translated",
             "value": "Couldn't sync sources: %@"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步来源失败：%@"
+          }
         }
       }
     },
@@ -1332,6 +2008,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Name (optional)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名称（选填）"
           }
         },
         "zh-Hant": {
@@ -1350,6 +2032,12 @@
             "value": "Shares the same source folders as the montage; this only decides which ones supply video."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "和蒙太奇共用同一批来源文件夹，这里只决定哪些拿来放视频。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1364,6 +2052,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enabled"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用"
           }
         },
         "zh-Hant": {
@@ -1382,6 +2076,12 @@
             "value": "Enable video wallpaper"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用视频壁纸"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1396,6 +2096,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Back in the menu bar, check **Use Video on This Display**. Skip this and the next static montage will paint over the video."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回到菜单栏，勾 **此屏幕改用视频**。漏掉这步，下一轮静态蒙太奇会把视频盖掉。"
           }
         },
         "zh-Hant": {
@@ -1414,6 +2120,12 @@
             "value": "Unexpected response format"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "响应格式不符"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1428,6 +2140,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Back in the menu bar, check **Use Video on This Display**. That is all — no System Settings, no files copied."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回菜单栏勾 **此屏幕改用视频**。就这样——不必开系统设置、不会拷贝任何文件。"
           }
         },
         "zh-Hant": {
@@ -1446,6 +2164,12 @@
             "value": "Always 1"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "固定 1 张"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1460,6 +2184,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Layer"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图层"
           }
         },
         "zh-Hant": {
@@ -1478,6 +2208,12 @@
             "value": "Show in Finder"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中显示"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1492,6 +2228,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show Video Library in Finder"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中显示视频库"
           }
         },
         "zh-Hant": {
@@ -1510,6 +2252,12 @@
             "value": "Show Cache in Finder"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中显示缓存"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1524,6 +2272,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Create an app on Unsplash and copy its Access Key."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Unsplash 创建一个 app，复制它的 Access Key。"
           }
         },
         "zh-Hant": {
@@ -1542,6 +2296,12 @@
             "value": "At the bottom of your Wallhaven account settings page."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Wallhaven 账号设置页面最下方。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1556,6 +2316,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Switch Foldwall on under Full Disk Access, then come back and test again. If Foldwall is not in the list, add it from Applications with the + button at the bottom left."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在“完全磁盘访问权限”里把 Foldwall 打开，然后回来再测一次。列表里没有 Foldwall 的话，用左下角的 ＋ 从“应用程序”里加进去。"
           }
         },
         "zh-Hant": {
@@ -1574,6 +2340,12 @@
             "value": "On your own Immich: Account Settings → API Keys → New."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在你自己的 Immich：账号设置 → API Keys → 新增。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1588,6 +2360,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "No cookies for it on this Mac"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在这台机器上找不到它的 cookie"
           }
         },
         "zh-Hant": {
@@ -1606,6 +2384,12 @@
             "value": "Fill in one form and you get a key on the spot."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填个表单就会当场给你 key。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1620,6 +2404,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "External tools"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部工具"
           }
         },
         "zh-Hant": {
@@ -1638,6 +2428,12 @@
             "value": "When several rules match, their effects stack"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多条同时成立时，效果会叠加"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1652,6 +2448,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "OK"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好"
           }
         },
         "zh-Hant": {
@@ -1669,6 +2471,34 @@
             "state": "translated",
             "value": "**Paths** are stored, not bookmarks — a bookmark is tied to the Mac that created it. A path whose volume isn't mounted on another Mac is skipped there, but it is **not** dropped from the shared catalog."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存的是**路径**不是书签——书签绑着创建它的那台机器。另一台没挂那块磁盘的路径会被跳过，但**不会**从共用目录里消失。"
+          }
+        }
+      }
+    },
+    "實際會使用 %@。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ will be used instead."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实际会使用 %@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "實際會使用 %@。"
+          }
         }
       }
     },
@@ -1678,6 +2508,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Focus: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "专注：%@"
           }
         },
         "zh-Hant": {
@@ -1696,6 +2532,12 @@
             "value": "No sources added yet"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未加入任何来源"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1710,6 +2552,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "No folders yet"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未加入文件夹"
           }
         },
         "zh-Hant": {
@@ -1728,6 +2576,12 @@
             "value": "not asked yet"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未询问"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1742,6 +2596,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Paused by a status rule"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已依状态规则暂停"
           }
         },
         "zh-Hant": {
@@ -1760,6 +2620,12 @@
             "value": "Paused by a status rule (%@)"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已依状态规则暂停（%@）"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1774,6 +2640,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "yt-dlp detected"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已检测到 yt-dlp"
           }
         },
         "zh-Hant": {
@@ -1792,6 +2664,12 @@
             "value": "yt-dlp %@ detected"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已检测到 yt-dlp %@"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1806,6 +2684,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "**%lld** videos ready"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已备妥 **%lld** 个视频"
           }
         },
         "zh-Hant": {
@@ -1824,6 +2708,12 @@
             "value": "allowed"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已允许"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1838,6 +2728,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sources updated from iCloud (%@ · %@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已从 iCloud 更新来源（%1$@・%2$@）"
           }
         },
         "zh-Hant": {
@@ -1856,10 +2752,60 @@
             "value": "denied"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已拒绝"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "已拒絕"
+          }
+        }
+      }
+    },
+    "已翻譯 %lld 條。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translated %lld strings."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已翻译 %lld 条。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已翻譯 %lld 條。"
+          }
+        }
+      }
+    },
+    "已翻譯 %lld 條，%lld 條翻不好、退回英文。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translated %lld strings; %lld came out wrong and fall back to English."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已翻译 %lld 条，%lld 条翻不好、回退到英文。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已翻譯 %lld 條，%lld 條翻不好、退回英文。"
           }
         }
       }
@@ -1870,6 +2816,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copied"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制"
           }
         },
         "zh-Hant": {
@@ -1888,6 +2840,12 @@
             "value": "Off. The Unsplash and Pexels licenses require attribution — with this off, images from those sources are only suitable for your own eyes."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已关闭。Unsplash 与 Pexels 的许可要求标注作者——关掉之后这些来源的图只适合自己看。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1902,6 +2860,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Engine"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引擎"
           }
         },
         "zh-Hant": {
@@ -1920,6 +2884,12 @@
             "value": "Max images"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "张数上限"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1934,6 +2904,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Force New Selection"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "强制更换片源"
           }
         },
         "zh-Hant": {
@@ -1952,6 +2928,12 @@
             "value": "Video"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1966,6 +2948,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "The next batch is prepared **while the display sleeps** (screen saver, lock, or sleep), at most once every 30 minutes, and not in step with the wallpaper rotation — one copy can be several hundred MB, and doing that the moment you sit back down would stutter. If you would rather not wait, press **Force New Selection** below. Turning the switch off clears out everything already copied in."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频在**屏幕睡着时**（屏保启动、锁定、休眠）预先换好下一批，最少间隔 30 分钟，不跟着壁纸轮换——拷贝一次可能是好几百 MB，放在你刚回到电脑前那一刻做会卡。等不及就按下面的**强制更换片源**。关掉开关会把已拷进去的视频清干净。"
           }
         },
         "zh-Hant": {
@@ -1984,6 +2972,12 @@
             "value": "Videos are not ready yet — the montage is covering these displays for now"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频尚未备妥，这些屏幕暂由蒙太奇接管"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -1998,6 +2992,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Video playback failed: %@ — %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频播放失败：%1$@－%2$@"
           }
         },
         "zh-Hant": {
@@ -2016,6 +3016,12 @@
             "value": "Video Playback"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频播放方式"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2030,6 +3036,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Video"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频壁纸"
           }
         },
         "zh-Hant": {
@@ -2048,6 +3060,12 @@
             "value": "The video wallpaper extension is forked from **Phosphene** (MIT); the original license text is kept alongside the source."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频壁纸 extension fork 自 **Phosphene**（MIT），许可证原文随源代码一起保留。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2062,6 +3080,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Video wallpaper is off. Turn on the switch above to feed videos from your source folders into the system wallpaper list."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频壁纸未启用。打开上面的开关才会把来源文件夹里的视频送进系统壁纸列表。"
           }
         },
         "zh-Hant": {
@@ -2080,6 +3104,12 @@
             "value": "Video Scaling"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频缩放"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2094,6 +3124,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pick videos in System Settings → Wallpaper first, then check them here"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频需在“系统设置 → 墙纸”选片，再回来勾这里"
           }
         },
         "zh-Hant": {
@@ -2112,6 +3148,12 @@
             "value": "Effect"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "后期"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2127,6 +3169,12 @@
             "state": "translated",
             "value": "Update sources from iCloud"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从 iCloud 更新来源"
+          }
         }
       }
     },
@@ -2136,6 +3184,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Builds random montage wallpapers from folders, photo albums and OAuth-free web sources, and can play video wallpaper on the desktop and lock screen."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从文件夹、照片相册与免 OAuth 的网络来源随机合成蒙太奇壁纸，并支持视频壁纸（桌面＋锁屏）。"
           }
         },
         "zh-Hant": {
@@ -2154,6 +3208,12 @@
             "value": "Cache"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缓存位置"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2168,6 +3228,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "How to start"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "怎么开始播"
           }
         },
         "zh-Hant": {
@@ -2186,6 +3252,12 @@
             "value": "Want your **screen saver** to play the images Foldwall collects?"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "想让**屏幕保护程序**播 Foldwall 抓下来的图？"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2200,6 +3272,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Or add one with + at the bottom left."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "或用左下角 + 新增。"
           }
         },
         "zh-Hant": {
@@ -2218,6 +3296,12 @@
             "value": "All playlists share this setting."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有播放列表共用这一份设置。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2232,6 +3316,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open System Settings → Wallpaper"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 系统设置 → 墙纸"
           }
         },
         "zh-Hant": {
@@ -2250,6 +3340,12 @@
             "value": "Open System Settings → Wallpaper…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 系统设置 → 墙纸…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2264,6 +3360,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open System Settings → Wallpaper and scroll down to the **Foldwall** section."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 系统设置 → 墙纸，往下找到 **Foldwall** 区块。"
           }
         },
         "zh-Hant": {
@@ -2282,6 +3384,12 @@
             "value": "Open Full Disk Access"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开“完全磁盘访问权限”"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2296,6 +3404,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Turn on **Enable video wallpaper** above, add a folder containing videos in the Sources tab, and check the sources you want in the left column."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开上面的**启用视频壁纸**开关，在“来源”分页加入含视频的文件夹，并在左栏勾选要用的来源。"
           }
         },
         "zh-Hant": {
@@ -2314,6 +3428,12 @@
             "value": "yt-dlp not found. Install it with `brew install yt-dlp` and try again."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到 yt-dlp。用 `brew install yt-dlp` 安装后再试。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2328,6 +3448,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copying…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拷贝中…"
           }
         },
         "zh-Hant": {
@@ -2346,6 +3472,12 @@
             "value": "A limit you set applies to every display alike. How many actually appear each round is drawn at random between 1 and the limit — sometimes one large image, sometimes a dozen tiled. Every display draws and composes on its own, so no two show the same thing at once. Under power saving the limit is capped at 6."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指定的上限对所有屏幕一体适用。每轮实际几张是在 1 到上限之间随机决定的——有时一张大图、有时铺满十几张。每台屏幕各自抽图、各自合成，同一时间两台不会是同一张。降载时上限封顶 6 张。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2360,6 +3492,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "scanning"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扫描中"
           }
         },
         "zh-Hant": {
@@ -2378,10 +3516,38 @@
             "value": "Scanning…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扫描中…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "掃描中…"
+          }
+        }
+      }
+    },
+    "掃描順序：自訂路徑 → PATH → 常見安裝位置。Foldwall 不經手任何 API key，計費在你自己的訂閱上。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan order: custom path → PATH → common install locations. Foldwall never touches an API key; usage is billed to your own subscription."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扫描顺序：自定义路径 → PATH → 常见安装位置。Foldwall 不经手任何 API key，计费在你自己的订阅上。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "掃描順序：自訂路徑 → PATH → 常見安裝位置。Foldwall 不經手任何 API key，計費在你自己的訂閱上。"
           }
         }
       }
@@ -2392,6 +3558,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "License"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "许可"
           }
         },
         "zh-Hant": {
@@ -2409,6 +3581,12 @@
             "state": "translated",
             "value": "Use this to carry an old Mac's wallpaper settings over when you replace it. **It overwrites this Mac's current settings.** Importing from **another** Mac skips “play video on this screen” and “borrow browser cookies”: the first stores display UUIDs, which differ on every machine, and the second needs its permissions granted again on the new one anyway."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "换掉一台 Mac 时用这里把旧机的壁纸设置接过来。**会覆盖这台目前的设置。**从**别台**导入时会跳过“此屏幕改用视频”与“借浏览器 cookie”——前者存的是显示器 UUID、每台都不同，后者的授权在新机器上本来就要重来。"
+          }
         }
       }
     },
@@ -2418,6 +3596,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Search terms (optional)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索关键词（选填）"
           }
         },
         "zh-Hant": {
@@ -2436,6 +3620,12 @@
             "value": "When one ends"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播完之后"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2450,6 +3640,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Playback"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播放方式"
           }
         },
         "zh-Hant": {
@@ -2468,6 +3664,12 @@
             "value": "Changing this affects future downloads only. Videos already cached are not re-fetched; clear them under Cache Location to replace them."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改了只影响之后才抓的视频。已经在缓存里的不会重抓——要换掉就去“缓存位置”清掉。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2482,6 +3684,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Add Rule"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增规则"
           }
         },
         "zh-Hant": {
@@ -2500,6 +3708,12 @@
             "value": "a newer one"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新版"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2514,6 +3728,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pause"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂停"
           }
         },
         "zh-Hant": {
@@ -2532,6 +3752,12 @@
             "value": "Up to %lld"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %lld 张"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2546,6 +3772,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Members-only, age-restricted, and private playlists simply cannot be resolved without a signed-in session, and some sites reserve their better streams for signed-in viewers. It is also what gets you past YouTube’s “Sign in to confirm you’re not a bot”."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会员限定、年龄限制、私人的播放列表，没有登录状态就是解不出来；有些站也把较好的那几条流留给登录的人。YouTube 拦自动化时（“Sign in to confirm you're not a bot”）同样要靠它才过得去。"
           }
         },
         "zh-Hant": {
@@ -2564,6 +3796,12 @@
             "value": "%lld sources are offline or unreadable"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有 %lld 个来源离线或无权限"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2578,6 +3816,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Version %@ is available. Extractors stop working as soon as a site changes, so updating first is usually less work than debugging:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有新版 %@。网站一改版 extractor 就会解不出东西，先更新再排查比较省事："
           }
         },
         "zh-Hant": {
@@ -2596,6 +3840,12 @@
             "value": "Unnamed Mac"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未命名 Mac"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2610,6 +3860,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Untitled Album"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未命名相册"
           }
         },
         "zh-Hant": {
@@ -2628,6 +3884,12 @@
             "value": "Not installed — `brew install yt-dlp`"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未安装——`brew install yt-dlp`"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2642,6 +3904,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "unknown (%lld)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知(%lld)"
           }
         },
         "zh-Hant": {
@@ -2660,6 +3928,12 @@
             "value": "Unknown display"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知屏幕"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2674,6 +3948,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "unknown error"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知错误"
           }
         },
         "zh-Hant": {
@@ -2692,6 +3972,12 @@
             "value": "Local disks, SMB, and the mount points of cloud drives such as Box, pCloud, Dropbox, OneDrive and Google Drive — with the desktop client installed they are ordinary folders, so no OAuth is involved."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本机、SMB，以及 Box／pCloud／Dropbox／OneDrive／Google Drive 等云盘的挂载点——装了桌面版就是普通文件夹，不需要 OAuth。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2707,6 +3993,12 @@
             "state": "translated",
             "value": "How the wallpaper plays → per device"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "壁纸怎么播 → 按设备"
+          }
         }
       }
     },
@@ -2716,6 +4008,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "No Foldwall in the wallpaper list? Launch the app once from /Applications — the system only registers its extension then."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "壁纸列表里没有 Foldwall？先把 app 从 /Applications 启动一次，系统才会登记它的 extension。"
           }
         },
         "zh-Hant": {
@@ -2734,10 +4032,38 @@
             "value": "The desktop window **does not appear on the lock screen**. For that, switch to the system wallpaper extension."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌面窗口**不会出现在锁屏**。要锁屏请改用系统壁纸 extension。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "桌面視窗**不會出現在鎖屏**。要鎖屏請改用系統桌布 extension。"
+          }
+        }
+      }
+    },
+    "模型": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型"
           }
         }
       }
@@ -2748,6 +4074,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Scanning folders…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在扫描文件夹…"
           }
         },
         "zh-Hant": {
@@ -2766,6 +4098,12 @@
             "value": "Use Video on This Display"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此屏幕改用视频"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2781,6 +4119,12 @@
             "state": "translated",
             "value": "Each source's **on/off switch**, folder roles and selected albums stay on this Mac. Turning Pexels off on the laptop won't turn it off on the desktop; a source that newly appears in the catalog arrives **enabled** on every Mac."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个来源的**开关**、文件夹用途、选中的相册都留在这台。在笔记本关掉 Pexels 不会让台式机也跟着关；目录里新出现的来源在每台都是**默认开着**。"
+          }
         }
       }
     },
@@ -2790,6 +4134,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Per-display limit"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每台屏幕张数上限"
           }
         },
         "zh-Hant": {
@@ -2808,6 +4158,12 @@
             "value": "%lld in pool"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "池 %lld"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2824,10 +4180,38 @@
             "value": "%lld in pool"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "池 %lld 张"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "池 %lld 張"
+          }
+        }
+      }
+    },
+    "沒偵測到 `%@`。裝好之後按「重新掃描」，或填入執行檔的完整路徑：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "`%@` was not found. Install it and click Rescan, or enter the full path to the executable:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没检测到 `%@`。装好之后点“重新扫描”，或填入可执行文件的完整路径："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒偵測到 `%@`。裝好之後按「重新掃描」，或填入執行檔的完整路徑："
           }
         }
       }
@@ -2840,10 +4224,38 @@
             "value": "No ffmpeg — `brew install ffmpeg`. Sites like YouTube only serve separate video and audio tracks; without it they cannot be merged, and not a single playlist video will download."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有 ffmpeg——`brew install ffmpeg`。YouTube 这类站只提供分离的视频／音频轨，没有它就合并不了，播放列表一个也抓不下来。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "沒有 ffmpeg——`brew install ffmpeg`。YouTube 這類站只提供分離的視訊／音訊軌，沒有它就合併不了，片單一支也抓不下來。"
+          }
+        }
+      }
+    },
+    "沒有可用的 AI CLI，先安裝一個或填入路徑": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No AI CLI is available. Install one or enter its path first."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有可用的 AI CLI，先安装一个或填入路径"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有可用的 AI CLI，先安裝一個或填入路徑"
           }
         }
       }
@@ -2854,6 +4266,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "No usable albums"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有可用的相册"
           }
         },
         "zh-Hant": {
@@ -2872,6 +4290,12 @@
             "value": "No rules"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有规则"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2886,6 +4310,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "A sandboxed extension cannot read the app’s source folders, so videos must be **physically copied** into it. From a NAS that would be tens of GB — which is why this is off by default and why it **rotates** rather than hoards: each pass takes videos until **%1$lld GB is full** (how many depends on their size). The next time the display wakes it swaps a batch, but **only a quarter of it** — the overlap is not re-copied, so each pass moves %2$lld MB from the source instead of %3$lld GB. The whole library still comes around, just more slowly. Any single file over %4$lld GB is never taken — that is library material, not wallpaper loop material."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沙盒 extension 读不到 app 的来源文件夹，视频必须**实体拷贝**一份进去。来源若是 NAS，那会是几十 GB——所以默认关闭，而且采**轮换**而非囤积：一次带到**填满 %1$lld GB** 为止（几个视大小而定）。下次屏幕亮起换一批，但**只换四分之一**——重叠的部分不必重拷，每轮从来源搬动的量因此是 %2$lld MB 而不是 %3$lld GB。整个视频库照样轮得到，只是慢一些。单个文件超过 %4$lld GB 一律不收——那是视频库内容，不是壁纸循环素材。"
           }
         },
         "zh-Hant": {
@@ -2904,6 +4334,12 @@
             "value": "Nothing is **re-downloaded immediately** — the next scheduled pass refills it. The wallpaper currently on your desktop is unaffected."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清完**不会立刻重新下载**，等下一个计划轮次自然补回来。目前挂在桌面上的壁纸不受影响。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2918,6 +4354,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Clear"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除"
           }
         },
         "zh-Hant": {
@@ -2936,6 +4378,12 @@
             "value": "Clear “%@”?"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除“%@”？"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2950,6 +4398,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Clear failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除失败"
           }
         },
         "zh-Hant": {
@@ -2968,6 +4422,12 @@
             "value": "Testing…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试中…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -2982,6 +4442,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Test Access"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试授权"
           }
         },
         "zh-Hant": {
@@ -3000,6 +4466,12 @@
             "value": "Test Connection"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试连接"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3014,6 +4486,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Photos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片"
           }
         },
         "zh-Hant": {
@@ -3032,6 +4510,12 @@
             "value": "Photos Access"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片权限"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3046,6 +4530,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Photos come from Unsplash, Pexels, Pixabay, Wallhaven and others; each site’s own terms govern how you may use them."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "照片由 Unsplash／Pexels／Pixabay／Wallhaven 等来源提供，各自的使用规范以该站条款为准。"
           }
         },
         "zh-Hant": {
@@ -3064,6 +4554,12 @@
             "value": "Playlist URL"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播放列表网址"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3078,6 +4574,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Both playlist resolution and downloads depend on it. Install it, then come back and press Resolve Again:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播放列表解析与下载都靠它。安装后回来按“重新解析”："
           }
         },
         "zh-Hant": {
@@ -3096,6 +4598,12 @@
             "value": "Playlist resolution and video downloads both call **the yt-dlp you installed yourself**. Foldwall implements no stream parsing and no signature bypass — that would be circumvention of technical protection measures. All it does is locate the tool, assemble the arguments and take the result in as a video source; which sites you point it at is your call.\nA side benefit is that yt-dlp supports thousands of sites, so no per-site parser is needed here; the cost is that **without it these two features do not work**, while every other source is unaffected."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播放列表解析与视频下载都是调用**你自己安装的 yt-dlp**，Foldwall 不实现任何流媒体解析或签名绕过——那是规避技术保护措施。这里只负责找到工具、组出参数、把结果收进视频来源；要对哪个站用由你决定。\n顺带的好处是 yt-dlp 支持上千个站，不必为每一个写解析器；代价是**没装就用不了**这两个功能，其他来源不受影响。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3110,6 +4618,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Playlist: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播放列表：%@"
           }
         },
         "zh-Hant": {
@@ -3128,6 +4642,12 @@
             "value": "About"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3142,6 +4662,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rules"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "状态规则"
           }
         },
         "zh-Hant": {
@@ -3160,6 +4686,12 @@
             "value": "Status rule active: %@"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "状态规则生效中：%@"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3176,10 +4708,38 @@
             "value": "Status: %@\n\nIf Foldwall is missing from the Photos list in System Settings, the permission request has never been sent — press Request Access below first."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "状态：%@\n\n如果系统设置的“照片”列表里找不到 Foldwall，代表授权请求还没发出过——先按下面的“请求授权”。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "狀態：%@\n\n如果系統設定的「照片」清單裡找不到 Foldwall，代表授權請求還沒送出過——先按下面的「請求授權」。"
+          }
+        }
+      }
+    },
+    "用本機的 AI CLI 翻譯": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate with a local AI CLI"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用本机的 AI CLI 翻译"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用本機的 AI CLI 翻譯"
           }
         }
       }
@@ -3190,6 +4750,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "A non-commercial key is enough (only public search is used)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "申请非商业用 key 即可（只用公开搜索）。"
           }
         },
         "zh-Hant": {
@@ -3208,6 +4774,12 @@
             "value": "Leave blank to use the playlist’s own title"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留白就用播放列表自己的标题"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3222,6 +4794,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Leave blank to take curated or random content."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留空则取精选／随机内容。"
           }
         },
         "zh-Hant": {
@@ -3240,6 +4818,12 @@
             "value": "Quality limit"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画质上限"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3254,6 +4838,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Troubleshooting"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "疑难解答"
           }
         },
         "zh-Hant": {
@@ -3272,6 +4862,12 @@
             "value": "Once signed in, the API docs page shows your key directly."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录后，API 文档页面会直接显示你的 key。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3286,6 +4882,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Launch at Login"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录时启动"
           }
         },
         "zh-Hant": {
@@ -3304,6 +4906,12 @@
             "value": "No videos yet. Add a source folder containing mp4/mov/m4v files. Large sources have to finish scanning and copying in the background first."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前没有视频。加入含 mp4／mov／m4v 的来源文件夹即可。大型来源要等后台扫描与拷贝跑完。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3318,6 +4926,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "No rule is active"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前没有规则生效"
           }
         },
         "zh-Hant": {
@@ -3336,6 +4950,12 @@
             "value": "No rule is active (Focus: %@)"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前没有规则生效（专注：%@）"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3350,6 +4970,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Currently active: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前生效：%@"
           }
         },
         "zh-Hant": {
@@ -3368,6 +4994,12 @@
             "value": "%lld albums"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相册 %lld"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3382,6 +5014,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Could not make sense of yt-dlp’s output"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "看不懂 yt-dlp 的输出"
           }
         },
         "zh-Hant": {
@@ -3399,6 +5037,12 @@
             "state": "translated",
             "value": "Overwrite this Mac"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确定覆盖这台"
+          }
         }
       }
     },
@@ -3408,6 +5052,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Remove"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
           }
         },
         "zh-Hant": {
@@ -3426,6 +5076,12 @@
             "value": "Remove this rule"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除这条规则"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3440,6 +5096,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "waited more than %lld seconds for data"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等数据超过 %lld 秒"
           }
         },
         "zh-Hant": {
@@ -3458,6 +5120,12 @@
             "value": "Rotation for the system extension is set in **System Settings → Wallpaper**: pick **Shuffle All** to rotate at all, then choose the frequency in its Change Video menu (including **after each video**). Picking one fixed video means it loops. Next Video still works there."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统 extension 的轮换由**系统设置 → 墙纸**决定：选 **Shuffle All** 才会轮播，并在它的“Change Video”菜单挑频率（含**每播完一个**）。选了固定某一个就是单片循环。“下一个视频”在那里也有效。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3472,6 +5140,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "System extension: pick Shuffle All in System Settings → Wallpaper, then set the rotation frequency there"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统 extension：轮换频率在“系统设置 → 墙纸”选 Shuffle All 之后设置"
           }
         },
         "zh-Hant": {
@@ -3490,10 +5164,38 @@
             "value": "System Settings → Screen Saver → pick a Photos-style saver → Options → Source, and point the source at the path on the **Photos** row below (`~/Pictures/Foldwall`). That is an aggregate folder: hard links gather every image from all three caches into one place — no extra space used, and it stays in sync as the caches change. Foldwall cannot register itself in that menu, so you have to point it there once."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统设置 → 屏幕保护程序 → 选“照片”类的样式 → 选项 → 来源，把来源指到下面**照片**那一行的路径（`~/Pictures/Foldwall`）。那是一个汇总文件夹，里面用硬链接收拢了三个缓存里的所有图——不占额外空间，缓存更新时会自动同步。Foldwall 没办法把自己注册进那个菜单，所以要手动指一次。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "系統設定 → 螢幕保護程式 → 選「照片」類的樣式 → 選項 → 來源，把來源指到下面**照片**那一列的路徑（`~/Pictures/Foldwall`）。那是一個彙整資料夾，裡面用硬連結收攏了三個快取裡的所有圖——不佔額外空間，快取更新時會自動同步。Foldwall 沒辦法把自己註冊進那個選單，所以要手動指一次。"
+          }
+        }
+      }
+    },
+    "約 %lld 條字串，40 條一批送出，通常幾分鐘內完成。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About %lld strings, sent in batches of 40; usually done within a few minutes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "约 %lld 条字符串，40 条一批发送，通常几分钟内完成。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "約 %lld 條字串，40 條一批送出，通常幾分鐘內完成。"
           }
         }
       }
@@ -3504,6 +5206,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quit Foldwall"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出 Foldwall"
           }
         },
         "zh-Hant": {
@@ -3522,6 +5230,12 @@
             "value": "Malformed URL"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网址格式错误"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3536,6 +5250,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Web"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络"
           }
         },
         "zh-Hant": {
@@ -3554,6 +5274,12 @@
             "value": "%lld from web"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络 %lld"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3568,6 +5294,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Web source problem: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络来源异常：%@"
           }
         },
         "zh-Hant": {
@@ -3586,6 +5318,12 @@
             "value": "Scaling"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缩放"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3600,6 +5338,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Resume"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续"
           }
         },
         "zh-Hant": {
@@ -3618,6 +5362,12 @@
             "value": "Missing API key"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少 API key"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3634,10 +5384,60 @@
             "value": "Missing URL"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少网址"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "缺少網址"
+          }
+        }
+      }
+    },
+    "翻譯中 %lld／%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translating %lld / %lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻译中 %lld／%lld"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻譯中 %lld／%lld"
+          }
+        }
+      }
+    },
+    "翻譯成": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate into"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻译成"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻譯成"
           }
         }
       }
@@ -3648,6 +5448,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Automatic"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动"
           }
         },
         "zh-Hant": {
@@ -3666,6 +5472,12 @@
             "value": "Sync automatically with iCloud"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动与 iCloud 同步"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3680,6 +5492,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Automatic: the limit follows the display’s long edge. How many actually appear each round is drawn at random between 1 and the limit — sometimes one large image, sometimes a dozen tiled. Every display draws and composes on its own, so no two show the same thing at once. Under power saving the limit is capped at 6."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动：上限依屏幕长边决定。每轮实际几张是在 1 到上限之间随机决定的——有时一张大图、有时铺满十几张。每台屏幕各自抽图、各自合成，同一时间两台不会是同一张。降载时上限封顶 6 张。"
           }
         },
         "zh-Hant": {
@@ -3698,6 +5516,12 @@
             "value": "an older build"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "旧版"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3712,6 +5536,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Montage"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "蒙太奇壁纸"
           }
         },
         "zh-Hant": {
@@ -3730,10 +5560,60 @@
             "value": "Display %lld"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕 %lld"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "螢幕 %lld"
+          }
+        }
+      }
+    },
+    "補翻 %lld 條新字串": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate %lld New Strings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "补翻 %lld 条新字符串"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "補翻 %lld 條新字串"
+          }
+        }
+      }
+    },
+    "複製": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複製"
           }
         }
       }
@@ -3744,6 +5624,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Copy Path"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制路径"
           }
         },
         "zh-Hant": {
@@ -3762,6 +5648,12 @@
             "value": "Which sources to use"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要用哪些来源"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3776,6 +5668,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "One thing to keep in mind: downloading heavily with a signed-in account can lead a site to flag that account as automated. If that worries you, sign that browser into a spare account."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要留意的一件事：拿已登录的账号去大量抓片，该站有可能把那个账号判成自动化行为。在意的话用备用账号登录那个浏览器。"
           }
         },
         "zh-Hant": {
@@ -3794,6 +5692,12 @@
             "value": "Resolving…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解析中…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3808,6 +5712,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Resolution failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解析失败"
           }
         },
         "zh-Hant": {
@@ -3826,10 +5736,38 @@
             "value": "Settings (Sources · Video · Rules)…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置（来源・视频・规则）…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "設定（來源・影片・規則）…"
+          }
+        }
+      }
+    },
+    "語言": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语言"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語言"
           }
         }
       }
@@ -3840,6 +5778,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Request Access…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请求授权…"
           }
         },
         "zh-Hant": {
@@ -3858,6 +5802,12 @@
             "value": "The system’s Focus list could not be read. macOS has no public API for querying the current Focus, so Foldwall reads ~/Library/DoNotDisturb/DB/ — if a system update changes that format, Focus rules fail silently while everything else keeps working."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读不到系统的专注模式列表。macOS 没有公开 API 可查询目前是哪个模式，Foldwall 读的是 ~/Library/DoNotDisturb/DB/——格式若随系统更新改变，专注模式的规则会静默失效，其他功能不受影响。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3872,6 +5822,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Unreadable (not mounted, or no permission)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读不到（未挂载或无权限）"
           }
         },
         "zh-Hant": {
@@ -3890,6 +5846,12 @@
             "value": "Read %lld cookies."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读到 %lld 个 cookie。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3904,6 +5866,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Read %1$lld cookies. This video currently resolves to %2$@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读到 %1$lld 个 cookie，这个视频目前会拿到 %2$@。"
           }
         },
         "zh-Hant": {
@@ -3921,6 +5889,12 @@
             "state": "translated",
             "value": "Couldn't read the settings from “%@”"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取“%@”的设置失败"
+          }
         }
       }
     },
@@ -3931,6 +5905,12 @@
             "state": "translated",
             "value": "Couldn't read the source catalog: %@"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取来源目录失败：%@"
+          }
         }
       }
     },
@@ -3940,6 +5920,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Folders"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件夹"
           }
         },
         "zh-Hant": {
@@ -3958,6 +5944,12 @@
             "value": "%lld folders"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件夹 %lld"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -3973,6 +5965,12 @@
             "state": "translated",
             "value": "The **definitions** of folders, network sources and playlists live in a shared `sources.json`. Add a source on one Mac and it shows up on the others; delete it on one and it clears everywhere."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件夹、网络来源、播放列表的**定义**写在共用的 `sources.json`。在一台加的来源，别台也会出现；在一台删掉的，别台也会清掉。"
+          }
         }
       }
     },
@@ -3982,6 +5980,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Folder bookmarks"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件夹书签"
           }
         }
       }
@@ -3993,6 +5997,12 @@
             "state": "translated",
             "value": "Which video is up next"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轮到第几个视频了"
+          }
         }
       }
     },
@@ -4002,6 +6012,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "The videos in this rotation are removed, the montage takes over those displays for now, and a fresh batch is copied the next time the display sleeps."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轮换中的视频会被移除，视频屏幕暂由蒙太奇接管，下次屏幕睡着时再预先拷一批。"
           }
         },
         "zh-Hant": {
@@ -4020,6 +6036,12 @@
             "value": "This page only confirms the settings are right and the source is reachable. Whether it feeds the montage or supplies video is checked in the Montage and Video tabs."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这一页只确认设置填对、连得上。要不要拿它合成蒙太奇或当视频来源，在“蒙太奇壁纸”／“视频壁纸”分页勾选。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4034,6 +6056,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "This page only covers whether a source is set up and readable. Which sources feed the montage and which supply video is decided in the Montage and Video tabs."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这一页只管来源设好了没、读不读得到。要拿哪些来源合成蒙太奇、哪些放视频，在“蒙太奇壁纸”和“视频壁纸”分页决定。"
           }
         },
         "zh-Hant": {
@@ -4052,6 +6080,12 @@
             "value": "No usable videos at this URL"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个网址里没有可用的视频"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4066,6 +6100,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "There is no cookie database for it on this Mac — most likely it is not installed, or it is but has never been opened. Launch that browser once, sign in to the site you want, then test again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台机器上没有它的 cookie 数据库——多半是没装，或装了但还没开过。先开一次那个浏览器并登录要抓的站，再回来测。"
           }
         },
         "zh-Hant": {
@@ -4084,6 +6124,12 @@
             "value": "iCloud Drive is not enabled on this Mac; backup is disabled."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台没有启用 iCloud 云盘，备份功能停用。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4099,6 +6145,12 @@
             "state": "translated",
             "value": "What this Mac uses → per device"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台用哪些 → 按设备"
+          }
         }
       }
     },
@@ -4109,6 +6161,12 @@
             "state": "translated",
             "value": "This Mac's settings backed up (%@)"
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台的设置已备份（%@）"
+          }
         }
       }
     },
@@ -4118,6 +6176,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "General"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通用"
           }
         },
         "zh-Hant": {
@@ -4136,6 +6200,12 @@
             "value": "Pick **Shuffle All** to rotate through every video at random, or click one video to keep it fixed. The shuffle frequency (on wake / every 5 minutes / daily…) is set on the same screen."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选 **Shuffle All** 就会随机轮播全部视频；想固定一个就直接点那个。随机的切换频率（唤醒时／5 分钟／每天…）也在同一个画面选。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4150,6 +6220,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Select a source"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选一个来源"
           }
         },
         "zh-Hant": {
@@ -4168,10 +6244,38 @@
             "value": "Also in the menu bar, ⇧⌘N"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "菜单栏也有，⇧⌘N"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "選單列也有，⇧⌘N"
+          }
+        }
+      }
+    },
+    "選好的語言要重新啟動 Foldwall 才會切換。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall needs to relaunch to switch to the selected language."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选好的语言要重新启动 Foldwall 才会切换。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選好的語言要重新啟動 Foldwall 才會切換。"
           }
         }
       }
@@ -4182,6 +6286,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Choose folders to use as wallpaper sources"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择要当壁纸来源的文件夹"
           }
         },
         "zh-Hant": {
@@ -4200,6 +6310,12 @@
             "value": "No URL yet."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没填网址。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4214,6 +6330,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "No sources yet. Add them in the Sources tab."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有任何来源。到“来源”分页加入。"
           }
         },
         "zh-Hant": {
@@ -4232,6 +6354,12 @@
             "value": "Not tested yet."
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没测试过。"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4246,6 +6374,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Not resolved yet."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没解析过。"
           }
         },
         "zh-Hant": {
@@ -4264,6 +6398,12 @@
             "value": "Needs one more system permission"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还要一道系统授权"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4279,6 +6419,12 @@
             "state": "translated",
             "value": "That's runtime state, not a setting; syncing it would just make two Macs interrupt each other's rotation."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "那是运行状态不是设置，跨机同步只会让两台互相打断轮换。"
+          }
         }
       }
     },
@@ -4288,6 +6434,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "limited"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分允许"
           }
         },
         "zh-Hant": {
@@ -4306,10 +6458,60 @@
             "value": "Rescans the source folders and redraws the whole batch — videos you just dropped in show up here"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重扫来源文件夹，然后整批重抽——刚丢进来的新片会在这时候出现"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "重掃來源資料夾，然後整批重抽——剛丟進來的新片會在這時候出現"
+          }
+        }
+      }
+    },
+    "重新啟動以套用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relaunch to Apply"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新启动以应用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新啟動以套用"
+          }
+        }
+      }
+    },
+    "重新掃描": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rescan"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新扫描"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新掃描"
           }
         }
       }
@@ -4320,6 +6522,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Resolve Again"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新解析"
           }
         },
         "zh-Hant": {
@@ -4338,6 +6546,12 @@
             "value": "Keychain access was refused"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钥匙串那关没过"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4352,6 +6566,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open Immich documentation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 Immich 说明文档"
           }
         },
         "zh-Hant": {
@@ -4370,10 +6590,38 @@
             "value": "Open System Settings"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开系统设置"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "開啟系統設定"
+          }
+        }
+      }
+    },
+    "開始翻譯": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start Translating"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始翻译"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開始翻譯"
           }
         }
       }
@@ -4385,6 +6633,12 @@
             "state": "translated",
             "value": "With this on, a change to this Mac's sources is written out at once and the other Macs follow. If both sides changed in the same round, **the copy on iCloud wins** — there's no merge, last write wins. Wallpaper settings are only **backed up**; they're never applied to another Mac automatically. For a one-way move, just use the two buttons above."
           }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开着的话，这台的来源一改就写上去，别台也会自动跟上；同一轮里两边都改过就**以 iCloud 上那份为准**——没有合并，后写的赢。壁纸设置只会**往上备份**，不会自动套到别台。只想要单向搬家的话，用上面两个按钮就好。"
+          }
         }
       }
     },
@@ -4394,6 +6648,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Interval"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "间隔"
           }
         },
         "zh-Hant": {
@@ -4412,6 +6672,12 @@
             "value": "Battery"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "电池"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4426,6 +6692,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "yt-dlp required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要 yt-dlp"
           }
         },
         "zh-Hant": {
@@ -4444,6 +6716,12 @@
             "value": "Photos access required"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要“照片”权限"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4458,6 +6736,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "On battery"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "靠电池时"
           }
         },
         "zh-Hant": {
@@ -4476,10 +6760,38 @@
             "value": "On battery…"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "靠电池时…"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
             "value": "靠電池時…"
+          }
+        }
+      }
+    },
+    "預設": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Default"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設"
           }
         }
       }
@@ -4490,6 +6802,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示"
           }
         },
         "zh-Hant": {
@@ -4508,6 +6826,12 @@
             "value": "Show source and credit"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示来源与作者"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4522,6 +6846,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Authentication"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "验证"
           }
         },
         "zh-Hant": {
@@ -4540,6 +6870,12 @@
             "value": " (%@)"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（%@）"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4556,6 +6892,12 @@
             "value": " (this site only serves separate video and audio tracks; merging them needs ffmpeg: `brew install ffmpeg`)"
           }
         },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（这个站只提供分离的视频／音频轨，合并需要 ffmpeg：`brew install ffmpeg`）"
+          }
+        },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
@@ -4570,6 +6912,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "(this Mac)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（这台）"
           }
         }
       }

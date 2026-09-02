@@ -9,6 +9,7 @@ import FoldwallCore
 struct SettingsView: View {
     @Bindable var coordinator: WallpaperCoordinator
     @Bindable var settings: AppSettings
+    var translator: UITranslator
     var onChange: () -> Void
     var onVideoToggle: () -> Void
     var onRulesChange: () -> Void
@@ -34,6 +35,9 @@ struct SettingsView: View {
 
             BackupSettings(coordinator: coordinator, settings: settings)
                 .tabItem { Label("備份", systemImage: "icloud") }
+
+            LanguageSettings(translator: translator)
+                .tabItem { Label("語言", systemImage: "globe") }
 
             AboutSettings()
                 .tabItem { Label("版本", systemImage: "info.circle") }
@@ -2183,6 +2187,261 @@ private struct BackupSettings: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+}
+
+// MARK: - 語言
+
+/// 內建繁中／簡中／英文；其他語言讓使用者用本機 AI CLI 翻，翻好重啟生效。
+/// 「用哪個語言」與「翻譯哪個語言」是兩件事：前者是一個 Picker（內建＋已翻好的），
+/// 選回內建不會刪檔；後者在下面另一組控制項。
+private struct LanguageSettings: View {
+
+    @Bindable var translator: UITranslator
+
+    /// Picker 的 tag：nil（內建）在 SwiftUI 裡不好當 tag，用空字串代表。
+    private static let builtinTag = ""
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                GroupBox("介面語言") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Picker("介面語言", selection: Binding(
+                            get: { translator.selectedLanguage ?? Self.builtinTag },
+                            set: { translator.selectedLanguage = $0 == Self.builtinTag ? nil : $0 }
+                        )) {
+                            Text("內建（繁體中文／简体中文／English，跟隨系統）").tag(Self.builtinTag)
+                            ForEach(translator.installedLanguages, id: \.self) { code in
+                                Text(UITranslator.displayName(for: code)).tag(code)
+                            }
+                        }
+                        .disabled(translator.isRunning)
+
+                        if translator.needsRelaunch {
+                            HStack(spacing: 8) {
+                                Button("重新啟動以套用") { translator.relaunch() }
+                                Text("選好的語言要重新啟動 Foldwall 才會切換。")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        ForEach(translator.installedLanguages, id: \.self) { code in
+                            if let manifest = translator.manifest(for: code) {
+                                installedRow(code: code, manifest: manifest)
+                            }
+                        }
+
+                        Text("""
+                            Foldwall 內建繁體中文、簡體中文與英文。其他語言可以交給**本機的 AI CLI**\
+                            （Claude Code、Codex 等，用你自己登入的帳號）翻譯全部介面文字；\
+                            翻好的檔只存在這台 Mac，隨時可以切回內建語言。\
+                            這是機器翻譯，翻不好的字串會退回英文。
+                            """)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(4)
+                }
+
+                GroupBox("用本機的 AI CLI 翻譯") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Picker("翻譯成", selection: $translator.targetLanguage) {
+                            ForEach(translator.candidateLanguages, id: \.self) { code in
+                                Text(UITranslator.displayName(for: code)).tag(code)
+                            }
+                        }
+                        .disabled(translator.isRunning)
+
+                        engineSection
+
+                        phaseView
+
+                        HStack(spacing: 8) {
+                            Button(translator.installedLanguages.contains(translator.targetLanguage) ? "全部重翻" : "開始翻譯") {
+                                translator.translate(onlyMissing: false)
+                            }
+                            .disabled(translator.isRunning || translator.activeEngine == nil)
+                            Text("約 \(translator.builtinStringCount) 條字串，40 條一批送出，通常幾分鐘內完成。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(4)
+                }
+            }
+            .padding()
+        }
+        .task { translator.registry.scanIfNeeded() }
+    }
+
+    /// 一個已翻好語言的狀態列：條數、日期、引擎，加上補翻與移除。
+    @ViewBuilder
+    private func installedRow(code: String, manifest: UITranslationStore.Manifest) -> some View {
+        let missing = translator.missingCount(for: code)
+        HStack(spacing: 8) {
+            Text(UITranslator.displayName(for: code))
+            Text("\(manifest.translated) 條・\(manifest.engineID)・\(manifest.date, format: .dateTime.year().month().day())")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            if missing > 0 {
+                Button("補翻 \(missing) 條新字串") {
+                    translator.targetLanguage = code
+                    translator.translate(onlyMissing: true)
+                }
+                .controlSize(.small)
+                .disabled(translator.isRunning || translator.activeEngine == nil)
+            }
+            Button("移除", role: .destructive) { translator.remove(language: code) }
+                .controlSize(.small)
+                .disabled(translator.isRunning)
+        }
+    }
+
+    /// 引擎：目錄裡五家全列，沒裝的標出來；選中的那家給路徑／版本與模型欄位。
+    @ViewBuilder
+    private var engineSection: some View {
+        let registry = translator.registry
+        Picker("引擎", selection: $translator.engineID) {
+            ForEach(KnownCLIEngine.catalog) { engine in
+                if registry.detected(engine.id) != nil {
+                    Text(engine.displayName).tag(engine.id)
+                } else {
+                    Text("\(engine.displayName)（未安裝）").tag(engine.id)
+                }
+            }
+        }
+        .disabled(translator.isRunning)
+
+        if let engine = KnownCLIEngine.named(translator.engineID) {
+            if let detected = registry.detected(engine.id) {
+                // 家目錄縮成 ~：路徑短一截，截圖時也不會露出使用者名稱
+                Text((detected.url.path as NSString).abbreviatingWithTildeInPath
+                    + (detected.version.map { "（\($0)）" } ?? ""))
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if engine.supportsModelSelection {
+                    HStack(spacing: 6) {
+                        Text("模型")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        TextField("", text: Binding(
+                            get: { translator.model(for: engine.id) },
+                            set: { translator.setModel($0, for: engine.id) }
+                        ), prompt: Text("預設"))
+                        .labelsHidden()
+                        .font(.caption)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 220)
+                        .help(engine.modelHint)
+                        Spacer(minLength: 0)
+                    }
+                }
+            } else {
+                Text("沒偵測到 `\(engine.executableName)`。裝好之後按「重新掃描」，或填入執行檔的完整路徑：")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                TextField("", text: Binding(
+                    get: { translator.customPath(for: engine.id) },
+                    set: { translator.setCustomPath($0, for: engine.id) }
+                ), prompt: Text(verbatim: "/opt/homebrew/bin/\(engine.executableName)"))
+                .labelsHidden()
+                .font(.caption.monospaced())
+                .textFieldStyle(.roundedBorder)
+                .onSubmit { registry.rescan() }
+            }
+            if let active = translator.activeEngine, active.id != engine.id {
+                // 選的那家沒裝時會回落到裝了的那家，要講清楚實際會用誰
+                Text("實際會使用 \(active.engine.displayName)。")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
+        }
+
+        HStack(spacing: 8) {
+            Button("重新掃描") { registry.rescan() }
+                .controlSize(.small)
+                .disabled(translator.isRunning)
+            Text("掃描順序：自訂路徑 → PATH → 常見安裝位置。Foldwall 不經手任何 API key，計費在你自己的訂閱上。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder
+    private var phaseView: some View {
+        switch translator.phase {
+        case let .running(done, total):
+            HStack(spacing: 8) {
+                ProgressView(value: Double(done), total: Double(max(total, 1)))
+                Text("翻譯中 \(done)／\(total)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                Button("取消") { translator.cancel() }
+                    .controlSize(.small)
+            }
+        case let .finished(translated, skipped):
+            Label(
+                skipped == 0
+                    ? String(localized: "已翻譯 \(translated) 條。")
+                    : String(localized: "已翻譯 \(translated) 條，\(skipped) 條翻不好、退回英文。"),
+                systemImage: "checkmark.circle"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        case let .failed(message, loginCommand):
+            VStack(alignment: .leading, spacing: 4) {
+                Label(message, systemImage: "xmark.octagon")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let loginCommand {
+                    HStack(spacing: 6) {
+                        Text("到終端機執行：")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(loginCommand)
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
+                        Button("複製") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(loginCommand, forType: .string)
+                        }
+                        .controlSize(.small)
+                    }
+                }
+            }
+        case .idle:
+            EmptyView()
+        }
+    }
+}
+
+#Preview("語言") {
+    let defaults = UserDefaults(suiteName: "app.foldwall.preview.language")!
+    let settings = AppSettings(defaults: defaults)
+    let registry = CLIEngineRegistry(settings: settings)
+    registry.injectDetected([
+        .init(engine: KnownCLIEngine.named("claude")!,
+              url: URL(fileURLWithPath: "/Users/me/.local/bin/claude"), version: "2.1.0"),
+    ])
+    let store = UITranslationStore(directory: FileManager.default.temporaryDirectory
+        .appending(path: "foldwall-preview-uitranslations"))
+    try? store.write(
+        language: "ja", strings: ["下一張": "次へ"], plurals: [:], pluralValueTypes: [:],
+        manifest: .init(language: "ja", engineID: "claude", model: nil, date: .now,
+                        sourceBuild: "46", translated: 367, skipped: []))
+    let translator = UITranslator(store: store, settings: settings, registry: registry)
+    translator.targetLanguage = "ja"
+    return LanguageSettings(translator: translator)
+        .frame(width: 640, height: 520)
 }
 
 // MARK: - 版本

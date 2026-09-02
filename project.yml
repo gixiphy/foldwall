@@ -4,6 +4,9 @@ options:
   # 字串表的原文是程式碼裡的中文，所以開發語言＝zh-Hant，英文是「翻譯」。
   # 反過來設的話 Xcode 抽字串時會把中文原文歸到 en 底下，整份 catalog 會錯位。
   developmentLanguage: zh-Hant
+  # String Catalog 裡有幾種語言，這裡就要列幾種：xcodegen 不會去讀 .xcstrings，
+  # 沒列到的語言不會進 knownRegions，Xcode 的字串表編輯器也就看不到那一欄。
+  knownRegions: [en, zh-Hans, zh-Hant]
   deploymentTarget:
     macOS: "26.0"
   createIntermediateGroups: true

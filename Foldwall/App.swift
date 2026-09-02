@@ -3,6 +3,7 @@
 //  SwiftUI 的 Settings 場景只在使用者主動打開時出現（收 API key／伺服器網址用）。
 
 import SwiftUI
+import FoldwallCore
 
 @main
 struct FoldwallApp: App {
@@ -11,12 +12,26 @@ struct FoldwallApp: App {
 
     @State private var settings: AppSettings
     @State private var coordinator: WallpaperCoordinator
+    @State private var translator: UITranslator
 
     init() {
         let settings = AppSettings()
+
+        // 使用者自翻的介面語言要在**任何 View 建立前**裝上：SwiftUI 已渲染的 Text
+        // 不會因 Bundle 改變而重繪，晚一步就只有半套。裝不上（檔被刪了）就退回內建。
+        let translationStore = UITranslationStore(directory: AppPaths.standard().uiTranslations)
+        if let language = settings.uiTranslationLanguage,
+           !translationStore.installOverride(language: language, bundles: UITranslator.sourceBundles) {
+            Log.app.error("介面翻譯 \(language, privacy: .public) 裝不上（翻譯檔不在？），退回內建語言")
+        }
+        let translator = UITranslator(
+            store: translationStore, settings: settings,
+            registry: CLIEngineRegistry(settings: settings))
+
         let coordinator = WallpaperCoordinator(settings: settings)
         _settings = State(initialValue: settings)
         _coordinator = State(initialValue: coordinator)
+        _translator = State(initialValue: translator)
 
         // 啟動工作**不能**掛在 MenuBarExtra 內容的 .task 上：
         // menu 樣式的內容只有在使用者點開選單時才會建立，沒點就完全不會跑，
@@ -39,6 +54,7 @@ struct FoldwallApp: App {
             SettingsView(
                 coordinator: coordinator,
                 settings: settings,
+                translator: translator,
                 onChange: { coordinator.sourcesDidChange() },
                 onVideoToggle: { coordinator.videoWallpaperEnabledDidChange() },
                 onRulesChange: { coordinator.sourceRulesDidChange() }

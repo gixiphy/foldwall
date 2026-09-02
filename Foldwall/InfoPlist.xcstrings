@@ -11,6 +11,12 @@
             "value" : "Foldwall reads the albums you choose to compose wallpaper montages. Your photos never leave this Mac."
           }
         },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foldwall 读取你选择的相册，用来合成壁纸蒙太奇。照片不会离开这台电脑。"
+          }
+        },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",

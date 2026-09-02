@@ -32,6 +32,10 @@ final class AppSettings {
         static let playlistSources = "playlistSources"
         static let videoDownloadQuality = "videoDownloadQuality"
         static let videoCookieSource = "videoCookieSource"
+        static let uiTranslationLanguage = "uiTranslationLanguage"
+        static let translationEngineID = "translationEngineID"
+        static let translationModelIDs = "translationModelIDs"
+        static let translationCustomPaths = "translationCustomPaths"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -183,6 +187,27 @@ final class AppSettings {
         didSet { defaults.set(Array(photoAlbums), forKey: Key.photoAlbums) }
     }
 
+    /// 使用者用本機 AI CLI 自翻的介面語言（見 UITranslationStore）；nil＝內建、跟隨系統。
+    /// 啟動時由 App.init 讀來裝覆蓋——**不進備份**：翻譯檔本來就只在這台。
+    var uiTranslationLanguage: String? {
+        didSet { defaults.set(uiTranslationLanguage, forKey: Key.uiTranslationLanguage) }
+    }
+
+    /// 翻譯用哪個 CLI（KnownCLIEngine.catalog 的 id）。預設 claude。
+    var translationEngineID: String {
+        didSet { defaults.set(translationEngineID, forKey: Key.translationEngineID) }
+    }
+
+    /// 各引擎的自訂模型（engine id → slug）。缺＝用 CLI 自己的預設。
+    var translationModelIDs: [String: String] {
+        didSet { defaults.set(translationModelIDs, forKey: Key.translationModelIDs) }
+    }
+
+    /// 各引擎的自訂執行檔路徑（engine id → path），PATH 找不到時用。
+    var translationCustomPaths: [String: String] {
+        didSet { defaults.set(translationCustomPaths, forKey: Key.translationCustomPaths) }
+    }
+
     /// Keychain 帳號名：每個來源設定各自一把 key。
     static func keychainAccount(for config: RemoteSourceConfig) -> String {
         "remote-\(config.kind.rawValue)-\(config.id.uuidString)"
@@ -226,6 +251,10 @@ final class AppSettings {
         self.remoteSources = defaults.data(forKey: Key.remoteSources)
             .map(RemoteSourceConfig.decodeList) ?? []
         self.photoAlbums = Set(defaults.stringArray(forKey: Key.photoAlbums) ?? [])
+        self.uiTranslationLanguage = defaults.string(forKey: Key.uiTranslationLanguage)
+        self.translationEngineID = defaults.string(forKey: Key.translationEngineID) ?? "claude"
+        self.translationModelIDs = (defaults.dictionary(forKey: Key.translationModelIDs) as? [String: String]) ?? [:]
+        self.translationCustomPaths = (defaults.dictionary(forKey: Key.translationCustomPaths) as? [String: String]) ?? [:]
         self.playlistSources = (defaults.data(forKey: Key.playlistSources)
             .flatMap { try? JSONDecoder().decode([PlaylistSource].self, from: $0) }) ?? []
         self.sourceRules = (defaults.data(forKey: Key.sourceRules)

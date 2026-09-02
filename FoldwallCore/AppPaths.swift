@@ -33,6 +33,9 @@ public struct AppPaths: Sendable {
     /// 放 Application Support 而不是 Caches：被系統清掉就等於下次開啟要重掃一次全量，
     /// 而那正是這個檔案存在的理由。它只有幾 MB，不是那種該被回收的東西。
     public var folderIndexFile: URL { applicationSupport.appending(path: "folder-index.plist") }
+    /// 使用者用本機 AI CLI 翻出來的介面語言（見 UITranslationStore）。
+    /// 放 Application Support：翻一輪要花模型幾分鐘，不是那種該被系統回收的東西。
+    public var uiTranslations: URL { applicationSupport.appending(path: "UITranslations") }
     /// SMB 來源的本機拷貝（可重建，可被清）。
     public var smbCache: URL { caches.appending(path: "smb") }
     /// 網路來源下載的原圖。
