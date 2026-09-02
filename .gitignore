@@ -12,9 +12,13 @@ build-release/
 DerivedData/
 *.xcworkspace/xcuserdata/
 
-# 對內的開發筆記與驗收清單，不進倉庫
+# 對內的開發筆記、規格與驗收清單，不進倉庫
 docs/DEVELOPMENT.md
 docs/ACCEPTANCE.md
+docs/research/
+
+# 本機工具設定
+.claude/
 
 # xcodegen 的生成產物。同一份 project.yml 每次 generate 出來的順序都不一樣，
 # 留在版控只會讓每次打包都多一份沒有意義的 diff（make-dmg.sh 會跑 generate）。
