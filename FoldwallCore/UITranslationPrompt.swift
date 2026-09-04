@@ -255,13 +255,55 @@ public protocol UITranslationBatchRunning: Sendable {
     func translate(_ items: [UITranslationItem], targetLanguage: String) async throws -> UITranslationBatch
 }
 
+/// 批量策略：起手固定、之後依實測速率調整。純函式，`UITranslator` 照它決定每批送幾條。
+///
+/// 引擎之間差到兩個數量級（Chorus 2026-09-04 實測：claude 每條 0.2 秒、agy 1.1 秒、
+/// grok **12 秒**），寫死任何一個數字都會有人受害——對 grok 來說 40 條一批必定撞逾時，
+/// 對 claude 來說 40 條又白白多送十幾次。所以只有起手是固定的。
+public enum UITranslationBatchPolicy {
+    /// 起始探測量：先用小批量量一下這個引擎多快，再依實測速率決定之後送幾條。
+    public static let probeBatchSize = 10
+    public static let minBatchSize = 5
+    public static let maxBatchSize = 120
+    /// 目標批量＝在「逾時 × 這個比例」內回得完；餘裕留給引擎抖動與併發互相拖慢。
+    public static let batchTimeBudget = 0.35
+    /// 一次最多放大幾倍：一個特別快的樣本不該把批量一口氣拉到上限。
+    public static let batchGrowthFactor = 4
+    /// 同一條字串被模型漏掉時最多重送幾次，之後就退回英文。
+    public static let maxItemAttempts = 2
+    /// 整批硬失敗（逾時、decode 壞掉）幾次之後收手。降批量重送救得回截斷，
+    /// 救不回卡死的引擎——不設上限就會一直重試下去。
+    public static let maxBatchFailures = 2
+    /// 同時在跑的批數。批與批之間互不相干（各是一次獨立的 CLI 呼叫），循序送
+    /// 十幾批要半小時，開併發把牆鐘時間壓下來。
+    public static let maxConcurrentBatches = 4
+
+    /// 一批的預算秒數（與子行程逾時同源）。
+    public static var batchBudgetSeconds: TimeInterval {
+        Double(CLIUITranslationBatchRunner.defaultTimeout.components.seconds) * batchTimeBudget
+    }
+
+    /// 依上一批的實測速率算下一批送幾條。`ceiling` 是截斷或失敗之後壓下來的上限——
+    /// 被截斷過就不該再長回去，否則會在「放大→截斷→砍半」之間震盪。
+    public static func nextBatchSize(
+        previous: Int, elapsed: TimeInterval, budget: TimeInterval, ceiling: Int
+    ) -> Int {
+        guard previous > 0, elapsed > 0 else { return max(minBatchSize, min(previous, ceiling)) }
+        let perItem = elapsed / Double(previous)
+        let target = Int(budget / perItem)
+        return max(minBatchSize, min(ceiling, min(target, previous * batchGrowthFactor)))
+    }
+}
+
 /// 正式版：走 `CLIExecution`（重試、錯誤映射、環境白名單同一份）。
 public struct CLIUITranslationBatchRunner: UITranslationBatchRunning {
     public let engine: KnownCLIEngine
     public let executable: URL
     public var model: String?
-    /// 一批 40 條對慢的模型可能要兩三分鐘。
-    public var timeout: Duration = .seconds(300)
+    /// 一批對慢的模型可能要好幾分鐘。批量的目標秒數也是從這裡推的
+    /// （`UITranslationBatchPolicy.batchBudgetSeconds`）。
+    public static let defaultTimeout: Duration = .seconds(300)
+    public var timeout: Duration = CLIUITranslationBatchRunner.defaultTimeout
 
     public init(engine: KnownCLIEngine, executable: URL, model: String? = nil) {
         self.engine = engine

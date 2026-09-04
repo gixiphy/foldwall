@@ -1,5 +1,5 @@
 //  CLIEngine.swift
-//  本機 AI CLI（claude／codex／agy／grok／opencode）的目錄、呼叫、輸出解析與錯誤。
+//  本機 AI CLI（claude／codex／agy／grok／opencode／pi）的目錄、呼叫、輸出解析與錯誤。
 //
 //  移植自 Chorus 的 AdviceEngineRegistry＋CLIAdviceProvider，砍掉送照片那條路——
 //  Foldwall 只拿它翻譯介面文字（見 UITranslationStore）。零金鑰：Foldwall 不經手
@@ -33,6 +33,7 @@ public struct KnownCLIEngine: Identifiable, Sendable {
         case "agy": String(localized: "slug，如 gemini-3.1-pro-high、claude-sonnet-4-6", bundle: .foldwallCore)
         case "codex": String(localized: "模型名稱，如 gpt-5.6-terra", bundle: .foldwallCore)
         case "opencode": String(localized: "provider/model 格式", bundle: .foldwallCore)
+        case "pi": String(localized: "provider/model 格式，與 pi --list-models 列的一致", bundle: .foldwallCore)
         default: String(localized: "模型 ID", bundle: .foldwallCore)
         }
     }
@@ -44,6 +45,7 @@ public struct KnownCLIEngine: Identifiable, Sendable {
         case "agy": .command(arguments: ["models"], format: .tabSeparated)
         case "grok": .command(arguments: ["models"], format: .markerList)
         case "opencode": .command(arguments: ["models"], format: .plainLines)
+        case "pi": .command(arguments: ["--list-models"], format: .whitespaceColumns)
         case "codex": .codexModelsCache
         default: nil
         }
@@ -71,6 +73,9 @@ public struct KnownCLIEngine: Identifiable, Sendable {
             case markerList
             /// `<slug>\t<顯示名>`（agy）。
             case tabSeparated
+            /// 空白對齊的表格＋表頭（pi `--list-models`：`provider  model  context  …`），
+            /// 取 provider 與 model 兩欄拼成 `provider/model`。
+            case whitespaceColumns
         }
     }
 
@@ -137,6 +142,19 @@ public struct KnownCLIEngine: Identifiable, Sendable {
             arguments.append(prompt)
             return (arguments, nil)
 
+        case "pi":
+            // pi 沒有 --cd／--cwd，會從行程 cwd 自動撈 AGENTS.md／CLAUDE.md、extensions、
+            // skills、prompt templates——沙箱指不過去，只能把探索全關掉，否則使用者
+            // 機器上的擴充會默默改變翻譯行為（難查、且無法重現）。--no-tools 直接免掉
+            // 權限問題：翻譯不需要任何工具。沒有內建 timeout 參數，只靠我們的 watchdog。
+            // 參數順序：pi [options] [messages...]，prompt 排最後。
+            var arguments = ["-p", "--no-session", "--no-tools",
+                             "--no-context-files", "--no-extensions",
+                             "--no-skills", "--no-prompt-templates"]
+            if !model.isEmpty { arguments += ["--model", model] }
+            arguments.append(prompt)
+            return (arguments, nil)
+
         default:
             return (["-p", prompt], nil)
         }
@@ -164,6 +182,11 @@ public struct KnownCLIEngine: Identifiable, Sendable {
                        codec: .textEnvelope, supportsModelSelection: true, loginCommand: "grok"),
         KnownCLIEngine(id: "opencode", executableName: "opencode", displayName: "OpenCode",
                        codec: .plainStdout, supportsModelSelection: true, loginCommand: "opencode auth login"),
+        // pi `-p` 預設 text 模式：stdout 只有最終回覆（thinking 不進 stdout），
+        // 錯誤與進度在 stderr。未登入時 stderr 是 "No API key found for <provider>."、
+        // 退出碼 1（實測 pi 0.85.0）。登入走互動式的 /login，所以登入指令就是 `pi`。
+        KnownCLIEngine(id: "pi", executableName: "pi", displayName: "Pi",
+                       codec: .plainStdout, supportsModelSelection: true, loginCommand: "pi"),
     ]
 }
 
@@ -181,6 +204,8 @@ public enum CLIEngineLocator {
         NSHomeDirectory() + "/.grok/bin",
         NSHomeDirectory() + "/.codex/bin",
         NSHomeDirectory() + "/.opencode/bin",
+        // pi.dev/install.sh：PATH 裡有 ~/.local/bin 或 ~/bin 就放那裡，都沒有時退到這裡
+        NSHomeDirectory() + "/.pi/agent/bin",
         NSHomeDirectory() + "/bin",
         "/opt/homebrew/bin", "/usr/local/bin",
     ]
@@ -265,6 +290,23 @@ public enum CLIModelLister {
                 // 去掉 "(default)" 之類的尾註
                 let slug = body.split(separator: " ").first.map(String.init) ?? body
                 return slug.isEmpty ? nil : slug
+            }
+        case .whitespaceColumns:
+            // pi：`provider  model  context  max-out  thinking  images` 表頭＋空白對齊的列。
+            // 只認表頭**之後**、欄數與表頭相同的列——沒登入時它印的是一段散文
+            // （"No models available. Use /login…"），沒有表頭就什麼都不列，
+            // 不會把散文拆成 "No/models"。欄位位置照表頭找，欄位順序改了也不會拼錯。
+            let rows = lines.map { $0.split(whereSeparator: \.isWhitespace).map(String.init) }
+            guard let header = rows.firstIndex(where: { $0.contains("provider") && $0.contains("model") }) else { return [] }
+            let columns = rows[header]
+            let providerColumn = columns.firstIndex(of: "provider") ?? 0
+            let modelColumn = columns.firstIndex(of: "model") ?? 1
+            return rows[(header + 1)...].compactMap { parts in
+                guard parts.count == columns.count, modelColumn < parts.count else { return nil }
+                let provider = parts[providerColumn]
+                let model = parts[modelColumn]
+                guard !provider.isEmpty, !model.isEmpty else { return nil }
+                return "\(provider)/\(model)"
             }
         }
     }
@@ -737,7 +779,7 @@ public enum CLIExecution {
     /// 非零退出：stderr／stdout 含認證字樣 → 未登入；其餘帶錯誤摘要。
     /// claude `--output-format json` 出錯時 stderr 是空的、訊息在 stdout 的 envelope
     /// `result` 欄位，stderr 空白時退回從 stdout 取。
-    private static func mapNonZeroExit(engineID: String, output: CLIProcessRunner.Output) -> CLIEngineError {
+    static func mapNonZeroExit(engineID: String, output: CLIProcessRunner.Output) -> CLIEngineError {
         let combined = (output.stderr + "\n" + output.stdout).lowercased()
         if authMarkers.contains(where: combined.contains) {
             return .notLoggedIn(engineID: engineID)

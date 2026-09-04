@@ -157,6 +157,37 @@ struct CLIEngineTests {
         #expect(claudeModel.arguments == ["-p", "--output-format", "json", "--model", "opus"])
     }
 
+    /// pi 會從行程 cwd 撈 AGENTS.md／extensions／skills，沙箱指不過去，探索旗標一個都不能少——
+    /// 少一個的症狀是使用者機器上的擴充默默改變翻譯行為。`--no-tools` 免掉權限對話框。
+    @Test("pi：探索旗標全關、prompt 排最後、模型以 --model 帶")
+    func piInvocation() throws {
+        var run = KnownCLIEngine.RunContext(sandbox: URL(fileURLWithPath: "/tmp/x"), timeout: .seconds(60))
+        let pi = try #require(KnownCLIEngine.named("pi"))
+        let plain = pi.invocation(prompt: "P", run: run)
+        #expect(plain.stdin == nil)
+        #expect(plain.arguments == ["-p", "--no-session", "--no-tools", "--no-context-files",
+                                    "--no-extensions", "--no-skills", "--no-prompt-templates", "P"])
+        run.model = "anthropic/claude-sonnet-4-6"
+        let withModel = pi.invocation(prompt: "P", run: run)
+        #expect(withModel.arguments.suffix(3) == ["--model", "anthropic/claude-sonnet-4-6", "P"])
+        #expect(pi.codec == .plainStdout)
+        #expect(pi.loginCommand == "pi")
+    }
+
+    /// 實測 pi 0.85.0：未登入時 stderr 是 "No API key found for anthropic."、退出碼 1。
+    /// 這句要映射成「未登入」並附登入指令，而不是一段「退出碼 1」的泛用錯誤。
+    @Test("pi 未登入的 stderr 映射成 notLoggedIn")
+    func piNotLoggedIn() {
+        let output = CLIProcessRunner.Output(status: 1, stdout: "", stderr: "No API key found for anthropic.\n\nUse /login to log into a provider via OAuth or API key.")
+        let error = CLIExecution.mapNonZeroExit(engineID: "pi", output: output)
+        guard case .notLoggedIn(let engineID) = error else {
+            Issue.record("應映射成 notLoggedIn，實際是 \(error)")
+            return
+        }
+        #expect(engineID == "pi")
+        #expect(error.loginCommand == "pi")
+    }
+
     @Test("偵測：自訂路徑優先，PATH 裡沒有就回 nil")
     func locate() throws {
         let engine = KnownCLIEngine(id: "fake", executableName: "definitely-not-installed-\(UUID().uuidString)",
@@ -172,7 +203,7 @@ struct CLIEngineTests {
     @Test("目錄裡每家的官方安裝位置都掃得到")
     func knownDirectoriesCoverEveryEngine() {
         let home = NSHomeDirectory()
-        for suffix in ["/.local/bin", "/.claude/local", "/.grok/bin", "/.codex/bin", "/.opencode/bin"] {
+        for suffix in ["/.local/bin", "/.claude/local", "/.grok/bin", "/.codex/bin", "/.opencode/bin", "/.pi/agent/bin"] {
             #expect(CLIEngineLocator.knownDirectories.contains(home + suffix), "少了 \(suffix)")
         }
     }
@@ -209,6 +240,36 @@ struct CLIEngineTests {
             == ["opencode/claude-opus-5", "opencode/gemini-3.1-pro"])
     }
 
+    /// pi `--list-models` 是空白對齊的表格（實測 pi 0.84.1，列尾帶空白）。翻譯不需要看圖，
+    /// 所以不像 Chorus 只收 images=yes——全部列。沒登入時它印一段散文而不是表格，
+    /// 這時要回空陣列，不能把 "No models available" 拆成 "No/models"。
+    @Test("模型清單解析：pi 的空白對齊表格，表頭之後全收；沒有表頭就空")
+    func parsePiModels() {
+        let pi = """
+        provider     model              context  max-out  thinking  images
+        opencode-go  deepseek-v4-flash  1M       384K     yes       no
+        opencode-go  gpt-5.6-luna       1.1M     128K     yes       yes
+        anthropic    claude-sonnet-4-6  1M       64K      yes       yes
+        """
+        #expect(CLIModelLister.parseModels(pi, format: .whitespaceColumns)
+            == ["opencode-go/deepseek-v4-flash", "opencode-go/gpt-5.6-luna", "anthropic/claude-sonnet-4-6"])
+
+        let loggedOut = """
+        No models available. Use /login to log into a provider via OAuth or API key. See:
+          /Users/me/.pi/docs/providers.md
+        """
+        #expect(CLIModelLister.parseModels(loggedOut, format: .whitespaceColumns).isEmpty)
+
+        // 欄位順序變了也照表頭找 model 欄；欄數對不上的雜訊行略過
+        let reordered = """
+        Fetching models...
+        model     provider   images
+        gpt-5     openai     yes
+        broken line
+        """
+        #expect(CLIModelLister.parseModels(reordered, format: .whitespaceColumns) == ["openai/gpt-5"])
+    }
+
     /// codex 標 hide 的是它自己不放進選單的（legacy／內部），我們也不該列；
     /// 但沒有 visibility 欄位時要保守納入——欄位是新加的話不該讓整份清單變空。
     @Test("codex 模型快取只取 visibility 是 list 的")
@@ -231,9 +292,18 @@ struct CLIEngineTests {
     func modelListing() throws {
         #expect(try #require(KnownCLIEngine.named("claude")).modelListing == nil)
         #expect(try #require(KnownCLIEngine.named("claude")).suggestedModels.contains("opus"))
-        for id in ["agy", "grok", "opencode", "codex"] {
+        for id in ["agy", "grok", "opencode", "codex", "pi"] {
             #expect(try #require(KnownCLIEngine.named(id)).modelListing != nil, "\(id) 少了列舉方式")
             #expect(try #require(KnownCLIEngine.named(id)).suggestedModels.isEmpty, "\(id) 不該有靜態清單")
+        }
+    }
+
+    @Test("目錄六家、每家都有模型欄位與格式提示")
+    func catalog() {
+        #expect(KnownCLIEngine.catalog.map(\.id) == ["claude", "codex", "agy", "grok", "opencode", "pi"])
+        for engine in KnownCLIEngine.catalog {
+            #expect(engine.supportsModelSelection, "\(engine.id) 少了模型欄位")
+            #expect(!engine.modelHint.isEmpty, "\(engine.id) 少了格式提示")
         }
     }
 
@@ -242,6 +312,38 @@ struct CLIEngineTests {
         let text = CLIExecution.sanitized("failed: Bearer abc.def sk-1234567890abcdef")
         #expect(!text.contains("abc.def"))
         #expect(!text.contains("sk-1234567890abcdef"))
+    }
+}
+
+@Suite("UI translation batch policy")
+struct UITranslationBatchPolicyTests {
+
+    typealias Policy = UITranslationBatchPolicy
+
+    @Test("快的引擎放大，但一次最多 growthFactor 倍；慢的縮小，不低於下限")
+    func scaling() {
+        // 10 條 2 秒＝每條 0.2 秒；預算 105 秒可塞 525 條 → 受 4 倍與上限 120 夾住
+        #expect(Policy.nextBatchSize(previous: 10, elapsed: 2, budget: 105, ceiling: Policy.maxBatchSize) == 40)
+        #expect(Policy.nextBatchSize(previous: 40, elapsed: 8, budget: 105, ceiling: Policy.maxBatchSize) == 120)
+        // 10 條 120 秒＝每條 12 秒（grok）；預算內只塞得下 8 條
+        #expect(Policy.nextBatchSize(previous: 10, elapsed: 120, budget: 105, ceiling: Policy.maxBatchSize) == 8)
+        // 再慢也不會低於下限
+        #expect(Policy.nextBatchSize(previous: 5, elapsed: 600, budget: 105, ceiling: Policy.maxBatchSize) == Policy.minBatchSize)
+    }
+
+    /// 被截斷過一次就壓下來的上限，之後再快也不該長回去——否則在放大→截斷→砍半之間震盪。
+    @Test("ceiling 壓住放大；沒有量測資料時維持原批量")
+    func ceiling() {
+        #expect(Policy.nextBatchSize(previous: 10, elapsed: 1, budget: 105, ceiling: 20) == 20)
+        #expect(Policy.nextBatchSize(previous: 30, elapsed: 0, budget: 105, ceiling: Policy.maxBatchSize) == 30)
+        #expect(Policy.nextBatchSize(previous: 0, elapsed: 5, budget: 105, ceiling: Policy.maxBatchSize) == Policy.minBatchSize)
+    }
+
+    @Test("預算與子行程逾時同源")
+    func budget() {
+        let timeout = Double(CLIUITranslationBatchRunner.defaultTimeout.components.seconds)
+        #expect(Policy.batchBudgetSeconds == timeout * Policy.batchTimeBudget)
+        #expect(Policy.batchBudgetSeconds < timeout)
     }
 }
 

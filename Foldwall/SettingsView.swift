@@ -2268,7 +2268,7 @@ private struct LanguageSettings: View {
                                 translator.translate(onlyMissing: false)
                             }
                             .disabled(translator.isRunning || translator.activeEngine == nil)
-                            Text("約 \(translator.builtinStringCount) 條字串，40 條一批送出，通常幾分鐘內完成。")
+                            Text("約 \(translator.builtinStringCount) 條字串，分批送出，批量依引擎的速度與回覆完整度自動調整，通常幾分鐘內完成。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -2305,7 +2305,7 @@ private struct LanguageSettings: View {
         }
     }
 
-    /// 引擎：目錄裡五家全列，沒裝的標出來；選中的那家給路徑／版本與模型欄位。
+    /// 引擎：目錄裡六家全列，沒裝的標出來；選中的那家給路徑／版本與模型欄位。
     @ViewBuilder
     private var engineSection: some View {
         let registry = translator.registry

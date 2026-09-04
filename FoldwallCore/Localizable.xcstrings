@@ -331,6 +331,28 @@
         }
       }
     },
+    "provider/model 格式，與 pi --list-models 列的一致": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "provider/model format, as listed by pi --list-models"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "provider/model 格式，与 pi --list-models 列出的一致"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "provider/model 格式，與 pi --list-models 列的一致"
+          }
+        }
+      }
+    },
     "slug，如 gemini-3.1-pro-high、claude-sonnet-4-6": {
       "localizations": {
         "en": {
