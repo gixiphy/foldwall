@@ -30,7 +30,14 @@ final class VideoRenderer: @unchecked Sendable {
     private let queue = DispatchQueue(label: "video-renderer", qos: .userInitiated)
     private var isRunning = true
     private(set) var isPaused = false
-    private var currentPolicy: PlaybackPolicy = .full
+    /// The policy this renderer last applied.
+    ///
+    /// Locked because `applyPolicy` is called from at least five threads — the
+    /// main queue (display sleep/wake, screen lock), `Lifecycle.queue`, the shuffle
+    /// queue, the power-monitor task and the prefs Darwin-notification thread — and
+    /// its "did this actually change?" guard is a read-modify-write. Unsynchronized,
+    /// two threads computing the same transition both fall through and both act on it.
+    private let policyState = OSAllocatedUnfairLock(initialState: PlaybackPolicy.full)
     private var rampTimer: (any DispatchSourceTimer)?
     private var deepPauseTimer: (any DispatchSourceTimer)?
 
@@ -103,6 +110,25 @@ final class VideoRenderer: @unchecked Sendable {
     /// Diagnostic: number of remaining feed-loop ticks to log after a restart.
     private var feedLogBudget = 0
 
+    /// The feed loop is armed (`requestMediaDataWhenReady` is installed).
+    /// Touched ONLY on `queue`.
+    ///
+    /// **Two installs without an intervening stop is a real hazard, not tidiness.**
+    /// They share one `currentOutput`, and `stopRequestingMediaData` is a
+    /// renderer-wide switch either of them can flip, so "who owns the restart"
+    /// stops being well defined. The concrete damage: both can see EOF for the
+    /// same loop, `swapToNextReader` runs twice, and the second run finds zero
+    /// samples — which pushes `loopBase` forward by a whole clip length while the
+    /// timebase stands still, so every later frame is enqueued a clip into the
+    /// future and the picture freezes until the empty-loop counter forces a reset.
+    private var isFeeding = false
+
+    /// The playing file's name, for log lines and diagnostics events that run off
+    /// `queue` (policy changes, `stop`). `asset` itself is only safe to touch on
+    /// `queue`, and reading a reference-counted property across threads is a data
+    /// race, not merely a stale string.
+    private let loggingName: OSAllocatedUnfairLock<String>
+
     /// The continuous output timeline this renderer feeds the display layer.
     /// Every PTS/DTS adjustment, loop boundary and resume position goes through it.
     /// Touched ONLY on `queue`.
@@ -139,8 +165,15 @@ final class VideoRenderer: @unchecked Sendable {
     private func note(_ kind: PlaybackEvent.Kind, _ detail: String? = nil) {
         PlaybackDiagnostics.shared.record(
             kind, surface: surfaceKey.isEmpty ? "renderer#\(debugID)" : surfaceKey,
-            session: generation, sourceKey: asset.url.lastPathComponent,
-            policy: "\(currentPolicy)", detail: detail)
+            session: generation, sourceKey: loggingName.withLock { $0 },
+            policy: policyState.withLock { "\($0)" }, detail: detail)
+    }
+
+    /// Stop the feed loop. Every `stopRequestingMediaData` goes through here so
+    /// `isFeeding` can never drift from reality. Must run on `queue`.
+    private func stopFeeding() {
+        isFeeding = false
+        renderer.stopRequestingMediaData()
     }
 
     /// The user's scale choice, plus everything needed to settle it: which video it
@@ -355,6 +388,7 @@ final class VideoRenderer: @unchecked Sendable {
         self.asset = asset
         self.videoTrack = videoTrack
         self.timeline = LoopTimeline(track: trackTiming)
+        self.loggingName = OSAllocatedUnfairLock(initialState: asset.url.lastPathComponent)
 
         self.stillFrameLayer = CALayer()
         stillFrameLayer.frame = rootLayer.bounds
@@ -605,6 +639,7 @@ final class VideoRenderer: @unchecked Sendable {
                     }
                     pendingSwitchURL = nil
                     asset = newAsset
+                    loggingName.withLock { $0 = newAsset.url.lastPathComponent }
                     videoTrack = boxed.value
                     timeline.rebase(to: .unknown)
                     loadTrackDetails(boxed.value, for: url)
@@ -672,15 +707,19 @@ final class VideoRenderer: @unchecked Sendable {
     /// Stop playback. Dispatches synchronously to the renderer queue to ensure
     /// no callback is mid-flight before canceling the reader.
     func stop() {
-        extensionLog("  [stop #\(debugID)] stopping renderer for \(asset.url.lastPathComponent)")
+        extensionLog("  [stop #\(debugID)] stopping renderer for \(loggingName.withLock { $0 })")
         cancelDeepPauseTimer()
+        cancelRamp()
         queue.sync {
             isRunning = false
             // Bump the session so any flush completion, off-queue asset load or feed
             // callback still in flight returns without touching a torn-down renderer.
             generation &+= 1
             switchRequestID &+= 1
-            renderer.stopRequestingMediaData()
+            // A reset queued behind an in-flight flush would otherwise fire one more
+            // flush on a torn-down renderer when that flush lands.
+            pendingReset = nil
+            stopFeeding()
             currentReader?.cancelReading()
             nextReader?.cancelReading()
             note(.released, "surface 收掉")
@@ -702,7 +741,7 @@ final class VideoRenderer: @unchecked Sendable {
         // still holds a decoder's worth of buffered frames until deep pause fires.
         queue.async { [weak self] in
             guard let self, isPaused else { return }
-            renderer.stopRequestingMediaData()
+            stopFeeding()
         }
         scheduleDeepPause()
     }
@@ -729,10 +768,16 @@ final class VideoRenderer: @unchecked Sendable {
     }
 
     func applyPolicy(_ policy: PlaybackPolicy, animated: Bool = false) {
-        guard policy != currentPolicy else { return }
-        let oldPolicy = currentPolicy
-        currentPolicy = policy
-        extensionLog("  [applyPolicy #\(debugID)] \(oldPolicy) → \(policy) animated=\(animated) asset=\(asset.url.lastPathComponent)")
+        // Compare and set in one step, so a policy recomputed concurrently by two
+        // observers is acted on exactly once.
+        let previous: PlaybackPolicy? = policyState.withLock { current in
+            guard current != policy else { return nil }
+            let old = current
+            current = policy
+            return old
+        }
+        guard let oldPolicy = previous else { return }
+        extensionLog("  [applyPolicy #\(debugID)] \(oldPolicy) → \(policy) animated=\(animated) asset=\(loggingName.withLock { $0 })")
         note(.policyChanged, "\(oldPolicy) → \(policy)")
         cancelRamp()
 
@@ -820,42 +865,50 @@ final class VideoRenderer: @unchecked Sendable {
     /// Gradually reduce timebase rate to zero, then freeze.
     private func rampDown() {
         guard !isPaused else { return }
-        ramp(to: 0, duration: Self.rampDownDuration) { [weak self] in
-            guard let self else { return }
-            isPaused = true
-            generateStillFrame()
-            renderer.stopRequestingMediaData()
-            scheduleDeepPause()
+        queue.async { [weak self] in
+            guard let self, isRunning, !isPaused else { return }
+            ramp(to: 0, duration: Self.rampDownDuration) { [weak self] in
+                guard let self else { return }
+                isPaused = true
+                generateStillFrame()
+                stopFeeding()
+                scheduleDeepPause()
+            }
         }
     }
 
     /// Gradually increase timebase rate to 1.0.
     private func rampUp() {
-        let wasDeepPaused = currentReader == nil
         isPaused = false
         cancelDeepPauseTimer()
         stillFrameLayer.opacity = 0
-
-        if wasDeepPaused {
-            // Deep-paused: no frames to ramp into. Wake instantly (continuing from the
-            // paused position, seamless) instead of ramping an empty pipeline.
-            queue.async { [weak self] in
-                guard let self, isRunning else { return }
-                requestReset(.wake)
-            }
-            return
-        }
-        // `pause` stopped the feed to cap read-ahead; a ramp needs frames to ramp into.
+        // **Everything below reads renderer state, so it belongs on `queue`.**
+        // Deciding "are we deep-paused?" on the caller's thread races the deep-pause
+        // handler: it can pass its own guards, get descheduled, and free the readers
+        // after we looked — leaving us to arm a feed against a nil output whose first
+        // tick reads `.cancelled` and, by design, restarts nothing.
         queue.async { [weak self] in
             guard let self, isRunning, !isPaused else { return }
+            guard currentReader != nil else {
+                // Deep-paused: no frames to ramp into. Wake instantly (continuing from
+                // the paused position, seamless) instead of ramping an empty pipeline.
+                requestReset(.wake)
+                return
+            }
+            // `pause` stopped the feed to cap read-ahead; a ramp needs frames.
             feedFromCurrentReader(generation: generation)
+            ramp(to: 1.0, duration: Self.rampUpDuration)
         }
-        ramp(to: 1.0, duration: Self.rampUpDuration)
     }
 
+    /// `rampTimer` is touched only on `queue` (both ramps dispatch there), so the
+    /// cancel has to go there too — otherwise `applyPolicy`, which runs on at least
+    /// five different threads, races the timer it is trying to stop.
     private func cancelRamp() {
-        rampTimer?.cancel()
-        rampTimer = nil
+        queue.async { [weak self] in
+            self?.rampTimer?.cancel()
+            self?.rampTimer = nil
+        }
     }
 
     // MARK: - Deep Pause
@@ -889,7 +942,7 @@ final class VideoRenderer: @unchecked Sendable {
     private func enterDeepPause() {
         deepPauseTimer = nil
         guard isRunning, isPaused, currentReader != nil else { return }
-        renderer.stopRequestingMediaData()
+        stopFeeding()
         currentReader?.cancelReading()
         nextReader?.cancelReading()
         currentReader = nil
@@ -930,7 +983,7 @@ final class VideoRenderer: @unchecked Sendable {
         // otherwise the frames that follow arrive "late" and get dropped.
         let resumeTimelineTime = request.restartFromZero ? CMTime.zero : CMTimebaseGetTime(timebase)
         CMTimebaseSetRate(timebase, rate: 0.0)
-        renderer.stopRequestingMediaData()
+        stopFeeding()
         currentReader?.cancelReading()
         nextReader?.cancelReading()
         currentReader = nil
@@ -952,8 +1005,17 @@ final class VideoRenderer: @unchecked Sendable {
                 flushInFlight = false
                 if let pending = pendingReset {
                     pendingReset = nil
-                    traceLog("  [reset #\(debugID)] coalesced → \(asset.url.lastPathComponent)")
-                    performReset(pending)
+                    guard isRunning else { return }
+                    // **Merge, don't replace.** The request whose flush just landed
+                    // did no reading, so its intent has not been served yet. Dropping
+                    // it lets a `.wake` that arrived during a switch's flush resume
+                    // the NEW clip at the OLD clip's accumulated timebase position —
+                    // a seek far past the end of the file, a reader that yields
+                    // nothing, and a frozen frame until the empty-loop counter fires.
+                    // It also silently downgrades an error reset's "clear the frame".
+                    let merged = pending.merged(with: request)
+                    traceLog("  [reset #\(debugID)] coalesced → \(asset.url.lastPathComponent) fromZero=\(merged.restartFromZero) clear=\(merged.clearDisplayedImage)")
+                    performReset(merged)
                     return
                 }
                 guard isRunning else { return }
@@ -1042,7 +1104,7 @@ final class VideoRenderer: @unchecked Sendable {
         extensionLog("  [recover #\(debugID)] GIVING UP on \(asset.url.lastPathComponent): \(reason)")
         recoveryAttempts = 0
         emptyLoops = 0
-        renderer.stopRequestingMediaData()
+        stopFeeding()
         currentReader?.cancelReading()
         currentReader = nil
         currentOutput = nil
@@ -1073,6 +1135,15 @@ final class VideoRenderer: @unchecked Sendable {
                 // Same clip again: reuse the track we already have, no load at all.
                 queue.async { [weak self] in
                     guard let self, isRunning, gen == generation else { return }
+                    // A loop-boundary variant swap reassigns `asset` WITHOUT bumping
+                    // the generation, so passing that guard is not enough: `asset`
+                    // may now be a different file while `currentTrack` still belongs
+                    // to the old one, and pairing them makes `canAdd` fail. The swap
+                    // schedules its own preload, so skipping here loses nothing.
+                    guard asset.url == currentURL else {
+                        traceLog("  [Renderer] preload target moved on — skipping stale install")
+                        return
+                    }
                     installNextReader(asset: asset, track: currentTrack.value, timing: currentTiming)
                 }
                 return
@@ -1082,7 +1153,8 @@ final class VideoRenderer: @unchecked Sendable {
             guard let track = Self.loadFirstVideoTrackBlocking(newAsset) else {
                 traceLog("  [Renderer] No video track in variant: \(nextURL.lastPathComponent)")
                 queue.async { [weak self] in
-                    guard let self, isRunning, gen == generation else { return }
+                    guard let self, isRunning, gen == generation,
+                          asset.url == currentURL else { return }
                     installNextReader(asset: asset, track: currentTrack.value, timing: currentTiming)
                 }
                 return
@@ -1138,7 +1210,11 @@ final class VideoRenderer: @unchecked Sendable {
     /// Must run on `queue`.
     private func swapToNextReader(generation gen: Int) {
         guard isRunning, gen == generation else { return }
-        renderer.stopRequestingMediaData()
+        stopFeeding()
+        // Not always `.completed` here: the "ran dry while still reading" branch
+        // lands here too, and that reader still holds a decode session. Dropping
+        // the last reference is not the same as releasing it.
+        currentReader?.cancelReading()
 
         // Close out the loop that just ended and open the next one on the same
         // continuous timeline.
@@ -1167,6 +1243,7 @@ final class VideoRenderer: @unchecked Sendable {
         if let reader = nextReader, let output = nextOutput {
             if let nextAsset = reader.asset as? AVURLAsset, nextAsset.url != asset.url {
                 asset = nextAsset
+                loggingName.withLock { $0 = nextAsset.url.lastPathComponent }
                 videoTrack = output.track
                 // A different clip means a different timeline: its start, length and
                 // frame duration are its own. Rebase rather than carrying the previous
@@ -1209,9 +1286,14 @@ final class VideoRenderer: @unchecked Sendable {
     // MARK: - Playback Loop
 
     private func feedFromCurrentReader(generation gen: Int) {
+        guard !isFeeding else {
+            traceLog("  [feed #\(debugID)] already feeding — refusing a second install")
+            return
+        }
+        isFeeding = true
         renderer.requestMediaDataWhenReady(on: queue) { [weak self] in
             guard let self, isRunning, gen == generation else {
-                self?.renderer.stopRequestingMediaData()
+                self?.stopFeeding()
                 return
             }
 
@@ -1220,7 +1302,7 @@ final class VideoRenderer: @unchecked Sendable {
             if renderer.status == .failed {
                 let reason = renderer.error?.localizedDescription ?? "unknown"
                 extensionLog("  [Renderer] Status failed: \(reason), recovering")
-                renderer.stopRequestingMediaData()
+                stopFeeding()
                 queue.async { [weak self] in
                     self?.scheduleRecovery(reason: "解碼器失敗：\(reason)")
                 }
@@ -1228,7 +1310,11 @@ final class VideoRenderer: @unchecked Sendable {
             }
 
             // Decoder hit a discontinuity or error — flush and continue feeding.
-            if renderer.requiresFlushToResumeDecoding {
+            // A decoder discontinuity. `flush()` here is a decoder reset too, so it
+            // must not overlap the gated one — a second concurrent flush is exactly
+            // what corrupts the renderer. While a gated reset is in flight the reset
+            // itself will re-arm decoding, so skip.
+            if renderer.requiresFlushToResumeDecoding, !flushInFlight {
                 traceLog("  [feed #\(debugID)] requiresFlushToResumeDecoding=YES → renderer.flush() (frames enqueued after may be discarded); status=\(renderer.status.rawValue)")
                 note(.stalled, "解碼中斷，需要 flush 才能繼續")
                 renderer.flush()
@@ -1246,7 +1332,7 @@ final class VideoRenderer: @unchecked Sendable {
                     if feedLogBudget > 0 {
                         traceLog("  [feed #\(debugID)] reader stopped (status=\(status.rawValue)) after enqueuing this tick=\(enqueuedThisTick)")
                     }
-                    renderer.stopRequestingMediaData()
+                    stopFeeding()
                     queue.async { [weak self] in
                         self?.readerDidStop(status: status, error: error, generation: gen)
                     }
