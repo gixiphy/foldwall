@@ -28,6 +28,7 @@ final class PhospheneExtension: NSObject, AppExtension {
             observeScreenLockState()
             WallpaperPrefs.shared.observeChanges()
             PowerMonitor.shared.startMonitoring()
+            PlaybackDiagnostics.shared.observeRequests()
             Task {
                 for await powerState in PowerMonitor.shared.stateChanges() {
                     let state = WallpaperState.shared

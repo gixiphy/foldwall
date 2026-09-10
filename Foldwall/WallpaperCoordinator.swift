@@ -116,6 +116,8 @@ final class WallpaperCoordinator {
     /// **只留影片清單，不留整份索引快照。** 快照裡還有 69 萬筆的圖片陣列，
     /// 掛在這裡等於在索引重掃之後多釘一份幾十 MB 的舊清單。
     @ObservationIgnored private var lastVideoCandidates: [URL]?
+    /// 診斷正在跑。它會把幾支影片各讀一遍，不該被連按兩次而跑兩輪。
+    @ObservationIgnored private var isDiagnosing = false
     @ObservationIgnored private var cycleNonce = UInt64(Date().timeIntervalSince1970)
 
     init(settings: AppSettings, bookmarks: BookmarkStore = BookmarkStore()) {
@@ -507,6 +509,33 @@ final class WallpaperCoordinator {
         return VideoPlaybackPlan.next(
             after: current, screen: uuid, videos: pool, busy: busy,
             mode: settings.videoPlaybackMode, nonce: nonce)
+    }
+
+    /// 「診斷播放不順」：產生一份可匯出的報告並在 Finder 顯示。
+    ///
+    /// 這會**把正在播的那幾支影片各讀一遍**（走時間戳），走 NAS 的話要一點時間，
+    /// 所以只跑正在播的、而且有上限（見 `VideoDiagnostics.maxDeepAnalysis`）。
+    @discardableResult
+    func diagnosePlayback() async -> URL? {
+        guard !isDiagnosing else { return nil }
+        isDiagnosing = true
+        defer { isDiagnosing = false }
+
+        // 選了 extension 那條的話桌面視窗沒有東西在播，改分析部署過去的那批的**來源**。
+        let subjects: [String: URL] = if settings.videoEngine.needsDeployment {
+            Dictionary(uniqueKeysWithValues: videoLibrary.deployedSourceURLs
+                .prefix(VideoDiagnostics.maxDeepAnalysis)
+                .enumerated()
+                .map { ("部署 #\($0.offset + 1)", $0.element) })
+        } else {
+            desktopVideo.playingURLs
+        }
+
+        let report = await VideoDiagnostics.report(
+            engine: settings.videoEngine,
+            playing: subjects,
+            desktopReport: desktopVideo.diagnosticsReport())
+        return VideoDiagnostics.write(report)
     }
 
     /// 只重排影片，**不重跑蒙太奇**。

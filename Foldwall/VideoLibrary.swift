@@ -62,6 +62,15 @@ final class VideoLibrary {
     /// container 裡實際備妥幾支。靜態管線靠它判斷「這螢幕真的有影片可播嗎」。
     var deployedCount: Int { loadLedger().count }
 
+    /// 目前部署在 extension container 裡的那些影片的**來源**位置。
+    ///
+    /// 診斷要分析的是使用者手上的原檔，不是 container 裡的拷貝：兩者內容一樣，
+    /// 但來源位置（本機／NAS／串流）只有原檔答得出來，而那正是「不定時停一下」
+    /// 的第一個線索。
+    var deployedSourceURLs: [URL] {
+        loadLedger().map { URL(filePath: $0.sourcePath, directoryHint: .notDirectory) }
+    }
+
     /// 驗過解不動的來源路徑。排片時先濾掉，否則它們每輪都佔一個名額，
     /// 拷不進去又擠掉了本來排得進來的影片。
     var rejectedSourcePaths: Set<String> { Set(loadRejects().keys) }

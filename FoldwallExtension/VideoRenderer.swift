@@ -128,6 +128,21 @@ final class VideoRenderer: @unchecked Sendable {
     /// Called at each loop boundary to select the video URL for the next iteration.
     var variantSelector: (@Sendable () -> URL)?
 
+    /// Which surface this renderer draws into, for the diagnostics log. Set by the
+    /// acquire path; the fallback keeps a renderer that somehow wasn't labelled from
+    /// silently merging with another one's records.
+    var surfaceKey: String = ""
+
+    /// Record a playback event. The extension's log is a ring buffer in memory that
+    /// the app collects on request (see `PlaybackDiagnostics`) — the appex has no UI
+    /// of its own, so without this a stutter here leaves nothing a user can hand over.
+    private func note(_ kind: PlaybackEvent.Kind, _ detail: String? = nil) {
+        PlaybackDiagnostics.shared.record(
+            kind, surface: surfaceKey.isEmpty ? "renderer#\(debugID)" : surfaceKey,
+            session: generation, sourceKey: asset.url.lastPathComponent,
+            policy: "\(currentPolicy)", detail: detail)
+    }
+
     /// The user's scale choice, plus everything needed to settle it: which video it
     /// applies to (`random` draws per video), the video's display aspect ratio and the
     /// surface's. Locked because it is read from the prefs (Darwin notification) thread
@@ -439,6 +454,8 @@ final class VideoRenderer: @unchecked Sendable {
 
             currentReader = reader
             currentOutput = output
+            note(.started)
+            note(.firstFrame)
 
             // Begin advancing the timebase — playback starts.
             CMTimebaseSetRate(timebase, rate: 1.0)
@@ -593,6 +610,7 @@ final class VideoRenderer: @unchecked Sendable {
                     loadTrackDetails(boxed.value, for: url)
                     rescale(for: url)
                     traceLog("  [switchVideo #\(debugID)] restarting from 0 → \(url.lastPathComponent)")
+                    note(.switched)
                     requestReset(.newAsset)
                 }
             }
@@ -665,6 +683,7 @@ final class VideoRenderer: @unchecked Sendable {
             renderer.stopRequestingMediaData()
             currentReader?.cancelReading()
             nextReader?.cancelReading()
+            note(.released, "surface 收掉")
         }
         // Clean up layers from the layer tree
         displayLayer.removeFromSuperlayer()
@@ -714,6 +733,7 @@ final class VideoRenderer: @unchecked Sendable {
         let oldPolicy = currentPolicy
         currentPolicy = policy
         extensionLog("  [applyPolicy #\(debugID)] \(oldPolicy) → \(policy) animated=\(animated) asset=\(asset.url.lastPathComponent)")
+        note(.policyChanged, "\(oldPolicy) → \(policy)")
         cancelRamp()
 
         switch policy {
@@ -877,6 +897,7 @@ final class VideoRenderer: @unchecked Sendable {
         nextReader = nil
         nextOutput = nil
         nextReaderStarted = false
+        note(.released, "深度暫停，釋放 reader 與解碼器")
         extensionLog("  [Renderer] Deep-paused — freed asset readers")
     }
 
@@ -1006,6 +1027,7 @@ final class VideoRenderer: @unchecked Sendable {
             return
         }
         let delay = Self.recoveryBackoff * Double(recoveryAttempts)
+        note(.recovered, "第 \(recoveryAttempts) 次重試：\(reason)")
         extensionLog("  [recover #\(debugID)] \(reason) — attempt \(recoveryAttempts)/\(Self.maxRecoveryAttempts) in \(delay)s (\(asset.url.lastPathComponent))")
         queue.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self, isRunning else { return }
@@ -1015,6 +1037,8 @@ final class VideoRenderer: @unchecked Sendable {
 
     /// Give up on this asset and tell the host. Must run on `queue`.
     private func reportFailure(_ reason: String) {
+        note(.failed, reason)
+        PlaybackDiagnostics.shared.flush()
         extensionLog("  [recover #\(debugID)] GIVING UP on \(asset.url.lastPathComponent): \(reason)")
         recoveryAttempts = 0
         emptyLoops = 0
@@ -1119,6 +1143,13 @@ final class VideoRenderer: @unchecked Sendable {
         if produced {
             emptyLoops = 0
             recoveryAttempts = 0
+            // The drift is the whole point of the acceptance criterion "no accumulated
+            // gap or overlap after many loops": it is the difference between what the
+            // container declares the clip lasts and what its samples actually covered.
+            let drift = timeline.lastLoopDrift
+            note(.loopBoundary, String(
+                format: "第 %d 輪，接縫偏差 %.4f 秒", timeline.loopCount,
+                drift.isNumeric ? drift.seconds : 0))
         } else {
             emptyLoops += 1
             // A reader that opens but yields nothing turns the boundary into a tight
@@ -1196,6 +1227,7 @@ final class VideoRenderer: @unchecked Sendable {
             // Decoder hit a discontinuity or error — flush and continue feeding.
             if renderer.requiresFlushToResumeDecoding {
                 traceLog("  [feed #\(debugID)] requiresFlushToResumeDecoding=YES → renderer.flush() (frames enqueued after may be discarded); status=\(renderer.status.rawValue)")
+                note(.stalled, "解碼中斷，需要 flush 才能繼續")
                 renderer.flush()
             }
 

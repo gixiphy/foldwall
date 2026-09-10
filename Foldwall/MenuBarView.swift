@@ -39,6 +39,11 @@ struct MenuBarView: View {
                         .keyboardShortcut("n", modifiers: [.command, .shift])
                     playbackModeMenu
                     scaleModeMenu
+                    // 抖動至少有四種成因，處理方式完全不同。這份報告的用途是把
+                    // 它們分開，不是宣布結論——量不到的東西會標成未知。
+                    Button("診斷播放不順…") {
+                        Task { await coordinator.diagnosePlayback() }
+                    }
                 }
                 displayMenu
             }

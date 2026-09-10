@@ -364,6 +364,7 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
                         return
                     }
                     renderer.variantSelector = selector
+                    renderer.surfaceKey = "display \(key.displayID)"
                     renderer.onPlaybackFailed = makeFailureHandler(key: key)
                     let old = WallpaperState.shared.setRenderer(renderer, videoID: choiceConfiguration, for: key)
                     old?.stop()
@@ -495,6 +496,7 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
                     traceLog("  [acquire] cold start → replied after still seeded for \(videoURL.lastPathComponent)")
                 }
                 renderer.variantSelector = selector
+                renderer.surfaceKey = "display \(key.displayID)"
                 renderer.onPlaybackFailed = makeFailureHandler(key: key)
                 let old = WallpaperState.shared.setRenderer(renderer, videoID: choiceConfiguration, for: key)
                 WallpaperPrefs.shared.setActive(true)
