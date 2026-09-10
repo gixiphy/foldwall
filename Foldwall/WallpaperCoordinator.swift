@@ -156,9 +156,16 @@ final class WallpaperCoordinator {
             self.status.sourceError = String(localized: "影片播放失敗：\(name)－\(reason)")
             self.refreshNow("影片播放失敗")
         }
-        // 一支播完了 → 依播放模式排下一支。單片循環不會走到這裡（那條路無縫接回開頭）。
+        // 一支播完了。有預載的話引擎已經自己接上去了，這裡只是更新帳；
+        // 沒有預載（provider 回 nil，例如池空了）才需要重排一輪。
+        // 單片循環不會走到這裡（那條路無縫接回開頭）。
         desktopVideo.onVideoEnded = { [weak self] uuid, url in
             self?.videoDidEnd(screen: uuid, url: url)
+        }
+        // **引擎在一支開始播的時候就問下一支是哪一支**，好提前把它排進佇列。
+        // 挑片的規則仍然在這裡：播放模式、避開別台正在播的、冷卻名單。
+        desktopVideo.nextVideoProvider = { [weak self] uuid, current in
+            self?.nextVideo(for: uuid, after: current)
         }
         // 三個池補到貨就補一輪合成：它們不再擋著 refresh，抓完得有人來收。
         let refill: () -> Void = { [weak self] in self?.refreshSoon("網路／相簿補貨落地") }
@@ -456,11 +463,50 @@ final class WallpaperCoordinator {
         ExtensionPrefs.write(videoScaleMode: settings.videoScaleMode)
     }
 
-    /// 一支播完了：排下一支。
+    /// 一支播完了。
+    ///
+    /// **有預載的時候不要在這裡再排一次片。** 引擎已經接上預載的那支了，
+    /// 這裡再算一次計畫並套用，等於剛換完馬上又換一次——使用者看到的是
+    /// 一支只播了一瞬間就被跳過。只有引擎停在最後一格（`playingURLs` 沒動）
+    /// 才代表沒有下一支可接，那時才需要重排。
     private func videoDidEnd(screen uuid: String, url: URL) {
-        Log.video.info("播畢，排下一支：\(url.lastPathComponent, privacy: .public)")
+        guard desktopVideo.playingURLs[uuid] == url else {
+            Log.video.info("播畢，已接上預載：\(url.lastPathComponent, privacy: .public)")
+            return
+        }
+        Log.video.info("播畢且沒有預載，排下一支：\(url.lastPathComponent, privacy: .public)")
         pendingVideoAdvance.insert(uuid)
         applyDesktopVideoNow("影片播畢")
+    }
+
+    /// 這台螢幕接下來播哪一支。引擎提前問，好把它排進佇列預載。
+    ///
+    /// 跟 `applyDesktopVideo` 用同一套規則：冷卻名單濾過、避開別台正在播的、
+    /// 依播放模式往前一步。**純查詢，不改任何狀態**——它會被問很多次
+    /// （每支開始播、每次接上預載），改狀態的話輪替游標會被問爆。
+    private func nextVideo(for uuid: String, after current: URL) -> URL? {
+        guard settings.videoWallpaperEnabled, !settings.videoEngine.needsDeployment,
+              !status.activeEffects.contains(.pauseVideo) else { return nil }
+        guard let candidates = lastVideoCandidates else { return nil }
+
+        var seen = Set<URL>()
+        let pool = playbackCooldown.filter(
+            (candidates + remoteVideoPool.videos(configs: settings.remoteSources)
+             + playlists.candidates(for: settings.playlistSources))
+                .filter { seen.insert($0).inserted },
+            now: .now)
+        guard !pool.isEmpty else { return nil }
+
+        // 避開別台正在播的**以及別台已經預載的**——只看正在播的話，兩台會
+        // 各自預載到同一支，接上去之後就變成兩台播一樣的。
+        let busy = desktopVideo.reservedURLs(excluding: uuid)
+        // nonce 用螢幕與目前這支導出，不動 `videoAdvanceNonce`：那顆是給
+        // 使用者按「下一片」用的，被預載查詢推著跑的話按鈕就不隨機了。
+        let nonce = SeededGenerator.seed(cycleNonce: 0,
+                                         displayUUID: uuid + "\u{0}" + current.absoluteString)
+        return VideoPlaybackPlan.next(
+            after: current, screen: uuid, videos: pool, busy: busy,
+            mode: settings.videoPlaybackMode, nonce: nonce)
     }
 
     /// 只重排影片，**不重跑蒙太奇**。
