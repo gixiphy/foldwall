@@ -7708,6 +7708,28 @@
         }
       }
     },
+    "連續 %lld 支抓不下來，先停 %lld 分鐘再試。最後一次的原因：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld videos in a row failed to download; pausing for %lld minutes before trying again. Last reason: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连续 %lld 个视频抓不下来，先停 %lld 分钟再试。最后一次的原因：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連續 %lld 支抓不下來，先停 %lld 分鐘再試。最後一次的原因：%@"
+          }
+        }
+      }
+    },
     "選 **Shuffle All** 就會隨機輪播全部影片；想固定一支就直接點那支。隨機的切換頻率（喚醒時／5 分鐘／每天…）也在同一個畫面選。": {
       "localizations": {
         "en": {
@@ -8522,6 +8544,28 @@
         }
       }
     },
+    "（yt-dlp 解這個站需要 JavaScript runtime，沒有的話只剩縮圖格式：`brew install deno`）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " (yt-dlp needs a JavaScript runtime for this site; without one only thumbnail formats remain: `brew install deno`)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（yt-dlp 解析这个站需要 JavaScript runtime，没有的话只剩缩略图格式：`brew install deno`）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（yt-dlp 解這個站需要 JavaScript runtime，沒有的話只剩縮圖格式：`brew install deno`）"
+          }
+        }
+      }
+    },
     "（另有 %lld 次長度未知）": {
       "localizations": {
         "en": {
@@ -8540,6 +8584,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "（另有 %lld 次長度未知）"
+          }
+        }
+      }
+    },
+    "（有 %@ 但 yt-dlp 還是解不開這個站的挑戰，通常是其中一邊太舊：`brew upgrade yt-dlp %@`）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " (%@ is installed but yt-dlp still cannot solve this site's challenge, usually because one of them is outdated: `brew upgrade yt-dlp %@`)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（有 %@ 但 yt-dlp 还是解不开这个站的挑战，通常是其中一边太旧：`brew upgrade yt-dlp %@`）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（有 %@ 但 yt-dlp 還是解不開這個站的挑戰，通常是其中一邊太舊：`brew upgrade yt-dlp %@`）"
           }
         }
       }

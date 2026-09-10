@@ -33,6 +33,8 @@ final class PlaylistService {
     /// 抓失敗過的：不要每輪重試同一支。
     private var failed: [String: Date] = [:]
     private static let retryInterval: TimeInterval = 30 * 60
+    /// 連續幾支都抓不下來就整個片單先停（見 DownloadBackoff）。
+    private var backoff = DownloadBackoff()
 
     private(set) var lastError: String?
 
@@ -91,6 +93,7 @@ final class PlaylistService {
     nonisolated private static func runVersion(tool: URL) -> String? {
         let process = Process()
         process.executableURL = tool
+        process.environment = VideoDownloadTool.environment(tool: tool)
         process.arguments = VideoDownloadTool.versionArguments
         let output = Pipe()
         process.standardOutput = output
@@ -214,6 +217,7 @@ final class PlaylistService {
     ) -> ListOutcome {
         let process = Process()
         process.executableURL = tool
+        process.environment = VideoDownloadTool.environment(tool: tool)
         process.arguments = VideoDownloadTool.listArguments(url: url, cookies: cookies)
         let output = Pipe()
         process.standardOutput = output
@@ -347,6 +351,7 @@ final class PlaylistService {
     ) -> VideoCookieCheck {
         let process = Process()
         process.executableURL = tool
+        process.environment = VideoDownloadTool.environment(tool: tool)
         process.arguments = arguments
         // stdout 與 stderr 併一條：`--print` 印在 stdout，而診斷（要授權、解不開
         // 鑰匙串）全在 stderr，兩邊都要看。`--simulate` 的輸出只有幾行，
@@ -382,6 +387,8 @@ final class PlaylistService {
     /// 還沒抓、也不在冷卻中的那些。
     func pending(for sources: [PlaylistSource]) -> [PlaylistEntry] {
         let now = Date.now
+        // 整體冷卻中：連換哪一支都不必試，環境沒好換誰都一樣
+        guard !backoff.isPaused(now: now) else { return [] }
         let downloaded = VideoDownloadTool.localFileMap(in: directory)
         return sources.filter(\.isEnabled).flatMap { source in
             (entries[source.id] ?? []).filter { entry in
@@ -421,6 +428,7 @@ final class PlaylistService {
             self.downloading.remove(id)
             guard let failure else {
                 self.failed.removeValue(forKey: id)
+                self.backoff.recordSuccess()
                 self.onChanged?()
                 return
             }
@@ -429,6 +437,17 @@ final class PlaylistService {
             self.lastError = String(localized: "「\(title)」抓不下來：\(failure)")
             Log.video.error(
                 "片單下載失敗：\(title, privacy: .public) — \(failure, privacy: .public)")
+            // 連著幾支都死就不是那一支的問題，整個片單先停：每輪白起一次 yt-dlp
+            // 跑完整段擷取再失敗，是 0.9.1 以前每 5 分鐘一次的固定開銷。
+            if self.backoff.recordFailure(now: .now) {
+                let minutes = Int(DownloadBackoff.pause / 60)
+                self.lastError = String(localized: """
+                    連續 \(DownloadBackoff.threshold) 支抓不下來，先停 \(minutes) 分鐘再試。\
+                    最後一次的原因：\(failure)
+                    """)
+                Log.video.error(
+                    "片單下載連續 \(DownloadBackoff.threshold, privacy: .public) 次失敗，停 \(minutes, privacy: .public) 分鐘")
+            }
         }
     }
 
@@ -445,6 +464,7 @@ final class PlaylistService {
                 at: destination, withIntermediateDirectories: true)
             let process = Process()
             process.executableURL = tool
+            process.environment = VideoDownloadTool.environment(tool: tool)
             // ffmpeg 有就用：YouTube 現在幾乎只給分離軌，不合併就一支也抓不下來。
             process.arguments = VideoDownloadTool.arguments(
                 url: url, destination: destination, ffmpeg: VideoDownloadTool.locateFFmpeg(),
@@ -456,11 +476,23 @@ final class PlaylistService {
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             process.waitUntilExit()
             guard process.terminationStatus != 0 else { return nil }
-            var reason = explain(String(decoding: data, as: UTF8.self))
-            // 這個錯配上「沒裝 ffmpeg」幾乎一定是同一件事，直接把解法講出來。
-            if reason.contains("Requested format is not available"),
-               VideoDownloadTool.locateFFmpeg() == nil {
+            let output = String(decoding: data, as: UTF8.self)
+            var reason = explain(output)
+            // 最後一行 ERROR 常常只是結果，原因在前面的 WARNING 裡、解法看機器上裝了什麼。
+            // 分類交給 Core（有測試），這裡只負責把分類換成給人看的句子。
+            switch VideoDownloadTool.downloadFailureHint(
+                output, ffmpeg: VideoDownloadTool.locateFFmpeg(),
+                javaScriptRuntime: VideoDownloadTool.locateJavaScriptRuntime())
+            {
+            case .missingFFmpeg:
                 reason += String(localized: "（這個站只提供分離的視訊／音訊軌，合併需要 ffmpeg：`brew install ffmpeg`）")
+            case .missingJavaScriptRuntime:
+                reason += String(localized: "（yt-dlp 解這個站需要 JavaScript runtime，沒有的話只剩縮圖格式：`brew install deno`）")
+            case .javaScriptChallengeFailed(let runtime):
+                let name = runtime.lastPathComponent
+                reason += String(localized: "（有 \(name) 但 yt-dlp 還是解不開這個站的挑戰，通常是其中一邊太舊：`brew upgrade yt-dlp \(name)`）")
+            case nil:
+                break
             }
             return reason
         } catch {
