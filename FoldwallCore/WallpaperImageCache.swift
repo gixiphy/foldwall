@@ -4,9 +4,13 @@
 //  為什麼需要它：每輪合成都用**新檔名**呼叫 `setDesktopImageURL`（同名覆寫不會刷新，
 //  見 StillPipeline.write），系統的 `com.apple.wallpaper.extension.image` 收到之後會把
 //  那張 JPEG 解成**整塊螢幕像素大小的未壓縮 BMP** 存進自己的快取目錄——5120×1440
-//  一張 22 MB、2880×1800 一張 15.5 MB——而且從不清。我們自己的 JPEG 只留兩代
-//  （`StillPipeline.generationsKept`），系統那份卻每輪都長 37 MB：照 5 分鐘一輪是
-//  一天 10 GB，啟動後那幾輪連跑更快。實測 7 分鐘就堆了 309 MB。
+//  一張 22 MB、2880×1800 一張 15.5 MB——而且**不會跟著我們的節奏清**。我們自己的
+//  JPEG 只留兩代（`StillPipeline.generationsKept`），系統那份每輪都長 37 MB：照
+//  5 分鐘一輪是一天 10 GB，啟動後那幾輪連跑更快。實測 7 分鐘就堆了 18 張、309 MB。
+//
+//  WallpaperAgent 自己有一套「標成 inactive、下次 resolution 再 purge」的回收
+//  （log 裡的 sharedWallpaperRemovalTriggerFired），實測有時會把舊的收走，但什麼時候
+//  收、收多少沒有規律可循——使用者截圖時已經堆到要來問了。所以不賭它，自己清。
 //
 //  做法：每輪合成後，把**我們剛寫過的那幾塊螢幕解析度**的 BMP 按修改時間排序，
 //  留跟 JPEG 一樣的代數，其餘刪掉。那個目錄是 `~/Library/Caches` 性質的快取，
