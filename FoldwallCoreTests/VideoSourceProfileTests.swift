@@ -118,8 +118,14 @@ final class VideoSourceProfileTests: XCTestCase {
 
     func testEveryRiskExplainsItself() {
         for risk in PlaybackRisk.allCases {
-            XCTAssertFalse(risk.summary.isEmpty)
+            XCTAssertFalse(risk.localizedSummary.isEmpty)
         }
+    }
+
+    /// 這條的措辭是重點：使用者看到「規律微頓」就會想去改播放器，
+    /// 而那條路是白走的。說明必須自己把方向講清楚。
+    func testTheCadenceFindingSaysItIsNotAPlayerFault() {
+        XCTAssertTrue(PlaybackRisk.refreshCadenceMismatch.localizedSummary.contains("不是播放器"))
     }
 
     // MARK: - 長寬比與新鮮度

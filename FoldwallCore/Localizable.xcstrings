@@ -177,6 +177,28 @@
         }
       }
     },
+    "HDR 片源，多一道色調映射。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDR source, so there is an extra tone-mapping pass."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDR 片源，多一道色调映射。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDR 片源，多一道色調映射。"
+          }
+        }
+      }
+    },
     "HTTP %lld：key 不對或沒有權限": {
       "localizations": {
         "en": {
@@ -639,6 +661,50 @@
         }
       }
     },
+    "可變幀率。畫面本身的節奏就不均勻。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Variable frame rate. The footage itself is unevenly paced."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可变帧率。画面本身的节奏就不均匀。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可變幀率。畫面本身的節奏就不均勻。"
+          }
+        }
+      }
+    },
+    "呈現時間戳不單調遞增，片源的時間資訊有問題。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presentation timestamps are not monotonically increasing — the source has broken timing information."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "呈现时间戳不单调递增，片源的时间信息有问题。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "呈現時間戳不單調遞增，片源的時間資訊有問題。"
+          }
+        }
+      }
+    },
     "唯一能讓影片出現在**鎖屏**的做法。影片需拷進 extension（受輪替上限管制），且要在「系統設定 → 桌布」選片。依賴私有 API，macOS 大版本可能失效。": {
       "localizations": {
         "en": {
@@ -859,6 +925,28 @@
         }
       }
     },
+    "尚未取得時間資訊，無法判斷呈現節奏。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No timing information yet, so the presentation cadence cannot be judged."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未取得时间信息，无法判断呈现节奏。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未取得時間資訊，無法判斷呈現節奏。"
+          }
+        }
+      }
+    },
     "尚未測試": {
       "localizations": {
         "en": {
@@ -899,6 +987,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "影片"
+          }
+        }
+      }
+    },
+    "影片幀率與螢幕更新率不整除，會有規律微頓。這是呈現節奏，不是播放器故障。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The frame rate does not divide evenly into the display refresh rate, which causes regular micro-stutter. This is presentation cadence, not a player fault."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频帧率与屏幕刷新率不整除，会有规律微顿。这是呈现节奏，不是播放器故障。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片幀率與螢幕更新率不整除，會有規律微頓。這是呈現節奏，不是播放器故障。"
+          }
+        }
+      }
+    },
+    "影片幀率高於螢幕更新率，必然有畫格被丟棄。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The frame rate is higher than the display refresh rate, so frames are necessarily dropped."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频帧率高于屏幕刷新率，必然有画格被丢弃。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片幀率高於螢幕更新率，必然有畫格被丟棄。"
+          }
+        }
+      }
+    },
+    "影片軌起點不是 0，循環接縫需要正規化才不會錯位。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The video track does not start at 0, so the loop seam needs normalising to stay aligned."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频轨起点不是 0，循环接缝需要正规化才不会错位。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片軌起點不是 0，循環接縫需要正規化才不會錯位。"
           }
         }
       }
@@ -1009,6 +1163,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "最省空間。外接大螢幕上看得出來。"
+          }
+        }
+      }
+    },
+    "本機磁碟": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local disk"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本机磁盘"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本機磁碟"
           }
         }
       }
@@ -1299,6 +1475,28 @@
         }
       }
     },
+    "片源不在本機磁碟上，讀取可能斷續。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The source is not on a local disk, so reads may stall."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "片源不在本机磁盘上，读取可能断续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "片源不在本機磁碟上，讀取可能斷續。"
+          }
+        }
+      }
+    },
     "直接播來源檔，不拷貝、不佔額外磁碟，整個片庫都能播。全公開 API。**鎖屏不會播。**": {
       "localizations": {
         "en": {
@@ -1453,6 +1651,28 @@
         }
       }
     },
+    "網路串流": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Network stream"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络串流"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網路串流"
+          }
+        }
+      }
+    },
     "網路來源下載的原圖、照片相簿匯出，以及合成前從網路磁碟拷回來的副本。想讓螢幕保護程式播這些，來源就指下面這個路徑。": {
       "localizations": {
         "en": {
@@ -1493,6 +1713,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "網路來源抓的影片、你在「來源 → 網路」用網址下載的影片，以及這一輪輪替中、已拷進影片 extension 的那幾支。有 2 GB 上限，超過會從最舊的開始汰。"
+          }
+        }
+      }
+    },
+    "網路磁碟": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Network volume"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "网络磁盘"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網路磁碟"
           }
         }
       }
@@ -1629,6 +1871,28 @@
         }
       }
     },
+    "解析度或位元率偏高，解碼與合成負載大。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "High resolution or bitrate, so decoding and compositing are heavy."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分辨率或码率偏高，解码与合成负载大。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解析度或位元率偏高，解碼與合成負載大。"
+          }
+        }
+      }
+    },
     "通了，取得 %lld 項": {
       "localizations": {
         "en": {
@@ -1669,6 +1933,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "連得上，但這個查詢沒有內容"
+          }
+        }
+      }
+    },
+    "部分畫格沒有長度資訊，循環終點只能推導。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some frames carry no duration, so the loop end has to be derived."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分画格没有长度信息，循环终点只能推导。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分畫格沒有長度資訊，循環終點只能推導。"
           }
         }
       }

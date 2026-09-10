@@ -268,7 +268,7 @@ final class DesktopVideoEngine {
         for uuid in playing.keys {
             if changed, let entry = playing[uuid] {
                 record(.policyChanged, entry: entry, surface: uuid,
-                       detail: paused ? "暫停" : "恢復")
+                       detail: paused ? String(localized: "暫停") : String(localized: "恢復"))
             }
             if paused {
                 playing[uuid]?.player.pause()
@@ -288,31 +288,43 @@ final class DesktopVideoEngine {
     /// 可匯出的播放報告。**取不到的一律標成未知**，不要拿「播放進度正常」
     /// 當成沒有掉幀——那是兩件事。
     func diagnosticsReport() -> String {
-        var lines: [String] = ["# 桌面視窗播放診斷", ""]
+        var lines: [String] = []
         if events.droppedCount > 0 {
-            lines.append("（紀錄有上限，較早的 \(events.droppedCount) 則已被擠掉）")
+            let dropped = events.droppedCount
+            lines.append(String(localized: "（紀錄有上限，較早的 \(dropped) 則已被擠掉）"))
             lines.append("")
         }
         for (uuid, entry) in playing.sorted(by: { $0.key < $1.key }) {
             let stalls = events.stallSummary(surface: uuid)
-            lines.append("## 螢幕 \(uuid)")
-            lines.append("- 影片：\(entry.url.lastPathComponent)")
-            lines.append("- 來源位置：\(entry.location.displayName)")
-            lines.append("- 預讀上限：\(Int(VideoBufferPolicy.forwardBufferSeconds(for: entry.location))) 秒")
-            lines.append("- 播放 session：\(entry.session)")
-            lines.append("- 已播：\(Int(Date.now.timeIntervalSince(entry.startedAt))) 秒")
-            lines.append("- 停頓：\(stalls.count) 次，共 \(String(format: "%.1f", stalls.totalSeconds)) 秒"
-                + (stalls.unmatched > 0 ? "（另有 \(stalls.unmatched) 次長度未知）" : ""))
-            lines.append("- 下一支已預載：\(entry.preloaded?.url.lastPathComponent ?? "無")")
+            let buffer = Int(VideoBufferPolicy.forwardBufferSeconds(for: entry.location))
+            let elapsed = Int(Date.now.timeIntervalSince(entry.startedAt))
+            let total = String(format: "%.1f", stalls.totalSeconds)
+            let count = stalls.count
+            lines.append("### \(String(localized: "螢幕")) \(uuid)")
+            lines.append("- " + String(localized: "影片：\(entry.url.lastPathComponent)"))
+            lines.append("- " + String(localized: "來源位置：\(entry.location.displayName)"))
+            lines.append("- " + String(localized: "預讀上限：\(buffer) 秒"))
+            lines.append("- " + String(localized: "播放 session：\(entry.session)"))
+            lines.append("- " + String(localized: "已播：\(elapsed) 秒"))
+            lines.append("- " + String(localized: "停頓：\(count) 次，共 \(total) 秒")
+                + (stalls.unmatched > 0
+                   ? String(localized: "（另有 \(stalls.unmatched) 次長度未知）") : ""))
+            lines.append("- " + String(localized: "下一支已預載：\(entry.preloaded?.url.lastPathComponent ?? String(localized: "無"))"))
             lines.append("")
         }
-        if playing.isEmpty { lines.append("目前沒有螢幕在播影片。"); lines.append("") }
-        lines.append("## 事件")
+        if playing.isEmpty {
+            lines.append(String(localized: "目前沒有螢幕在播影片。"))
+            lines.append("")
+        }
+        lines.append("<details><summary>" + String(localized: "桌面視窗事件明細") + "</summary>")
+        lines.append("")
         for event in events.all.suffix(120) {
             let stamp = event.at.formatted(date: .omitted, time: .standard)
             lines.append("- \(stamp) [\(event.surface)#\(event.session)] \(event.kind.rawValue)"
                 + (event.detail.map { "：\($0)" } ?? ""))
         }
+        lines.append("")
+        lines.append("</details>")
         return lines.joined(separator: "\n")
     }
 
@@ -385,7 +397,8 @@ final class DesktopVideoEngine {
             return
         }
         playing[uuid]?.rebuildAttempts = entry.rebuildAttempts + 1
-        record(.recovered, entry: entry, surface: uuid, detail: "就地重建：\(reason)")
+        record(.recovered, entry: entry, surface: uuid,
+               detail: String(localized: "就地重建：\(reason)"))
         Log.video.info(
             "桌面視窗就地重建：\(entry.url.lastPathComponent, privacy: .public)－\(reason, privacy: .public)")
         let attempts = entry.rebuildAttempts + 1
@@ -562,7 +575,8 @@ final class DesktopVideoEngine {
 
         guard let preloaded = entry.preloaded else {
             playing[uuid]?.ended = true
-            record(.loopBoundary, entry: entry, surface: uuid, detail: "沒有下一支，停在最後一格")
+            record(.loopBoundary, entry: entry, surface: uuid,
+                   detail: String(localized: "沒有下一支，停在最後一格"))
             Log.video.info("播畢：\(finished.lastPathComponent, privacy: .public)")
             onVideoEnded?(uuid, finished)
             return
@@ -604,7 +618,8 @@ final class DesktopVideoEngine {
         }
 
         if let updated = playing[uuid] {
-            record(.switched, entry: updated, surface: uuid, detail: "預載接上，無停頓")
+            record(.switched, entry: updated, surface: uuid,
+                   detail: String(localized: "預載接上，無停頓"))
         }
         Log.video.info(
             "播畢，接上預載：\(finished.lastPathComponent, privacy: .public) → \(preloaded.url.lastPathComponent, privacy: .public)")
@@ -722,13 +737,14 @@ final class DesktopVideoEngine {
             // 換片空檔都是 .paused，而畫面其實好好的。
             guard entry.waitingSince == nil else { return }
             playing[uuid]?.waitingSince = .now
-            record(.stalled, entry: entry, surface: uuid, detail: reason ?? "原因未知")
+            record(.stalled, entry: entry, surface: uuid,
+                   detail: reason ?? String(localized: "原因未知"))
         case .playing:
             if let since = entry.waitingSince {
                 let seconds = Date.now.timeIntervalSince(since)
                 playing[uuid]?.waitingSince = nil
                 record(.resumed, entry: entry, surface: uuid,
-                       detail: String(format: "停頓 %.2f 秒", seconds))
+                       detail: String(localized: "停頓 \(String(format: "%.2f", seconds)) 秒"))
             }
         case .paused:
             break
@@ -747,7 +763,7 @@ final class DesktopVideoEngine {
                 guard let self, let entry = playing[uuid], entry.session == session else { return }
                 let seconds = Date.now.timeIntervalSince(entry.startedAt)
                 record(.firstFrame, entry: entry, surface: uuid,
-                       detail: String(format: "出畫 %.2f 秒", seconds))
+                       detail: String(localized: "出畫 \(String(format: "%.2f", seconds)) 秒"))
             }
         }
     }

@@ -70,6 +70,28 @@
         }
       }
     },
+    "%@ 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 秒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 秒"
+          }
+        }
+      }
+    },
     "%@・%@・%lld 個資料夾・%lld 個網路來源": {
       "localizations": {
         "en": {
@@ -293,6 +315,28 @@
         }
       }
     },
+    "%lld 則事件、循環 %lld 輪、解碼中斷 %lld 次": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld events, %lld loops, %lld decode interruptions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 条事件、循环 %lld 轮、解码中断 %lld 次"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$lld 則事件、循環 %2$lld 輪、解碼中斷 %3$lld 次"
+          }
+        }
+      }
+    },
     "%lld 支，其中 %lld 支已在本機。": {
       "localizations": {
         "en": {
@@ -366,6 +410,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "**存網址，不是存影片。** 加進來只會去問「這個片單裡有哪些影片」，不下載任何東西。等輪替真的抽到某一支，才去抓那一支。\n所以磁碟用量跟**你真的播過幾支**成正比，而不是整個片單的大小——幾百支的片單也不會一次塞爆磁碟。\n抓下來的影片存進**影片快取**，跟網路來源的影片同一個地方，受同一份 2 GB 上限與汰舊管。"
+          }
+        }
+      }
+    },
+    "**待查方向**（不是結論）：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Leads to check** (not conclusions):"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**待查方向**（不是结论）："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**待查方向**（不是結論）："
+          }
+        }
+      }
+    },
+    "**未取得**（讀不到畫格）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**Not obtained** (no frames could be read)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**未取得**（读不到画格）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "**未取得**（讀不到畫格）"
+          }
+        }
+      }
+    },
+    "- **規律微頓、慢速橫移特別明顯**：先看「呈現節奏」。幀率與螢幕更新率不整除（24 或 25 fps 播在 60 Hz 上）本來就會這樣，改播放器沒有用。\n- **不定時停一下**：看「停頓」次數與長度，以及片源位置。網路磁碟與串流的停頓要往讀取那邊查，不是解碼。\n- **每次播回開頭頓一下**：看「接縫偏差」。持續同號累積代表循環時間軸有問題；偏差是 0 而畫面仍然跳，那是片源首尾本來就不連續。\n- **解鎖或切換桌面之後忽快忽慢**：看政策事件的密度。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "- **Regular micro-stutter, most visible on slow pans**: look at presentation cadence first. A frame rate that does not divide into the refresh rate (24 or 25 fps on 60 Hz) always looks like this, and changing the player will not help.\n- **Occasional pauses**: look at the stall count and duration, and at where the source lives. Stalls on a network volume or a stream point at reading, not decoding.\n- **A hitch every time it loops back**: look at the seam drift. Drift that accumulates with a consistent sign means the loop timeline is wrong; drift of 0 with a visible jump means the source itself is discontinuous end to start.\n- **Speed changes after unlocking or switching desktops**: look at how dense the policy events are."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "- **规律微顿、慢速横移特别明显**：先看「呈现节奏」。帧率与屏幕刷新率不整除（24 或 25 fps 播在 60 Hz 上）本来就会这样，改播放器没有用。\n- **不定时停一下**：看「停顿」次数与长度，以及片源位置。网络磁盘与串流的停顿要往读取那边查，不是解码。\n- **每次播回开头顿一下**：看「接缝偏差」。持续同号累积代表循环时间轴有问题；偏差是 0 而画面仍然跳，那是片源首尾本来就不连续。\n- **解锁或切换桌面之后忽快忽慢**：看政策事件的密度。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "- **規律微頓、慢速橫移特別明顯**：先看「呈現節奏」。幀率與螢幕更新率不整除（24 或 25 fps 播在 60 Hz 上）本來就會這樣，改播放器沒有用。\n- **不定時停一下**：看「停頓」次數與長度，以及片源位置。網路磁碟與串流的停頓要往讀取那邊查，不是解碼。\n- **每次播回開頭頓一下**：看「接縫偏差」。持續同號累積代表循環時間軸有問題；偏差是 0 而畫面仍然跳，那是片源首尾本來就不連續。\n- **解鎖或切換桌面之後忽快忽慢**：看政策事件的密度。"
           }
         }
       }
@@ -527,6 +637,28 @@
         }
       }
     },
+    "Foldwall 影片播放診斷": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall Video Playback Diagnostics"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall 视频播放诊断"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foldwall 影片播放診斷"
+          }
+        }
+      }
+    },
     "Foldwall 自己不讀、不存、也不傳送任何 cookie——只是把「去哪個瀏覽器拿」這個選擇交給 yt-dlp，讀取跟使用都發生在它的行程裡，全程在這台電腦上。設定裡存下來的只有瀏覽器的名字。": {
       "localizations": {
         "en": {
@@ -567,6 +699,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Foldwall 需要讀取權限才能把相簿當成桌布來源。"
+          }
+        }
+      }
+    },
+    "HDR": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDR"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDR"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HDR"
           }
         }
       }
@@ -643,6 +797,28 @@
     "brew upgrade yt-dlp": {
       "shouldTranslate": false
     },
+    "extension 事件明細": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Extension event detail"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extension 事件明细"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "extension 事件明細"
+          }
+        }
+      }
+    },
     "https://…": {
       "shouldTranslate": false
     },
@@ -681,6 +857,12 @@
             "state": "translated",
             "value": "iCloud 上的来源目录：%@"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 上的來源目錄：%@"
+          }
         }
       }
     },
@@ -696,6 +878,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "iCloud 上还没有任何一台的壁纸设置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 上還沒有任何一台的桌布設定。"
           }
         }
       }
@@ -713,6 +901,12 @@
             "state": "translated",
             "value": "iCloud 上还没有来源目录"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 上還沒有來源目錄"
+          }
         }
       }
     },
@@ -728,6 +922,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "iCloud 上还没有来源目录。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 上還沒有來源目錄。"
           }
         }
       }
@@ -855,6 +1055,12 @@
             "state": "translated",
             "value": "“备份到 iCloud”会写两层；“更新来源”只拉共用的那层，不会动这台的壁纸设置。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「備份到 iCloud」會寫兩層；「更新來源」只拉共用的那層，不會動這台的桌布設定。"
+          }
         }
       }
     },
@@ -968,6 +1174,28 @@
         }
       }
     },
+    "下一支已預載：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next preloaded: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一支已预载：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一支已預載：%@"
+          }
+        }
+      }
+    },
     "下一片影片": {
       "localizations": {
         "en": {
@@ -1046,6 +1274,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "不会备份的"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不會備份的"
           }
         }
       }
@@ -1160,6 +1394,50 @@
         }
       }
     },
+    "位元深度": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bit depth"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位深度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位元深度"
+          }
+        }
+      }
+    },
+    "位元率": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bitrate"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "码率"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位元率"
+          }
+        }
+      }
+    },
     "作者印在每張照片的相紙下緣；相紙太小放不下的，收到右下角一起列。": {
       "localizations": {
         "en": {
@@ -1178,6 +1456,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "作者印在每張照片的相紙下緣；相紙太小放不下的，收到右下角一起列。"
+          }
+        }
+      }
+    },
+    "使用中的引擎：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Engine in use: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用中的引擎：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用中的引擎：%@"
           }
         }
       }
@@ -1239,6 +1539,34 @@
             "state": "translated",
             "value": "来源 → 三台通用"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源 → 三台通用"
+          }
+        }
+      }
+    },
+    "來源位置：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source location: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源位置：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源位置：%@"
+          }
         }
       }
     },
@@ -1254,6 +1582,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "来源已同步到 iCloud（%@）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源已同步到 iCloud（%@）"
           }
         }
       }
@@ -1292,6 +1626,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "来源目录是较新的格式（v%lld），请先更新这台的 Foldwall"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源目錄是較新的格式（v%lld），請先更新這台的 Foldwall"
           }
         }
       }
@@ -1428,6 +1768,72 @@
         }
       }
     },
+    "值": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Value"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "值"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "值"
+          }
+        }
+      }
+    },
+    "停頓 %@ 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stalled %@ s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停顿 %@ 秒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停頓 %@ 秒"
+          }
+        }
+      }
+    },
+    "停頓：%lld 次，共 %@ 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stalls: %lld, totalling %@ s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停顿：%lld 次，共 %@ 秒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "new",
+            "value": "停頓：%1$lld 次，共 %2$@ 秒"
+          }
+        }
+      }
+    },
     "備份": {
       "localizations": {
         "en": {
@@ -1485,6 +1891,12 @@
             "state": "translated",
             "value": "备份文件是明文 JSON，放在 iCloud 云盘里会被 Spotlight 索引。换机器时到“来源”分页重输一次。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份檔是明文 JSON，放在 iCloud Drive 裡會被 Spotlight 索引。換機器時到「來源」分頁重輸一次。"
+          }
         }
       }
     },
@@ -1500,6 +1912,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "备份这台的设置失败：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份這台的設定失敗：%@"
           }
         }
       }
@@ -1605,6 +2023,12 @@
             "state": "translated",
             "value": "两层"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "兩層"
+          }
         }
       }
     },
@@ -1626,6 +2050,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "兩組都在 ~/Library/Caches 底下，磁碟空間不足時 macOS 會自己刪。Foldwall 會重新下載，但螢幕保護程式那邊會暫時沒圖可播。目前掛在桌面上的桌布放在 Application Support，不會被清掉。"
+          }
+        }
+      }
+    },
+    "出畫 %@ 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First frame after %@ s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "出画 %@ 秒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "出畫 %@ 秒"
+          }
+        }
+      }
+    },
+    "分析畫格數": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frames analysed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分析画格数"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分析畫格數"
           }
         }
       }
@@ -1664,6 +2132,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "切换间隔、后期、同时抽取张数、视频引擎／图层／播放／缩放／画质、状态规则、登录时启动——全部各台各自一份，写在 `devices/` 底下以机器命名的文件里，**只有同一台会自动读回来**。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切換間隔、後製、同時抽取張數、影片引擎／圖層／播放／縮放／畫質、狀態規則、登入時啟動——全部各台各自一份，寫在 `devices/` 底下以機器命名的檔案裡，**只有同一台會自動讀回來**。"
           }
         }
       }
@@ -1790,6 +2264,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "导入"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匯入"
+          }
+        }
+      }
+    },
+    "原因未知": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reason unknown"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原因未知"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原因未知"
           }
         }
       }
@@ -1970,6 +2472,28 @@
         }
       }
     },
+    "可變幀率": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Variable frame rate"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可变帧率"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可變幀率"
+          }
+        }
+      }
+    },
     "各台的桌布設定": {
       "localizations": {
         "en": {
@@ -1982,6 +2506,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "各台的壁纸设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "各台的桌布設定"
           }
         }
       }
@@ -1998,6 +2528,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "同步来源失败：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同步來源失敗：%@"
           }
         }
       }
@@ -2020,6 +2556,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "名稱（選填）"
+          }
+        }
+      }
+    },
+    "否": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "否"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "否"
+          }
+        }
+      }
+    },
+    "呈現間隔（最小／中位／最大）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Presentation interval (min / median / max)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "呈现间隔（最小／中位／最大）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "呈現間隔（最小／中位／最大）"
           }
         }
       }
@@ -2477,6 +3057,78 @@
             "state": "translated",
             "value": "存的是**路径**不是书签——书签绑着创建它的那台机器。另一台没挂那块磁盘的路径会被跳过，但**不会**从共用目录里消失。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存的是**路徑**不是書籤——書籤綁著建立它的那台機器。另一台沒掛那顆磁碟的路徑會被跳過，但**不會**從共用目錄裡消失。"
+          }
+        }
+      }
+    },
+    "宣告幀率": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Declared frame rate"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "声明帧率"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "宣告幀率"
+          }
+        }
+      }
+    },
+    "容器長度": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Container duration"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "容器长度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "容器長度"
+          }
+        }
+      }
+    },
+    "實測幀率": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Measured frame rate"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实测帧率"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "實測幀率"
+          }
         }
       }
     },
@@ -2586,6 +3238,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "尚未詢問"
+          }
+        }
+      }
+    },
+    "就地重建：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rebuilt in place: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "就地重建：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "就地重建：%@"
           }
         }
       }
@@ -2762,6 +3436,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "已拒絕"
+          }
+        }
+      }
+    },
+    "已播：%lld 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playing for: %lld s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已播：%lld 秒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已播：%lld 秒"
           }
         }
       }
@@ -3140,6 +3836,28 @@
         }
       }
     },
+    "影片：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "影片：%@"
+          }
+        }
+      }
+    },
     "後製": {
       "localizations": {
         "en": {
@@ -3197,6 +3915,12 @@
             "state": "translated",
             "value": "从 iCloud 更新来源"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "從 iCloud 更新來源"
+          }
         }
       }
     },
@@ -3244,6 +3968,28 @@
         }
       }
     },
+    "怎麼讀這份報告": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How to read this report"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "怎么读这份报告"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "怎麼讀這份報告"
+          }
+        }
+      }
+    },
     "怎麼開始播": {
       "localizations": {
         "en": {
@@ -3262,6 +4008,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "怎麼開始播"
+          }
+        }
+      }
+    },
+    "恢復": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resumed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢復"
           }
         }
       }
@@ -3609,6 +4377,12 @@
             "state": "translated",
             "value": "换掉一台 Mac 时用这里把旧机的壁纸设置接过来。**会覆盖这台目前的设置。**从**别台**导入时会跳过“此屏幕改用视频”与“借浏览器 cookie”——前者存的是显示器 UUID、每台都不同，后者的授权在新机器上本来就要重来。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "換掉一台 Mac 時用這裡把舊機的桌布設定接過來。**會覆蓋這台目前的設定。**從**別台**匯入時會跳過「此螢幕改用影片」與「借瀏覽器 cookie」——前者存的是顯示器 UUID、每台都不同，後者的授權在新機器上本來就要重來。"
+          }
         }
       }
     },
@@ -3652,6 +4426,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "播完之後"
+          }
+        }
+      }
+    },
+    "播放 session：%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playback session: %lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播放 session：%lld"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播放 session：%lld"
           }
         }
       }
@@ -3744,6 +4540,72 @@
         }
       }
     },
+    "旋轉": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rotation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "旋转"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "旋轉"
+          }
+        }
+      }
+    },
+    "是": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "是"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "是"
+          }
+        }
+      }
+    },
+    "時間戳分析": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timestamp analysis"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "时间戳分析"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時間戳分析"
+          }
+        }
+      }
+    },
     "暫停": {
       "localizations": {
         "en": {
@@ -3762,6 +4624,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "暫停"
+          }
+        }
+      }
+    },
+    "更新率 %@ Hz": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Hz refresh"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新率 %@ Hz"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新率 %@ Hz"
+          }
+        }
+      }
+    },
+    "更新率未知": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh rate unknown"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新率未知"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新率未知"
           }
         }
       }
@@ -3828,6 +4734,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "有 %lld 個來源離線或無權限"
+          }
+        }
+      }
+    },
+    "有 B-frame": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has B-frames"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有 B-frame"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有 B-frame"
           }
         }
       }
@@ -3916,6 +4844,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "未安裝——`brew install yt-dlp`"
+          }
+        }
+      }
+    },
+    "未知": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知"
           }
         }
       }
@@ -4021,6 +4971,12 @@
             "state": "translated",
             "value": "壁纸怎么播 → 按设备"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌布怎麼播 → 依設備"
+          }
         }
       }
     },
@@ -4064,6 +5020,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "桌面視窗**不會出現在鎖屏**。要鎖屏請改用系統桌布 extension。"
+          }
+        }
+      }
+    },
+    "桌面視窗事件明細": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desktop window event detail"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌面窗口事件明细"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌面視窗事件明細"
+          }
+        }
+      }
+    },
+    "桌面視窗引擎": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desktop window engine"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌面窗口引擎"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "桌面視窗引擎"
           }
         }
       }
@@ -4146,6 +5146,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "每个来源的**开关**、文件夹用途、选中的相册都留在这台。在笔记本关掉 Pexels 不会让台式机也跟着关；目录里新出现的来源在每台都是**默认开着**。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每個來源的**開關**、資料夾用途、選中的相簿都留在這台。在筆電關掉 Pexels 不會讓桌機也跟著關；目錄裡新出現的來源在每台都是**預設開著**。"
           }
         }
       }
@@ -4238,6 +5244,28 @@
         }
       }
     },
+    "沒帶長度的畫格": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frames without a duration"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没带长度的画格"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒帶長度的畫格"
+          }
+        }
+      }
+    },
     "沒有 ffmpeg——`brew install ffmpeg`。YouTube 這類站只提供分離的視訊／音訊軌，沒有它就合併不了，片單一支也抓不下來。": {
       "localizations": {
         "en": {
@@ -4256,6 +5284,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "沒有 ffmpeg——`brew install ffmpeg`。YouTube 這類站只提供分離的視訊／音訊軌，沒有它就合併不了，片單一支也抓不下來。"
+          }
+        }
+      }
+    },
+    "沒有下一支，停在最後一格": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No next video; holding the last frame"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有下一支，停在最后一格"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有下一支，停在最後一格"
+          }
+        }
+      }
+    },
+    "沒有取得 extension 的播放紀錄。extension 只有在系統設定裡選了 Foldwall 當桌布時才會被系統跑起來；**這不代表那條引擎沒有問題**，只代表現在問不到。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No playback records were obtained from the extension. The system only launches it while Foldwall is selected as the wallpaper in System Settings; **this does not mean that engine is fine**, only that it cannot be asked right now."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有取得 extension 的播放记录。extension 只有在系统设置里选了 Foldwall 当桌布时才会被系统跑起来；**这不代表那条引擎没有问题**，只代表现在问不到。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有取得 extension 的播放紀錄。extension 只有在系統設定裡選了 Foldwall 當桌布時才會被系統跑起來；**這不代表那條引擎沒有問題**，只代表現在問不到。"
           }
         }
       }
@@ -4300,6 +5372,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "沒有可用的相簿"
+          }
+        }
+      }
+    },
+    "沒有找到已知的風險特徵。這不等於畫面一定順——還沒量到的東西（實際呈現時刻、合成負載）不在這份報告裡。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No known risk characteristics were found. That does not mean playback is necessarily smooth — what has not been measured (actual presentation times, compositing load) is not in this report."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有找到已知的风险特征。这不等于画面一定顺——还没量到的东西（实际呈现时刻、合成负载）不在这份报告里。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有找到已知的風險特徵。這不等於畫面一定順——還沒量到的東西（實際呈現時刻、合成負載）不在這份報告裡。"
           }
         }
       }
@@ -4502,6 +5596,28 @@
         }
       }
     },
+    "無": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無"
+          }
+        }
+      }
+    },
     "照片": {
       "localizations": {
         "en": {
@@ -4656,6 +5772,50 @@
         }
       }
     },
+    "片源": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sources"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "片源"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "片源"
+          }
+        }
+      }
+    },
+    "片源位置": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source location"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "片源位置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "片源位置"
+          }
+        }
+      }
+    },
     "版本": {
       "localizations": {
         "en": {
@@ -4744,6 +5904,28 @@
         }
       }
     },
+    "產生時間：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generated: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生成时间：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "產生時間：%@"
+          }
+        }
+      }
+    },
     "用本機的 AI CLI 翻譯": {
       "localizations": {
         "en": {
@@ -4828,6 +6010,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "留空則取精選／隨機內容。"
+          }
+        }
+      }
+    },
+    "畫素尺寸": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pixel size"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "像素尺寸"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "畫素尺寸"
           }
         }
       }
@@ -4938,6 +6142,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "目前沒有影片。加入含 mp4／mov／m4v 的來源資料夾即可。大型來源要等背景掃描與拷貝跑完。"
+          }
+        }
+      }
+    },
+    "目前沒有正在播的影片，無法分析片源。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No video is playing, so no source can be analysed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前没有正在播的视频，无法分析片源。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前沒有正在播的影片，無法分析片源。"
+          }
+        }
+      }
+    },
+    "目前沒有螢幕在播影片。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No display is playing video."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前没有屏幕在播视频。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前沒有螢幕在播影片。"
           }
         }
       }
@@ -5065,6 +6313,12 @@
             "state": "translated",
             "value": "确定覆盖这台"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確定覆蓋這台"
+          }
         }
       }
     },
@@ -5130,6 +6384,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "等資料超過 %lld 秒"
+          }
+        }
+      }
+    },
+    "系統 extension 引擎": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System extension engine"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统 extension 引擎"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統 extension 引擎"
           }
         }
       }
@@ -5328,6 +6604,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "網路來源異常：%@"
+          }
+        }
+      }
+    },
+    "編碼": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Codec"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编码"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編碼"
           }
         }
       }
@@ -5574,6 +6872,28 @@
         }
       }
     },
+    "螢幕": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "螢幕"
+          }
+        }
+      }
+    },
     "螢幕 %lld": {
       "localizations": {
         "en": {
@@ -5592,6 +6912,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "螢幕 %lld"
+          }
+        }
+      }
+    },
+    "螢幕更新率": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display refresh rate"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕刷新率"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "螢幕更新率"
           }
         }
       }
@@ -5772,6 +7114,28 @@
         }
       }
     },
+    "診斷播放不順…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnose Stuttering…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "诊断播放不顺…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "診斷播放不順…"
+          }
+        }
+      }
+    },
     "語言": {
       "localizations": {
         "en": {
@@ -5917,6 +7281,12 @@
             "state": "translated",
             "value": "读取“%@”的设置失败"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讀取「%@」的設定失敗"
+          }
         }
       }
     },
@@ -5932,6 +7302,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "读取来源目录失败：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讀取來源目錄失敗：%@"
           }
         }
       }
@@ -5993,6 +7369,12 @@
             "state": "translated",
             "value": "文件夹、网络来源、播放列表的**定义**写在共用的 `sources.json`。在一台加的来源，别台也会出现；在一台删掉的，别台也会清掉。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "資料夾、網路來源、片單的**定義**寫在共用的 `sources.json`。在一台加的來源，別台也會出現；在一台刪掉的，別台也會清掉。"
+          }
         }
       }
     },
@@ -6008,6 +7390,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "文件夹书签"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "資料夾書籤"
           }
         }
       }
@@ -6034,6 +7422,50 @@
         }
       }
     },
+    "軌道起點": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track start"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轨道起点"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "軌道起點"
+          }
+        }
+      }
+    },
+    "軌道長度": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track duration"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轨道长度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "軌道長度"
+          }
+        }
+      }
+    },
     "輪到第幾支影片了": {
       "localizations": {
         "en": {
@@ -6046,6 +7478,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "轮到第几个视频了"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輪到第幾支影片了"
           }
         }
       }
@@ -6112,6 +7550,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "這一頁只管來源設好了沒、讀不讀得到。要拿哪些來源合成蒙太奇、哪些放影片，在「蒙太奇桌布」和「影片桌布」分頁決定。"
+          }
+        }
+      }
+    },
+    "這份紀錄是 %lld 秒前寫的，extension 可能沒有回應這次請求。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These records were written %lld s ago; the extension may not have answered this request."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这份记录是 %lld 秒前写的，extension 可能没有回应这次请求。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這份紀錄是 %lld 秒前寫的，extension 可能沒有回應這次請求。"
           }
         }
       }
@@ -6195,6 +7655,12 @@
             "state": "translated",
             "value": "这台用哪些 → 按设备"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這台用哪些 → 依設備"
+          }
         }
       }
     },
@@ -6210,6 +7676,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "这台的设置已备份（%@）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這台的設定已備份（%@）"
           }
         }
       }
@@ -6469,6 +7941,12 @@
             "state": "translated",
             "value": "那是运行状态不是设置，跨机同步只会让两台互相打断轮换。"
           }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "那是執行狀態不是設定，跨機同步只會讓兩台互相打斷輪替。"
+          }
         }
       }
     },
@@ -6582,6 +8060,28 @@
         }
       }
     },
+    "重複的呈現時間戳": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplicate presentation timestamps"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重复的呈现时间戳"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重複的呈現時間戳"
+          }
+        }
+      }
+    },
     "鑰匙串那關沒過": {
       "localizations": {
         "en": {
@@ -6682,6 +8182,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "开着的话，这台的来源一改就写上去，别台也会自动跟上；同一轮里两边都改过就**以 iCloud 上那份为准**——没有合并，后写的赢。壁纸设置只会**往上备份**，不会自动套到别台。只想要单向搬家的话，用上面两个按钮就好。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開著的話，這台的來源一改就寫上去，別台也會自動跟上；同一輪裡兩邊都改過就**以 iCloud 上那份為準**——沒有合併，後寫的贏。桌布設定只會**往上備份**，不會自動套到別台。只想要單向搬家的話，用上面兩顆按鈕就好。"
           }
         }
       }
@@ -6818,6 +8324,28 @@
         }
       }
     },
+    "項目": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Item"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "项目"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "項目"
+          }
+        }
+      }
+    },
     "預設": {
       "localizations": {
         "en": {
@@ -6836,6 +8364,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "預設"
+          }
+        }
+      }
+    },
+    "預讀上限：%lld 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read-ahead cap: %lld s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预读上限：%lld 秒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預讀上限：%lld 秒"
+          }
+        }
+      }
+    },
+    "預載接上，無停頓": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preload took over, no gap"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预载接上，无停顿"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預載接上，無停頓"
           }
         }
       }
@@ -6884,6 +8456,28 @@
         }
       }
     },
+    "顯示尺寸（已套旋轉）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display size (rotation applied)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示尺寸（已套旋转）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示尺寸（已套旋轉）"
+          }
+        }
+      }
+    },
     "驗證": {
       "localizations": {
         "en": {
@@ -6928,6 +8522,94 @@
         }
       }
     },
+    "（另有 %lld 次長度未知）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(plus %lld of unknown length)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（另有 %lld 次长度未知）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（另有 %lld 次長度未知）"
+          }
+        }
+      }
+    },
+    "（沒有偵測到螢幕）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(no display detected)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（没有检测到屏幕）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（沒有偵測到螢幕）"
+          }
+        }
+      }
+    },
+    "（紀錄是空的）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(the log is empty)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（记录是空的）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（紀錄是空的）"
+          }
+        }
+      }
+    },
+    "（紀錄有上限，較早的 %lld 則已被擠掉）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(the log is capped; %lld earlier records were dropped)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（记录有上限，较早的 %lld 条已被挤掉）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（紀錄有上限，較早的 %lld 則已被擠掉）"
+          }
+        }
+      }
+    },
     "（這個站只提供分離的視訊／音訊軌，合併需要 ffmpeg：`brew install ffmpeg`）": {
       "localizations": {
         "en": {
@@ -6962,6 +8644,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "（这台）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（這台）"
+          }
+        }
+      }
+    },
+    "，最近一輪 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": ", most recent loop %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "，最近一轮 %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "，最近一輪 %@"
           }
         }
       }

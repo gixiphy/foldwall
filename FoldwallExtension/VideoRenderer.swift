@@ -1117,6 +1117,9 @@ final class VideoRenderer: @unchecked Sendable {
     /// queue is exactly the read-ahead the pause is meant to cap, so a paused install
     /// defers the start to the swap.
     private func installNextReader(asset: AVURLAsset, track: AVAssetTrack, timing: VideoTrackTiming) {
+        // Replacing a preload that was already started: cancel it rather than letting
+        // it fall off the last reference still holding a decode session open.
+        nextReader?.cancelReading()
         guard let (reader, output) = makeReader(asset: asset, track: track, start: !isPaused) else {
             traceLog("  [Renderer] Failed to create next reader for \(asset.url.lastPathComponent)")
             nextReader = nil

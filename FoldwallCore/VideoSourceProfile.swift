@@ -196,30 +196,9 @@ public enum PlaybackRisk: String, Codable, Sendable, CaseIterable {
     /// 時間資訊根本沒量到——**不要把這個當成「沒問題」。**
     case unknownTiming
 
-    public var summary: String {
-        switch self {
-        case .refreshCadenceMismatch:
-            "影片幀率與螢幕更新率不整除，會有規律微頓。這是呈現節奏，不是播放器故障。"
-        case .frameRateAboveRefresh:
-            "影片幀率高於螢幕更新率，必然有畫格被丟棄。"
-        case .variableFrameRate:
-            "可變幀率。畫面本身的節奏就不均勻。"
-        case .missingSampleDurations:
-            "部分畫格沒有長度資訊，循環終點只能推導。"
-        case .nonZeroTimelineStart:
-            "影片軌起點不是 0，循環接縫需要正規化才不會錯位。"
-        case .nonMonotonicTimestamps:
-            "呈現時間戳不單調遞增，片源的時間資訊有問題。"
-        case .highDecodeLoad:
-            "解析度或位元率偏高，解碼與合成負載大。"
-        case .remoteSource:
-            "片源不在本機磁碟上，讀取可能斷續。"
-        case .hdrTonemapping:
-            "HDR 片源，多一道色調映射。"
-        case .unknownTiming:
-            "尚未取得時間資訊，無法判斷呈現節奏。"
-        }
-    }
+    // 說明文字在 `PlaybackRiskText.swift`——那個檔只給 FoldwallCore 編，
+    // 因為它要用 `Bundle.foldwallCore` 的字串表，而 appex 沒有那份。
+    // 這個檔本身兩個 target 各編一份，所以只能有純資料。
 }
 
 public extension VideoSourceProfile {
