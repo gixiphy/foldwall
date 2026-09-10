@@ -34,27 +34,96 @@ final class VideoRenderer: @unchecked Sendable {
     private var rampTimer: (any DispatchSourceTimer)?
     private var deepPauseTimer: (any DispatchSourceTimer)?
 
+    /// Asset/track loading, kept OFF `queue`. `queue` is the feed loop's queue, and a
+    /// blocking track load there stalls sample delivery for as long as the load takes —
+    /// on a NAS that is the visible "switch takes a moment" stutter. Only the (cheap,
+    /// non-blocking) install hops back onto `queue`.
+    private let loadQueue = DispatchQueue(label: "video-renderer-load", qos: .utility)
+
     private var currentReader: AVAssetReader?
     private var currentOutput: AVAssetReaderTrackOutput?
     private var nextReader: AVAssetReader?
     private var nextOutput: AVAssetReaderTrackOutput?
+    /// Track timing for the preloaded next reader, handed to the timeline at the swap.
+    private var nextTiming: VideoTrackTiming = .unknown
+    /// The preloaded reader has actually been told to start reading — the difference
+    /// between "a reader object exists" and "it is filling its queue". Preloading while
+    /// paused would defeat the read-ahead cap, so a paused install defers the start.
+    private var nextReaderStarted = false
+
+    /// Playback session. Bumped by EVERY path that resets the pipeline (switch, error
+    /// recovery, deep-pause wake, stop), and captured by every async continuation —
+    /// flush completions, the off-queue asset load, the feed loop's own callback. A
+    /// continuation whose generation is stale returns without touching anything, so a
+    /// late callback from a superseded switch can never restart playback on top of a
+    /// newer one.
+    private var generation = 0
+
+    /// Per-switch token. Bumped by every `switchVideo` request so the last REQUESTED
+    /// pick wins even when two loads are in flight at once.
+    private var switchRequestID = 0
+    /// A switch whose asset load hasn't landed yet. Only used to defuse the dedup
+    /// check — otherwise a re-pick of the currently playing file while a switch is in
+    /// flight would look like a no-op and the surface would stay on the wrong video.
+    private var pendingSwitchURL: URL?
 
     /// A renderer `flush` (decoder reset) is the one async hop in the pipeline, and
     /// TWO overlapping flushes corrupt the renderer (rapid-switch breakage). These two
-    /// flags — touched ONLY on `queue` — serialize it: at most one flush is ever in
-    /// flight, and a switch arriving during a flush is coalesced, so when the flush
-    /// completes we restart once to whatever the latest selected asset is.
+    /// fields — touched ONLY on `queue` — serialize it: at most one flush is ever in
+    /// flight, and a reset arriving during a flush is coalesced, so when the flush
+    /// completes we restart once, to the latest selected asset, with the merged intent.
+    ///
+    /// **Every path that needs a decoder reset goes through here** — switch, error
+    /// recovery and deep-pause wake alike. Error recovery used to call `flush` directly,
+    /// which is exactly the second overlapping flush this gate exists to prevent.
     private var flushInFlight = false
-    private var restartPending = false
+    private var pendingReset: ResetRequest?
+
+    /// What a pipeline reset should do. Two orthogonal bits, so that coalescing two
+    /// requests is just an OR — no priority table to get wrong.
+    private struct ResetRequest: Equatable {
+        /// Timeline goes back to 0 (a different video, or a hard error reset), rather
+        /// than continuing from where the timebase was paused.
+        var restartFromZero: Bool
+        /// Drop the frame currently on screen. Only error recovery wants this — a
+        /// switch keeps the last frame so the swap has no blank.
+        var clearDisplayedImage: Bool
+
+        static let newAsset = ResetRequest(restartFromZero: true, clearDisplayedImage: false)
+        static let errorReset = ResetRequest(restartFromZero: true, clearDisplayedImage: true)
+        static let wake = ResetRequest(restartFromZero: false, clearDisplayedImage: false)
+
+        func merged(with other: ResetRequest) -> ResetRequest {
+            ResetRequest(
+                restartFromZero: restartFromZero || other.restartFromZero,
+                clearDisplayedImage: clearDisplayedImage || other.clearDisplayedImage)
+        }
+    }
 
     /// Diagnostic: number of remaining feed-loop ticks to log after a restart.
     private var feedLogBudget = 0
 
-    // Gapless looping state.
-    // ptsOffset accumulates across loops so both DTS and PTS are monotonically increasing.
-    // lastEnqueuedEnd tracks the highest sample end time (max, not last — handles B-frames).
-    private var ptsOffset: CMTime = .zero
-    private var lastEnqueuedEnd: CMTime = .zero
+    /// The continuous output timeline this renderer feeds the display layer.
+    /// Every PTS/DTS adjustment, loop boundary and resume position goes through it.
+    /// Touched ONLY on `queue`.
+    private var timeline = LoopTimeline()
+
+    /// Consecutive failed recovery attempts. Reset by any loop that actually produced
+    /// frames. Bounded so a permanently broken file can't spin the appex forever.
+    private var recoveryAttempts = 0
+    /// Consecutive loops that read zero samples. A reader that opens fine but yields
+    /// nothing would otherwise turn the loop boundary into a tight spin.
+    private var emptyLoops = 0
+
+    private static let maxRecoveryAttempts = 3
+    private static let recoveryBackoff: TimeInterval = 3
+    private static let maxEmptyLoops = 3
+
+    /// This renderer cannot play its asset any more (URL, reason). The host retargets
+    /// the surface to another video — without it a broken file leaves the surface on a
+    /// frozen frame with nobody informed, which is what the desktop engine's watchdog
+    /// already avoids on its side.
+    var onPlaybackFailed: (@Sendable (URL, String) -> Void)?
 
     /// Called at each loop boundary to select the video URL for the next iteration.
     var variantSelector: (@Sendable () -> URL)?
@@ -182,6 +251,10 @@ final class VideoRenderer: @unchecked Sendable {
         // nothing extra here (the switch path loads it separately).
         let scaleMode = WallpaperPrefs.shared.videoScaleMode
         let videoAspect = try? await displayAspect(of: track)
+        // The track is loaded here anyway, so its timing costs nothing extra. Getting
+        // it up front means the very first loop already knows the real frame duration
+        // instead of falling back to an observed estimate.
+        let timing = await trackTiming(of: track)
         let screenAspect = Self.aspect(of: rootLayer.bounds.size)
         let settled = scaleMode.resolved(seed: videoURL.path)
             .resolved(videoAspect: videoAspect ?? nil, screenAspect: screenAspect)
@@ -206,6 +279,7 @@ final class VideoRenderer: @unchecked Sendable {
             displayLayer: displayLayer,
             asset: asset,
             videoTrack: track,
+            trackTiming: timing,
             stillImage: stillImage,
             scaleMode: scaleMode,
             videoAspect: videoAspect ?? nil,
@@ -214,11 +288,44 @@ final class VideoRenderer: @unchecked Sendable {
         )
     }
 
+    /// Read a track's timing into the shared model. Every field is best-effort: a
+    /// track that won't answer leaves `VideoTrackTiming.unknown`, and the timeline
+    /// then learns the start from the first sample rather than assuming zero.
+    static func trackTiming(of track: AVAssetTrack) async -> VideoTrackTiming {
+        let timeRange = try? await track.load(.timeRange)
+        let minFrameDuration = try? await track.load(.minFrameDuration)
+        let nominalFrameRate = try? await track.load(.nominalFrameRate)
+        return trackTiming(timeRange: timeRange, minFrameDuration: minFrameDuration,
+                           nominalFrameRate: nominalFrameRate)
+    }
+
+    static func trackTiming(
+        timeRange: CMTimeRange?, minFrameDuration: CMTime?, nominalFrameRate: Float?,
+    ) -> VideoTrackTiming {
+        var frameDuration: CMTime?
+        if let minFrameDuration, minFrameDuration.isNumeric, minFrameDuration > .zero {
+            frameDuration = minFrameDuration
+        } else if let nominalFrameRate, nominalFrameRate > 0, nominalFrameRate.isFinite {
+            // A big timescale so 23.976 / 29.97 don't round into a per-frame error that
+            // accumulates over a loop. This is only a fallback for samples that carry
+            // no duration of their own.
+            frameDuration = CMTime(seconds: 1.0 / Double(nominalFrameRate),
+                                   preferredTimescale: 600_000)
+        }
+        guard let timeRange, timeRange.start.isNumeric, timeRange.duration.isNumeric else {
+            return VideoTrackTiming(start: .zero, duration: .invalid,
+                                    nominalFrameDuration: frameDuration, startIsKnown: false)
+        }
+        return VideoTrackTiming(start: timeRange.start, duration: timeRange.duration,
+                                nominalFrameDuration: frameDuration)
+    }
+
     private init(
         rootLayer: CALayer,
         displayLayer: AVSampleBufferDisplayLayer,
         asset: AVURLAsset,
         videoTrack: AVAssetTrack,
+        trackTiming: VideoTrackTiming,
         stillImage: CGImage?,
         scaleMode: VideoScaleMode,
         videoAspect: Double?,
@@ -232,6 +339,7 @@ final class VideoRenderer: @unchecked Sendable {
         self.renderer = displayLayer.sampleBufferRenderer
         self.asset = asset
         self.videoTrack = videoTrack
+        self.timeline = LoopTimeline(track: trackTiming)
 
         self.stillFrameLayer = CALayer()
         stillFrameLayer.frame = rootLayer.bounds
@@ -304,11 +412,16 @@ final class VideoRenderer: @unchecked Sendable {
         queue.async { [weak self] in
             guard let self else { onFirstFrameReady?(); return }
             guard isRunning else { traceLog("  [start #\(debugID)] aborted — already stopped"); onFirstFrameReady?(); return }
-            guard let reader = try? AVAssetReader(asset: asset) else { onFirstFrameReady?(); return }
-            let output = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: nil)
-            output.alwaysCopiesSampleData = false
-            reader.add(output)
-            reader.startReading()
+            generation &+= 1
+            let gen = generation
+            timeline.rebase(to: timeline.track)
+            guard let (reader, output) = makeReader(asset: asset, track: videoTrack) else {
+                // A reader that won't open is a dead surface unless somebody is told.
+                // Report and let the host retarget; do NOT leave the acquire hanging.
+                onFirstFrameReady?()
+                reportFailure("無法開啟影片（AVAssetReader 建立或啟動失敗）")
+                return
+            }
 
             // Reset timebase BEFORE first enqueue so the frame isn't seen as late.
             CMTimebaseSetTime(timebase, time: .zero)
@@ -319,15 +432,13 @@ final class VideoRenderer: @unchecked Sendable {
             if let firstSample = output.copyNextSampleBuffer() {
                 CATransaction.begin()
                 CATransaction.setDisableActions(true)
-                renderer.enqueue(firstSample)
+                renderer.enqueue(retimed(firstSample))
                 CATransaction.commit()
                 CATransaction.flush()
             }
 
             currentReader = reader
             currentOutput = output
-            ptsOffset = .zero
-            lastEnqueuedEnd = .zero
 
             // Begin advancing the timebase — playback starts.
             CMTimebaseSetRate(timebase, rate: 1.0)
@@ -336,9 +447,64 @@ final class VideoRenderer: @unchecked Sendable {
             // the acquire can reply and the agent can swap to us.
             onFirstFrameReady?()
 
-            prepareNextReader()
-            feedFromCurrentReader()
+            prepareNextReader(generation: gen)
+            feedFromCurrentReader(generation: gen)
         }
+    }
+
+    /// Build a reader and start it, or return nil. Both halves are checked: a reader
+    /// that constructs fine can still refuse to start (missing file, unreadable track,
+    /// sandbox denial), and the old code looked at neither — a failed start showed up
+    /// only as a surface that never produced a frame.
+    /// - Parameter timeRange: restrict reading to this range (a resume). nil reads all.
+    /// Must run on `queue`.
+    private func makeReader(
+        asset: AVURLAsset, track: AVAssetTrack, timeRange: CMTimeRange? = nil,
+        start: Bool = true,
+    ) -> (AVAssetReader, AVAssetReaderTrackOutput)? {
+        guard let reader = try? AVAssetReader(asset: asset) else {
+            extensionLog("  [reader #\(debugID)] create FAILED for \(asset.url.lastPathComponent)")
+            return nil
+        }
+        if let timeRange { reader.timeRange = timeRange }
+        let output = AVAssetReaderTrackOutput(track: track, outputSettings: nil)
+        output.alwaysCopiesSampleData = false
+        guard reader.canAdd(output) else {
+            extensionLog("  [reader #\(debugID)] cannot add output for \(asset.url.lastPathComponent)")
+            return nil
+        }
+        reader.add(output)
+        if start, !reader.startReading() {
+            extensionLog("  [reader #\(debugID)] startReading FAILED for \(asset.url.lastPathComponent): \(reader.error?.localizedDescription ?? "unknown")")
+            return nil
+        }
+        return (reader, output)
+    }
+
+    /// Put a sample on this renderer's output timeline. Returns the original buffer
+    /// when no adjustment is needed (the first loop of a zero-start track), so the
+    /// common case still costs no copy. Must run on `queue`.
+    private func retimed(_ sample: CMSampleBuffer) -> CMSampleBuffer {
+        let adjusted = timeline.admit(
+            pts: CMSampleBufferGetPresentationTimeStamp(sample),
+            dts: CMSampleBufferGetDecodeTimeStamp(sample),
+            duration: CMSampleBufferGetDuration(sample))
+        guard adjusted.needsRetiming else { return sample }
+
+        var timingInfo = CMSampleTimingInfo(
+            duration: adjusted.duration,
+            presentationTimeStamp: adjusted.presentationTimeStamp,
+            decodeTimeStamp: adjusted.decodeTimeStamp,
+        )
+        var copy: CMSampleBuffer?
+        CMSampleBufferCreateCopyWithNewTiming(
+            allocator: nil,
+            sampleBuffer: sample,
+            sampleTimingEntryCount: 1,
+            sampleTimingArray: &timingInfo,
+            sampleBufferOut: &copy,
+        )
+        return copy ?? sample
     }
 
     /// Switch to a different video IN PLACE, reusing this renderer's existing
@@ -387,20 +553,67 @@ final class VideoRenderer: @unchecked Sendable {
         queue.async { [weak self] in
             guard let self, isRunning else { return }
             // Same file already playing → nothing to do (defuses repeated identical picks).
-            if asset.url == url {
+            if asset.url == url, pendingSwitchURL == nil {
                 traceLog("  [switchVideo #\(debugID)] DEDUP: already on \(url.lastPathComponent)")
                 return
             }
-            let newAsset = AVURLAsset(url: url)
-            guard let track = Self.loadFirstVideoTrackBlocking(newAsset) else {
-                traceLog("  [switchVideo #\(debugID)] no video track in \(url.lastPathComponent)")
-                return
+            // Last *requested* wins. The generation counter can't serve as the token
+            // here: two switches issued before either load finishes share a generation,
+            // so the second install would be dropped and the surface would settle on
+            // the older pick. This counter is bumped per request instead.
+            switchRequestID &+= 1
+            let request = switchRequestID
+            pendingSwitchURL = url
+
+            // The track load blocks; keep it off the feed queue so sample delivery for
+            // the CURRENTLY playing video isn't interrupted while we open the next file
+            // (on a NAS that load is the visible stutter at every switch).
+            loadQueue.async { [weak self] in
+                guard let self else { return }
+                let newAsset = AVURLAsset(url: url)
+                guard let track = Self.loadFirstVideoTrackBlocking(newAsset) else {
+                    traceLog("  [switchVideo #\(debugID)] no video track in \(url.lastPathComponent)")
+                    queue.async { [weak self] in
+                        guard let self, switchRequestID == request else { return }
+                        pendingSwitchURL = nil
+                    }
+                    return
+                }
+                let boxed = SendableBox(value: track)
+                queue.async { [weak self] in
+                    guard let self, isRunning else { return }
+                    guard switchRequestID == request else {
+                        traceLog("  [switchVideo #\(debugID)] superseded — dropping \(url.lastPathComponent)")
+                        return
+                    }
+                    pendingSwitchURL = nil
+                    asset = newAsset
+                    videoTrack = boxed.value
+                    timeline.rebase(to: .unknown)
+                    loadTrackDetails(boxed.value, for: url)
+                    rescale(for: url)
+                    traceLog("  [switchVideo #\(debugID)] restarting from 0 → \(url.lastPathComponent)")
+                    requestReset(.newAsset)
+                }
             }
-            asset = newAsset
-            videoTrack = track
-            rescale(for: url)
-            traceLog("  [switchVideo #\(debugID)] restarting from 0 → \(url.lastPathComponent)")
-            restartWithCurrentAsset()
+        }
+    }
+
+    /// Fill in the track's declared duration and frame duration once AVFoundation
+    /// answers. Deliberately asynchronous and best-effort: the timeline already learned
+    /// the real start from the first sample, and blocking the feed queue for a header
+    /// read is what this whole reshuffle exists to avoid. A late answer for a video we
+    /// have already switched away from is dropped.
+    private func loadTrackDetails(_ track: AVAssetTrack, for url: URL) {
+        let boxed = SendableBox(value: track)
+        Task.detached(priority: .utility) { [weak self] in
+            guard let self else { return }
+            let timing = await Self.trackTiming(of: boxed.value)
+            queue.async { [weak self] in
+                guard let self, asset.url == url else { return }
+                timeline.noteTrackDetails(duration: timing.duration,
+                                          nominalFrameDuration: timing.nominalFrameDuration)
+            }
         }
     }
 
@@ -445,6 +658,10 @@ final class VideoRenderer: @unchecked Sendable {
         cancelDeepPauseTimer()
         queue.sync {
             isRunning = false
+            // Bump the session so any flush completion, off-queue asset load or feed
+            // callback still in flight returns without touching a torn-down renderer.
+            generation &+= 1
+            switchRequestID &+= 1
             renderer.stopRequestingMediaData()
             currentReader?.cancelReading()
             nextReader?.cancelReading()
@@ -460,6 +677,14 @@ final class VideoRenderer: @unchecked Sendable {
         isPaused = true
         CMTimebaseSetRate(timebase, rate: 0.0)
         generateStillFrame()
+        // Cap read-ahead while paused. Without this the feed loop keeps pulling from
+        // the reader until the renderer's own queue is full, so a surface that is
+        // paused for hours (occluded desktop, lock screen with alwaysPauseDesktop)
+        // still holds a decoder's worth of buffered frames until deep pause fires.
+        queue.async { [weak self] in
+            guard let self, isPaused else { return }
+            renderer.stopRequestingMediaData()
+        }
         scheduleDeepPause()
     }
 
@@ -469,17 +694,18 @@ final class VideoRenderer: @unchecked Sendable {
         isPaused = false
         cancelDeepPauseTimer()
         stillFrameLayer.opacity = 0
-        if currentReader == nil {
-            // Woke from deep pause — readers were freed. Recreate CONTINUING from the paused
-            // position (seamless, no black) so a screen-lock/display-sleep wake resumes the
-            // same video instead of restarting it.
-            queue.async { [weak self] in
-                guard let self, isRunning else { return }
-                recreatePlayback(seamlessResume: true)
+        queue.async { [weak self] in
+            guard let self, isRunning, !isPaused else { return }
+            if currentReader == nil {
+                // Woke from deep pause — readers were freed. Rebuild CONTINUING from the
+                // paused position (seamless, no black) so a screen-lock/display-sleep wake
+                // resumes the same video instead of restarting it.
+                requestReset(.wake)
+            } else {
+                // Still have a live reader: just restart the feed that `pause` stopped.
                 CMTimebaseSetRate(timebase, rate: 1.0)
+                feedFromCurrentReader(generation: generation)
             }
-        } else {
-            CMTimebaseSetRate(timebase, rate: 1.0)
         }
     }
 
@@ -524,12 +750,30 @@ final class VideoRenderer: @unchecked Sendable {
             : 1.0 - pow(-2.0 * t + 2.0, 3) / 2.0
     }
 
-    /// Gradually reduce timebase rate to zero, then freeze.
-    /// Uses a smooth ease-in curve so the deceleration looks natural.
-    private func rampDown() {
-        guard !isPaused else { return }
-        let totalSteps = Int(Self.rampDownDuration / Self.rampStepInterval)
-        var step = 0
+    /// Ramp the timebase from its CURRENT rate to `target` over the remaining slice
+    /// of `duration`, then run `completion`.
+    ///
+    /// **Progress comes from a monotonic clock, not from counting timer callbacks.**
+    /// A `DispatchSourceTimer` under load coalesces and drops ticks, so a tick count
+    /// makes the transition run long by however much the system was busy — exactly
+    /// when a wallpaper is most likely to be descheduled. Reading elapsed time instead
+    /// keeps the ramp the length it claims to be.
+    ///
+    /// Reversing mid-ramp continues from wherever the rate currently is, so an
+    /// unlock during a lock-screen ramp doesn't snap the picture back to 0 or 1.
+    private func ramp(to target: Double, duration: TimeInterval,
+                      completion: (@Sendable () -> Void)? = nil) {
+        let startRate = Double(CMTimebaseGetRate(timebase))
+        let span = target - startRate
+        guard abs(span) > 0.001, duration > 0 else {
+            CMTimebaseSetRate(timebase, rate: Float64(target))
+            completion?()
+            return
+        }
+        // Only the remaining fraction of the distance takes time — a reversal at 40%
+        // shouldn't take the full duration again.
+        let remaining = duration * abs(span)
+        let began = DispatchTime.now().uptimeNanoseconds
 
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now() + Self.rampStepInterval, repeating: Self.rampStepInterval)
@@ -538,70 +782,55 @@ final class VideoRenderer: @unchecked Sendable {
                 timer.cancel()
                 return
             }
-            step += 1
-            let progress = Double(step) / Double(totalSteps)
-            // Ease-in: slow start, fast finish → rate drops slowly at first
-            let eased = Self.easeInOut(progress)
-            let rate = max(1.0 - eased, 0.0)
-            CMTimebaseSetRate(timebase, rate: rate)
+            let elapsed = Double(DispatchTime.now().uptimeNanoseconds - began) / 1_000_000_000
+            let progress = min(elapsed / remaining, 1.0)
+            CMTimebaseSetRate(timebase, rate: Float64(startRate + span * Self.easeInOut(progress)))
 
-            if step >= totalSteps {
+            if progress >= 1.0 {
                 timer.cancel()
                 rampTimer = nil
-                isPaused = true
-                generateStillFrame()
-                scheduleDeepPause()
+                CMTimebaseSetRate(timebase, rate: Float64(target))
+                completion?()
             }
         }
         rampTimer = timer
         timer.resume()
     }
 
-    /// Gradually increase timebase rate from zero to 1.0.
-    /// Uses a smooth ease-out curve so acceleration looks natural.
+    /// Gradually reduce timebase rate to zero, then freeze.
+    private func rampDown() {
+        guard !isPaused else { return }
+        ramp(to: 0, duration: Self.rampDownDuration) { [weak self] in
+            guard let self else { return }
+            isPaused = true
+            generateStillFrame()
+            renderer.stopRequestingMediaData()
+            scheduleDeepPause()
+        }
+    }
+
+    /// Gradually increase timebase rate to 1.0.
     private func rampUp() {
-        guard isPaused else { return }
+        let wasDeepPaused = currentReader == nil
         isPaused = false
         cancelDeepPauseTimer()
         stillFrameLayer.opacity = 0
 
-        if currentReader == nil {
-            // Deep-paused: no frames to ramp into. Wake instantly (continuing from the paused
-            // position, seamless) instead of running a ramp against an empty pipeline.
+        if wasDeepPaused {
+            // Deep-paused: no frames to ramp into. Wake instantly (continuing from the
+            // paused position, seamless) instead of ramping an empty pipeline.
             queue.async { [weak self] in
                 guard let self, isRunning else { return }
-                recreatePlayback(seamlessResume: true)
-                CMTimebaseSetRate(timebase, rate: 1.0)
+                requestReset(.wake)
             }
             return
         }
-
-        let totalSteps = Int(Self.rampUpDuration / Self.rampStepInterval)
-        var step = 0
-
-        // Kick off immediately so there's no dead frame at rate 0
-        CMTimebaseSetRate(timebase, rate: 0.01)
-
-        let timer = DispatchSource.makeTimerSource(queue: queue)
-        timer.schedule(deadline: .now() + Self.rampStepInterval, repeating: Self.rampStepInterval)
-        timer.setEventHandler { [weak self] in
-            guard let self, isRunning else {
-                timer.cancel()
-                return
-            }
-            step += 1
-            let progress = Double(step) / Double(totalSteps)
-            let eased = Self.easeInOut(progress)
-            let rate = min(eased, 1.0)
-            CMTimebaseSetRate(timebase, rate: rate)
-
-            if step >= totalSteps {
-                timer.cancel()
-                rampTimer = nil
-            }
+        // `pause` stopped the feed to cap read-ahead; a ramp needs frames to ramp into.
+        queue.async { [weak self] in
+            guard let self, isRunning, !isPaused else { return }
+            feedFromCurrentReader(generation: generation)
         }
-        rampTimer = timer
-        timer.resume()
+        ramp(to: 1.0, duration: Self.rampUpDuration)
     }
 
     private func cancelRamp() {
@@ -615,7 +844,8 @@ final class VideoRenderer: @unchecked Sendable {
     // After a sustained pause (lock screen overnight, brightness at zero, etc.)
     // the asset reader still holds decoded buffers and the underlying video
     // decoder. Tearing them down frees memory and lets the system fully idle.
-    // On resume we recreate the pipeline from scratch via `recreatePlayback()`.
+    // On resume `requestReset(.wake)` rebuilds it, continuing from the paused
+    // position rather than restarting the clip.
 
     private static let deepPauseDelay: TimeInterval = 30
 
@@ -646,243 +876,307 @@ final class VideoRenderer: @unchecked Sendable {
         currentOutput = nil
         nextReader = nil
         nextOutput = nil
+        nextReaderStarted = false
         extensionLog("  [Renderer] Deep-paused — freed asset readers")
     }
 
-    /// Rebuild the playback pipeline on the renderer queue. Two modes:
-    /// - `seamlessResume: true` (deep-pause wake): CONTINUE from the paused timebase
-    ///   position, keeping the last frame on screen — no black flash, no restart-from-0.
-    ///   This is what a screen-lock/display-sleep wake uses so the video resumes where it
-    ///   left off (Kiri: "show the same video continuously", not blink-and-restart).
-    /// - `seamlessResume: false` (error recovery): hard reset to time 0 and clear the
-    ///   (possibly corrupt) displayed frame.
-    /// Caller restores the timebase rate.
-    private func recreatePlayback(seamlessResume: Bool = false) {
-        traceLog("  [recreatePlayback #\(debugID)] seamless=\(seamlessResume) asset=\(asset.url.lastPathComponent)")
-        renderer.stopRequestingMediaData()
-        currentReader?.cancelReading()
-        nextReader?.cancelReading()
-        nextReader = nil
-        nextOutput = nil
+    // MARK: - Pipeline Reset
 
-        let resumeTime = CMTimebaseGetTime(timebase)
-        let continuing = seamlessResume && resumeTime.isNumeric && resumeTime > .zero
-        // Keep the last displayed frame when continuing (no black); clear it on error reset.
-        renderer.flush(removingDisplayedImage: !continuing)
-
-        guard let reader = try? AVAssetReader(asset: asset) else {
-            extensionLog("  [recreatePlayback] FAILED to create AVAssetReader for \(asset.url.lastPathComponent)")
-            currentReader = nil
-            currentOutput = nil
+    /// Ask for a pipeline reset. **The single entry point for every decoder reset** —
+    /// a switch, an error recovery and a deep-pause wake all land here.
+    ///
+    /// A `flush` is a decoder RESET: it discards anything enqueued before it completes,
+    /// and two overlapping flushes corrupt the renderer. So at most one is ever in
+    /// flight, and a request arriving during one is merged into `pendingReset` and
+    /// applied once when the flush lands — against whatever `asset` is by then, i.e.
+    /// the latest pick. Must run on `queue`.
+    private func requestReset(_ request: ResetRequest) {
+        guard isRunning else { return }
+        traceLog("  [reset #\(debugID)] REQUEST fromZero=\(request.restartFromZero) clear=\(request.clearDisplayedImage) flushInFlight=\(flushInFlight) asset=\(asset.url.lastPathComponent)")
+        if flushInFlight {
+            pendingReset = pendingReset?.merged(with: request) ?? request
             return
         }
-        if continuing {
-            // Resume reading from the paused position (AVAssetReader seeks to the enclosing
-            // keyframe and emits from here) so playback continues instead of restarting.
-            reader.timeRange = CMTimeRange(start: resumeTime, duration: .positiveInfinity)
-        }
-        let output = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: nil)
-        output.alwaysCopiesSampleData = false
-        reader.add(output)
-        reader.startReading()
-        currentReader = reader
-        currentOutput = output
-
-        ptsOffset = .zero
-        lastEnqueuedEnd = continuing ? resumeTime : .zero
-        if !continuing {
-            CMTimebaseSetTime(timebase, time: .zero)
-        }
-
-        // Enqueue the first frame tagged DisplayImmediately so it replaces the held frame the
-        // instant it decodes — seamless when continuing, and no wait-on-timebase on reset.
-        if let first = output.copyNextSampleBuffer() {
-            Self.setDisplayImmediately(first)
-            renderer.enqueue(first)
-            let pts = CMSampleBufferGetPresentationTimeStamp(first)
-            let dur = CMSampleBufferGetDuration(first)
-            if pts.isValid {
-                lastEnqueuedEnd = dur.isValid && dur > .zero
-                    ? CMTimeAdd(pts, dur)
-                    : CMTimeAdd(pts, CMTime(value: 1, timescale: 60))
-            }
-        }
-
-        prepareNextReader()
-        feedFromCurrentReader()
+        performReset(request)
     }
 
-    /// Restart playback on the already-set `asset`/`videoTrack` from time 0 — the
-    /// video changed, so there's no timeline to preserve (that's only for gapless
-    /// looping of the SAME clip). This is `start()`'s sequence applied to a live
-    /// renderer: freeze the clock (rate 0) so the fresh PTS-0 frames aren't judged
-    /// "late", async-flush the decoder (a `flush` is a decoder RESET and discards
-    /// anything enqueued before it completes — that was the "no reaction" bug), then
-    /// in the completion reset the timeline to 0, enqueue the first IDR frame, and
-    /// resume at rate 1. `removingDisplayedImage:false` holds the last frame (no
-    /// black) until that first frame lands. Must run on `queue`.
-    private func restartWithCurrentAsset() {
-        // Serialize the decoder reset: if a flush is already in flight, just mark that
-        // a restart is wanted. When that flush completes it will restart to whatever
-        // `asset` is by then (the latest pick) — so rapid switching coalesces to one
-        // reset per settle, never two overlapping flushes.
-        traceLog("  [restart #\(debugID)] ENTER flushInFlight=\(flushInFlight) restartPending=\(restartPending) asset=\(asset.url.lastPathComponent)")
-        if flushInFlight {
-            restartPending = true
-            traceLog("  [restart #\(debugID)] flush in flight → coalescing to latest (\(asset.url.lastPathComponent))")
-            return
-        }
+    /// Must run on `queue`.
+    private func performReset(_ request: ResetRequest) {
         flushInFlight = true
-        // Freeze the clock up front so it can't advance past PTS 0 during the async
-        // flush — otherwise the first frames arrive "late" and get dropped.
+        generation &+= 1
+
+        // Freeze the clock up front so it can't advance during the async flush —
+        // otherwise the frames that follow arrive "late" and get dropped.
+        let resumeTimelineTime = request.restartFromZero ? CMTime.zero : CMTimebaseGetTime(timebase)
         CMTimebaseSetRate(timebase, rate: 0.0)
         renderer.stopRequestingMediaData()
         currentReader?.cancelReading()
         nextReader?.cancelReading()
+        currentReader = nil
+        currentOutput = nil
         nextReader = nil
         nextOutput = nil
+        nextReaderStarted = false
 
-        traceLog("  [restart #\(debugID)] flushing decoder for \(asset.url.lastPathComponent)")
-        // Keep the currently displayed frame (no blank) — the first new frame below is
-        // tagged DisplayImmediately, which replaces it the instant it decodes.
-        renderer.flush(removingDisplayedImage: false) { [weak self] in
-            guard let self else { extensionLog("  [restart] FLUSH-CB but self gone (flushInFlight leaks!)"); return }
-            traceLog("  [restart #\(debugID)] FLUSH-CB fired (rendererStatus=\(renderer.status.rawValue)) → hop to queue")
+        // Keep the displayed frame unless this is an error reset (where it may be the
+        // corrupt one). The first new frame is tagged DisplayImmediately and replaces
+        // it the instant it decodes, so a switch has no blank.
+        renderer.flush(removingDisplayedImage: request.clearDisplayedImage) { [weak self] in
+            guard let self else {
+                extensionLog("  [reset] FLUSH-CB but self gone (flushInFlight leaks!)")
+                return
+            }
             queue.async { [weak self] in
                 guard let self else { return }
                 flushInFlight = false
-                traceLog("  [restart #\(debugID)] FLUSH-CB on queue: flushInFlight→false, restartPending=\(restartPending), asset=\(asset.url.lastPathComponent), isRunning=\(isRunning)")
-                // Switches arrived during the flush → do exactly one more restart to
-                // the newest asset, instead of feeding this (now stale) one.
-                if restartPending {
-                    restartPending = false
-                    traceLog("  [restart #\(debugID)] coalesced → restarting to \(asset.url.lastPathComponent)")
-                    restartWithCurrentAsset()
+                if let pending = pendingReset {
+                    pendingReset = nil
+                    traceLog("  [reset #\(debugID)] coalesced → \(asset.url.lastPathComponent)")
+                    performReset(pending)
                     return
                 }
                 guard isRunning else { return }
-                guard let reader = try? AVAssetReader(asset: asset) else {
-                    extensionLog("  [restart #\(debugID)] FAILED to create AVAssetReader for \(asset.url.lastPathComponent)")
-                    currentReader = nil
-                    currentOutput = nil
-                    return
-                }
-                let output = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: nil)
-                output.alwaysCopiesSampleData = false
-                reader.add(output)
-                reader.startReading()
-                currentReader = reader
-                currentOutput = output
-
-                // Fresh timeline from 0.
-                ptsOffset = .zero
-                lastEnqueuedEnd = .zero
-                CMTimebaseSetTime(timebase, time: .zero)
-
-                // Enqueue the first (IDR) frame while the clock is still frozen, exactly
-                // like start(), so it isn't dropped as late. Tag it DisplayImmediately so
-                // it replaces the retained old frame the moment it decodes — an instant,
-                // blank-free swap that doesn't depend on the timebase (important since a
-                // switch can land while paused, rate=0).
-                if let first = output.copyNextSampleBuffer() {
-                    Self.setDisplayImmediately(first)
-                    renderer.enqueue(first)
-                    let pts = CMSampleBufferGetPresentationTimeStamp(first)
-                    let dur = CMSampleBufferGetDuration(first)
-                    if pts.isValid {
-                        lastEnqueuedEnd = dur.isValid && dur > .zero
-                            ? CMTimeAdd(pts, dur)
-                            : CMTimeAdd(pts, CMTime(value: 1, timescale: 60))
-                    }
-                }
-
-                CMTimebaseSetRate(timebase, rate: isPaused ? 0.0 : 1.0)
-                traceLog("  [restart #\(debugID)] playing \(asset.url.lastPathComponent) rate=\(isPaused ? 0 : 1) rendererStatus=\(renderer.status.rawValue) requiresFlush=\(renderer.requiresFlushToResumeDecoding) readerStatus=\(reader.status.rawValue) err=\(renderer.error?.localizedDescription ?? "-")")
-                feedLogBudget = 4
-                prepareNextReader()
-                feedFromCurrentReader()
+                beginReading(request, resumeTimelineTime: resumeTimelineTime)
             }
         }
+    }
+
+    /// Open a reader and start feeding, either from the top of the timeline or
+    /// continuing from where the timebase was paused. Must run on `queue`.
+    private func beginReading(_ request: ResetRequest, resumeTimelineTime: CMTime) {
+        let gen = generation
+        var timeRange: CMTimeRange?
+
+        if request.restartFromZero {
+            timeline.rebase(to: timeline.track)
+            CMTimebaseSetTime(timebase, time: .zero)
+        } else {
+            // **Translate the timeline position into a position inside the FILE.**
+            // The timebase accumulates across loops, so after the first loop its value
+            // is past the end of the file; handing it to `AVAssetReader.timeRange`
+            // yields a reader that returns nothing, and the surface silently restarts
+            // from the top — the "waking up replays the video" symptom.
+            let filePosition = timeline.filePosition(forTimelineTime: resumeTimelineTime)
+            timeline.resumeReading(atFilePosition: filePosition, timelineTime: resumeTimelineTime)
+            timeRange = CMTimeRange(start: filePosition, duration: .positiveInfinity)
+            traceLog("  [reset #\(debugID)] resume timeline=\(resumeTimelineTime.seconds)s → file=\(filePosition.seconds)s")
+        }
+
+        guard let (reader, output) = makeReader(asset: asset, track: videoTrack, timeRange: timeRange) else {
+            scheduleRecovery(reason: "無法開啟影片（AVAssetReader 建立或啟動失敗）")
+            return
+        }
+        currentReader = reader
+        currentOutput = output
+
+        // Enqueue the first frame while the clock is still frozen, exactly like
+        // start(), so it isn't dropped as late. Tag it DisplayImmediately so it
+        // replaces the retained old frame the moment it decodes — an instant,
+        // blank-free swap that doesn't depend on the timebase (important since a
+        // switch can land while paused, rate=0).
+        if let first = output.copyNextSampleBuffer() {
+            let adjusted = retimed(first)
+            Self.setDisplayImmediately(adjusted)
+            renderer.enqueue(adjusted)
+        }
+
+        CMTimebaseSetRate(timebase, rate: isPaused ? 0.0 : 1.0)
+        traceLog("  [reset #\(debugID)] playing \(asset.url.lastPathComponent) rate=\(isPaused ? 0 : 1) rendererStatus=\(renderer.status.rawValue) requiresFlush=\(renderer.requiresFlushToResumeDecoding) readerStatus=\(reader.status.rawValue) err=\(renderer.error?.localizedDescription ?? "-")")
+        feedLogBudget = 4
+        prepareNextReader(generation: gen)
+        guard !isPaused else { return }
+        feedFromCurrentReader(generation: gen)
+    }
+
+    // MARK: - Failure Recovery
+
+    /// Try again, with a ceiling and a backoff. Past the ceiling the surface is handed
+    /// back to the host so it can retarget to a video that works.
+    ///
+    /// **Bounded on purpose.** The old error path re-created the pipeline on every
+    /// failure with no counter, so a file that cannot be decoded at all — a truncated
+    /// download, a codec this Mac has no hardware path for — turned into an endless
+    /// rebuild loop inside a sandboxed appex nobody is watching.
+    /// Must run on `queue`.
+    private func scheduleRecovery(reason: String) {
+        guard isRunning else { return }
+        recoveryAttempts += 1
+        guard recoveryAttempts <= Self.maxRecoveryAttempts else {
+            reportFailure(reason)
+            return
+        }
+        let delay = Self.recoveryBackoff * Double(recoveryAttempts)
+        extensionLog("  [recover #\(debugID)] \(reason) — attempt \(recoveryAttempts)/\(Self.maxRecoveryAttempts) in \(delay)s (\(asset.url.lastPathComponent))")
+        queue.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self, isRunning else { return }
+            requestReset(.errorReset)
+        }
+    }
+
+    /// Give up on this asset and tell the host. Must run on `queue`.
+    private func reportFailure(_ reason: String) {
+        extensionLog("  [recover #\(debugID)] GIVING UP on \(asset.url.lastPathComponent): \(reason)")
+        recoveryAttempts = 0
+        emptyLoops = 0
+        renderer.stopRequestingMediaData()
+        currentReader?.cancelReading()
+        currentReader = nil
+        currentOutput = nil
+        let url = asset.url
+        let handler = onPlaybackFailed
+        DispatchQueue.main.async { handler?(url, reason) }
     }
 
     // MARK: - Preloaded Loop Reader
 
-    private func prepareNextReader() {
-        // Deferred to a separate queue job so the (brief, blocking) variant track load
-        // doesn't stall whatever called us — but still strictly ordered on `queue`,
-        // no Task.
-        queue.async { [weak self] in
-            guard let self, isRunning else { return }
-            let nextURL = variantSelector?()
-            if let nextURL, nextURL != asset.url {
-                let newAsset = AVURLAsset(url: nextURL)
-                guard let track = Self.loadFirstVideoTrackBlocking(newAsset) else {
-                    traceLog("  [Renderer] No video track in variant: \(nextURL.lastPathComponent)")
-                    return
+    /// Pick and open the video for the NEXT loop iteration, ahead of the boundary.
+    ///
+    /// **The pick and the asset load run off `queue`.** `variantSelector` reaches into
+    /// the shuffle controller and the wallpaper state, and the track load blocks on
+    /// AVFoundation; doing either on the feed queue stalls delivery of the frames that
+    /// are on screen right now. Only the install hops back. Must be called on `queue`.
+    private func prepareNextReader(generation gen: Int) {
+        let selector = variantSelector
+        let currentURL = asset.url
+        let currentTrack = SendableBox(value: videoTrack)
+        let currentTiming = timeline.track
+
+        loadQueue.async { [weak self] in
+            guard let self else { return }
+            let nextURL = selector?()
+
+            guard let nextURL, nextURL != currentURL else {
+                // Same clip again: reuse the track we already have, no load at all.
+                queue.async { [weak self] in
+                    guard let self, isRunning, gen == generation else { return }
+                    installNextReader(asset: asset, track: currentTrack.value, timing: currentTiming)
                 }
-                installNextReader(asset: newAsset, track: track)
-            } else {
-                installNextReader(asset: asset, track: videoTrack)
+                return
+            }
+
+            let newAsset = AVURLAsset(url: nextURL)
+            guard let track = Self.loadFirstVideoTrackBlocking(newAsset) else {
+                traceLog("  [Renderer] No video track in variant: \(nextURL.lastPathComponent)")
+                queue.async { [weak self] in
+                    guard let self, isRunning, gen == generation else { return }
+                    installNextReader(asset: asset, track: currentTrack.value, timing: currentTiming)
+                }
+                return
+            }
+            let boxed = SendableBox(value: track)
+            queue.async { [weak self] in
+                guard let self, isRunning, gen == generation else { return }
+                installNextReader(asset: newAsset, track: boxed.value, timing: .unknown)
+            }
+            // The declared duration follows separately; the timeline works without it
+            // (it learns the start from the first sample) and adopts it when it lands.
+            Task.detached(priority: .utility) { [weak self] in
+                guard let self else { return }
+                let timing = await Self.trackTiming(of: boxed.value)
+                queue.async { [weak self] in
+                    guard let self, gen == generation else { return }
+                    if nextReader?.asset as? AVURLAsset === newAsset { nextTiming = timing }
+                    if asset.url == nextURL {
+                        timeline.noteTrackDetails(duration: timing.duration,
+                                                  nominalFrameDuration: timing.nominalFrameDuration)
+                    }
+                }
             }
         }
     }
 
-    /// Build an asset reader on the renderer queue and store it as the
-    /// preloaded next reader. Must run on `queue`.
-    private func installNextReader(asset: AVURLAsset, track: AVAssetTrack) {
-        guard let reader = try? AVAssetReader(asset: asset) else {
-            traceLog("  [Renderer] Failed to create next reader")
+    /// Build the preloaded next reader. Must run on `queue`.
+    ///
+    /// Starting it here is what makes the preload real: an `AVAssetReader` that has
+    /// only been constructed has done no work, so a boundary would still pay for the
+    /// first decode. **Except while paused** — starting a second reader filling its
+    /// queue is exactly the read-ahead the pause is meant to cap, so a paused install
+    /// defers the start to the swap.
+    private func installNextReader(asset: AVURLAsset, track: AVAssetTrack, timing: VideoTrackTiming) {
+        guard let (reader, output) = makeReader(asset: asset, track: track, start: !isPaused) else {
+            traceLog("  [Renderer] Failed to create next reader for \(asset.url.lastPathComponent)")
+            nextReader = nil
+            nextOutput = nil
+            nextReaderStarted = false
             return
         }
-        let output = AVAssetReaderTrackOutput(track: track, outputSettings: nil)
-        output.alwaysCopiesSampleData = false
-        reader.add(output)
         nextReader = reader
         nextOutput = output
+        nextTiming = timing
+        nextReaderStarted = !isPaused
     }
 
     /// Swap to the preloaded next reader at a loop boundary.
-    /// Uses timing offset for gapless continuation — no flush, no timebase reset.
-    private func swapToNextReader() {
+    /// Uses the timeline's offset for gapless continuation — no flush, no timebase reset.
+    /// Must run on `queue`.
+    private func swapToNextReader(generation gen: Int) {
+        guard isRunning, gen == generation else { return }
         renderer.stopRequestingMediaData()
 
-        // Advance offset so the next loop's DTS/PTS continue the timeline.
-        ptsOffset = lastEnqueuedEnd
-
-        if let nr = nextReader, let no = nextOutput {
-            if let nrAsset = nr.asset as? AVURLAsset, nrAsset.url != asset.url {
-                asset = nrAsset
-                videoTrack = no.track
-                traceLog("  [Renderer] Switched variant: \(nrAsset.url.lastPathComponent)")
-            }
-            currentReader = nr
-            currentOutput = no
-            nextReader = nil
-            nextOutput = nil
+        // Close out the loop that just ended and open the next one on the same
+        // continuous timeline.
+        let produced = timeline.advanceToNextLoop()
+        if produced {
+            emptyLoops = 0
+            recoveryAttempts = 0
         } else {
-            traceLog("  [Renderer] Next reader not ready, creating synchronously")
-            guard let reader = try? AVAssetReader(asset: asset) else {
-                traceLog("  [Renderer] Failed to create fallback reader")
+            emptyLoops += 1
+            // A reader that opens but yields nothing turns the boundary into a tight
+            // spin: swap → first read is nil → swap again. Escalate instead.
+            guard emptyLoops < Self.maxEmptyLoops else {
+                emptyLoops = 0
+                scheduleRecovery(reason: "連續 \(Self.maxEmptyLoops) 輪讀不到任何畫格")
                 return
             }
-            let output = AVAssetReaderTrackOutput(track: videoTrack, outputSettings: nil)
-            output.alwaysCopiesSampleData = false
-            reader.add(output)
+        }
+
+        if let reader = nextReader, let output = nextOutput {
+            if let nextAsset = reader.asset as? AVURLAsset, nextAsset.url != asset.url {
+                asset = nextAsset
+                videoTrack = output.track
+                // A different clip means a different timeline: its start, length and
+                // frame duration are its own. Rebase rather than carrying the previous
+                // clip's numbers into the new one's loop maths.
+                let base = timeline.loopBase
+                timeline.rebase(to: nextTiming)
+                timeline.resumeReading(atFilePosition: nextTiming.start, timelineTime: base)
+                rescale(for: nextAsset.url)
+                traceLog("  [Renderer] Switched variant: \(nextAsset.url.lastPathComponent)")
+            }
+            currentReader = reader
+            currentOutput = output
+            if !nextReaderStarted, !reader.startReading() {
+                extensionLog("  [Renderer] preloaded reader failed to start: \(reader.error?.localizedDescription ?? "unknown")")
+                currentReader = nil
+                currentOutput = nil
+                nextReader = nil
+                nextOutput = nil
+                nextReaderStarted = false
+                scheduleRecovery(reason: "預載的 reader 啟動失敗")
+                return
+            }
+            nextReader = nil
+            nextOutput = nil
+            nextReaderStarted = false
+        } else {
+            traceLog("  [Renderer] Next reader not ready, creating synchronously")
+            guard let (reader, output) = makeReader(asset: asset, track: videoTrack) else {
+                scheduleRecovery(reason: "循環邊界無法重新開啟影片")
+                return
+            }
             currentReader = reader
             currentOutput = output
         }
 
-        currentReader?.startReading()
-
-        prepareNextReader()
-        feedFromCurrentReader()
+        prepareNextReader(generation: gen)
+        feedFromCurrentReader(generation: gen)
     }
 
     // MARK: - Playback Loop
 
-    private func feedFromCurrentReader() {
+    private func feedFromCurrentReader(generation gen: Int) {
         renderer.requestMediaDataWhenReady(on: queue) { [weak self] in
-            guard let self, isRunning else {
+            guard let self, isRunning, gen == generation else {
                 self?.renderer.stopRequestingMediaData()
                 return
             }
@@ -890,10 +1184,11 @@ final class VideoRenderer: @unchecked Sendable {
             // Unrecoverable failure — full reset.
             // Dispatch async: requestMediaDataWhenReady is not reentrant.
             if renderer.status == .failed {
-                extensionLog("  [Renderer] Status failed: \(renderer.error?.localizedDescription ?? "unknown"), recovering")
+                let reason = renderer.error?.localizedDescription ?? "unknown"
+                extensionLog("  [Renderer] Status failed: \(reason), recovering")
                 renderer.stopRequestingMediaData()
                 queue.async { [weak self] in
-                    self?.recoverFromError()
+                    self?.scheduleRecovery(reason: "解碼器失敗：\(reason)")
                 }
                 return
             }
@@ -906,36 +1201,24 @@ final class VideoRenderer: @unchecked Sendable {
 
             var enqueuedThisTick = 0
             while renderer.isReadyForMoreMediaData {
-                if let sample = currentOutput?.copyNextSampleBuffer() {
-                    let adjusted = offsetTimingForLoop(sample)
-                    enqueuedThisTick += 1
-
-                    // Track the highest end time (max handles B-frame reordering).
-                    // Some containers emit padding samples with invalid PTS — skip those
-                    // to prevent NaN from poisoning the timeline offset.
-                    let pts = CMSampleBufferGetPresentationTimeStamp(adjusted)
-                    let dur = CMSampleBufferGetDuration(adjusted)
-                    if pts.isValid {
-                        let sampleEnd = dur.isValid && dur > .zero
-                            ? CMTimeAdd(pts, dur)
-                            : CMTimeAdd(pts, CMTime(value: 1, timescale: 60))
-                        if sampleEnd > lastEnqueuedEnd {
-                            lastEnqueuedEnd = sampleEnd
-                        }
-                    }
-
-                    renderer.enqueue(adjusted)
-                } else {
-                    // Dispatch async: requestMediaDataWhenReady is not reentrant.
+                guard let sample = currentOutput?.copyNextSampleBuffer() else {
+                    // **Why the reader stopped matters.** `nil` means end of file,
+                    // a read error, or a cancel we issued ourselves — treating all
+                    // three as "loop around" turned a mid-file decode error into a
+                    // rebuild loop and raced a cancel against the reset that issued it.
+                    let status = currentReader?.status ?? .cancelled
+                    let error = currentReader?.error?.localizedDescription
                     if feedLogBudget > 0 {
-                        traceLog("  [feed #\(debugID)] reader exhausted after enqueuing this tick=\(enqueuedThisTick); status=\(renderer.status.rawValue) → swapToNextReader")
+                        traceLog("  [feed #\(debugID)] reader stopped (status=\(status.rawValue)) after enqueuing this tick=\(enqueuedThisTick)")
                     }
                     renderer.stopRequestingMediaData()
                     queue.async { [weak self] in
-                        self?.swapToNextReader()
+                        self?.readerDidStop(status: status, error: error, generation: gen)
                     }
                     return
                 }
+                renderer.enqueue(retimed(sample))
+                enqueuedThisTick += 1
             }
             if feedLogBudget > 0 {
                 feedLogBudget -= 1
@@ -944,39 +1227,27 @@ final class VideoRenderer: @unchecked Sendable {
         }
     }
 
-    /// Offset both DTS and PTS of a sample for gapless looping.
-    /// Returns the original sample unchanged for the first loop (no copy needed).
-    /// For subsequent loops, creates a lightweight copy with adjusted timing
-    /// (shares the underlying data buffer — only the timing metadata differs).
-    private func offsetTimingForLoop(_ sample: CMSampleBuffer) -> CMSampleBuffer {
-        guard ptsOffset > .zero else { return sample }
-
-        let pts = CMSampleBufferGetPresentationTimeStamp(sample)
-        let dts = CMSampleBufferGetDecodeTimeStamp(sample)
-        let dur = CMSampleBufferGetDuration(sample)
-
-        var timingInfo = CMSampleTimingInfo(
-            duration: dur,
-            presentationTimeStamp: pts.isValid ? CMTimeAdd(pts, ptsOffset) : pts,
-            decodeTimeStamp: dts.isValid ? CMTimeAdd(dts, ptsOffset) : .invalid,
-        )
-
-        var adjusted: CMSampleBuffer?
-        CMSampleBufferCreateCopyWithNewTiming(
-            allocator: nil,
-            sampleBuffer: sample,
-            sampleTimingEntryCount: 1,
-            sampleTimingArray: &timingInfo,
-            sampleBufferOut: &adjusted,
-        )
-
-        return adjusted ?? sample
-    }
-
-    /// Reset everything and restart playback from scratch after a decoder error.
-    private func recoverFromError() {
-        recreatePlayback()
-        CMTimebaseSetRate(timebase, rate: isPaused ? 0.0 : 1.0)
+    /// The current reader stopped producing samples. Only a clean EOF continues the
+    /// loop. Must run on `queue`.
+    private func readerDidStop(status: AVAssetReader.Status, error: String?, generation gen: Int) {
+        guard isRunning, gen == generation else { return }
+        switch status {
+        case .completed:
+            swapToNextReader(generation: gen)
+        case .failed:
+            scheduleRecovery(reason: "讀取失敗：\(error ?? "未知錯誤")")
+        case .cancelled:
+            // We cancelled it (a switch, a deep pause, a stop). Whoever cancelled owns
+            // what happens next — restarting here would fight them.
+            traceLog("  [feed #\(debugID)] reader cancelled — leaving the restart to whoever cancelled it")
+        case .reading, .unknown:
+            // Ran dry without finishing. Not a clean EOF, but not an error either;
+            // treat as a boundary — the empty-loop counter catches a spin.
+            traceLog("  [feed #\(debugID)] reader ran dry while status=\(status.rawValue) — treating as boundary")
+            swapToNextReader(generation: gen)
+        @unknown default:
+            swapToNextReader(generation: gen)
+        }
     }
 
     // MARK: - Still Frame

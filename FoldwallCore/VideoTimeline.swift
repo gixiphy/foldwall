@@ -32,10 +32,19 @@ public struct VideoTrackTiming: Sendable, Equatable {
     /// 一格的標稱長度：`minFrameDuration`，拿不到就用 `nominalFrameRate` 的倒數。
     /// 兩個都沒有就是 nil，那時只能靠實際觀察到的呈現間隔（見 `PresentationIntervalEstimator`）。
     public var nominalFrameDuration: CMTime?
+    /// `start` 是真的量到的，不是「還不知道所以先當 0」。
+    ///
+    /// 差別很重要：軌道資訊是非同步載入的，而第一格可能比它先到。不知道起點
+    /// 的時候 `LoopTimeline` 會拿**第一輪的第一格 PTS** 當起點——解碼順序的
+    /// 第一格就是呈現順序的第一格（不然它沒有東西可以參考），所以那個值是對的，
+    /// 而且比容器宣告的還準。
+    public var startIsKnown: Bool
 
-    public init(start: CMTime, duration: CMTime, nominalFrameDuration: CMTime? = nil) {
+    public init(start: CMTime, duration: CMTime, nominalFrameDuration: CMTime? = nil,
+                startIsKnown: Bool = true) {
         self.start = start.isNumeric ? start : .zero
         self.duration = duration.isNumeric && duration > .zero ? duration : .invalid
+        self.startIsKnown = startIsKnown && start.isNumeric
         if let nominalFrameDuration, nominalFrameDuration.isNumeric, nominalFrameDuration > .zero {
             self.nominalFrameDuration = nominalFrameDuration
         } else {
@@ -52,8 +61,9 @@ public struct VideoTrackTiming: Sendable, Equatable {
     /// 長度已知而且是正的。
     public var hasKnownDuration: Bool { duration.isNumeric && duration > .zero }
 
-    /// 什麼都不知道的軌道。拿不到 timeRange 時用這個，時間軸退回「原樣傳遞」。
-    public static let unknown = VideoTrackTiming(start: .zero, duration: .invalid)
+    /// 什麼都不知道的軌道。軌道資訊還沒載入完就用這個——起點會由第一格補上。
+    public static let unknown = VideoTrackTiming(
+        start: .zero, duration: .invalid, startIsKnown: false)
 }
 
 /// 從實際看到的 PTS 推「一格大概多長」。
@@ -194,6 +204,19 @@ public struct LoopTimeline: Sendable {
         intervals.reset()
     }
 
+    /// 軌道資訊晚一步到了（那是非同步載入的）。
+    ///
+    /// **只補長度與標稱幀長，不動起點**：起點已經由第一格量到了，那個值比
+    /// 容器宣告的準，而且改它會讓已經送出去的格全部對不上。
+    public mutating func noteTrackDetails(duration: CMTime?, nominalFrameDuration: CMTime?) {
+        if let duration, duration.isNumeric, duration > .zero {
+            track.duration = duration
+        }
+        if let nominalFrameDuration, nominalFrameDuration.isNumeric, nominalFrameDuration > .zero {
+            track.nominalFrameDuration = nominalFrameDuration
+        }
+    }
+
     /// 從一個已知的輸出時間軸位置接著播（深度暫停醒來、錯誤恢復）。
     ///
     /// `filePosition` 已經把檔案內的位置算好了，這裡只是讓時間軸跟它對齊：
@@ -216,6 +239,13 @@ public struct LoopTimeline: Sendable {
     ///   - duration: sample 自己的長度。無效或 0 就會走推導。
     @discardableResult
     public mutating func admit(pts: CMTime, dts: CMTime, duration: CMTime) -> RetimedSample {
+        // 軌道資訊還沒到，但第一格已經來了：拿它的 PTS 當這支的呈現起點。
+        // 解碼順序的第一格必然也是呈現順序的第一格（它是 IDR，後面的格才參考它），
+        // 所以這個值不但可用，還比容器宣告的準。
+        if !track.startIsKnown, loopCount == 0, samplesThisLoop == 0, pts.isNumeric {
+            track.start = pts
+            track.startIsKnown = true
+        }
         let offset = self.offset
         let needsRetiming = offset != .zero
         let outputPTS = pts.isNumeric ? CMTimeAdd(pts, offset) : pts

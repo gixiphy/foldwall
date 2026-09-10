@@ -97,6 +97,61 @@ final class VideoTimelineTests: XCTestCase {
                        "實際蓋到的範圍與宣告長度一致時漂移應該是 0")
     }
 
+    // MARK: - 軌道資訊晚到
+
+    /// 軌道資訊是非同步載入的，第一格常常比它先到。那時起點由第一格補上。
+    func testUnknownTrackStartIsLearnedFromTheFirstSample() {
+        var timeline = LoopTimeline(track: .unknown)
+        let start = CMTime(value: 3, timescale: 2)   // 1.5 秒
+
+        let samples = playOneLoop(&timeline, start: start, frameCount: 24,
+                                  frameDuration: Self.frame24)
+
+        XCTAssertEqual(samples[0].presentationTimeStamp.seconds, 0, accuracy: 1e-9,
+                       "第一格就是這支的呈現起點，它必須落在輸出時間軸的 0")
+        XCTAssertEqual(timeline.track.start, start)
+        XCTAssertTrue(timeline.track.startIsKnown)
+    }
+
+    func testLearnedStartSurvivesIntoLaterLoops() {
+        var timeline = LoopTimeline(track: .unknown)
+        let start = CMTime(value: 3, timescale: 2)
+
+        playOneLoop(&timeline, start: start, frameCount: 24, frameDuration: Self.frame24)
+        timeline.advanceToNextLoop()
+        let second = playOneLoop(&timeline, start: start, frameCount: 24,
+                                 frameDuration: Self.frame24)
+
+        XCTAssertEqual(second[0].presentationTimeStamp.seconds, 1.0, accuracy: 1e-9,
+                       "第二輪接在第一輪的 1 秒結尾上，起點不能再被重新學一次")
+    }
+
+    /// 軌道資訊到了之後補長度就好——起點已經量到了，那個值比容器宣告的準，
+    /// 改它會讓已經送出去的格全部對不上。
+    func testLateTrackDetailsFillInDurationWithoutMovingTheLearnedStart() {
+        var timeline = LoopTimeline(track: .unknown)
+        let start = CMTime(value: 3, timescale: 2)
+        playOneLoop(&timeline, start: start, frameCount: 24, frameDuration: Self.frame24)
+
+        timeline.noteTrackDetails(duration: CMTime(value: 2, timescale: 1),
+                                  nominalFrameDuration: Self.frame24)
+
+        XCTAssertEqual(timeline.track.start, start)
+        XCTAssertTrue(timeline.track.hasKnownDuration)
+        XCTAssertEqual(timeline.track.nominalFrameDuration, Self.frame24)
+    }
+
+    func testLateTrackDetailsIgnoreNonsenseValues() {
+        var timeline = LoopTimeline(track: VideoTrackTiming(
+            start: .zero, duration: CMTime(value: 2, timescale: 1),
+            nominalFrameDuration: Self.frame24))
+
+        timeline.noteTrackDetails(duration: .invalid, nominalFrameDuration: .zero)
+
+        XCTAssertEqual(timeline.track.duration, CMTime(value: 2, timescale: 1))
+        XCTAssertEqual(timeline.track.nominalFrameDuration, Self.frame24)
+    }
+
     // MARK: - 一格多長
 
     func testSampleDurationWins() {

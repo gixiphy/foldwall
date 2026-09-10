@@ -37,6 +37,40 @@ func makeVariantSelector(choice: String?, fallback: URL, isShuffle: Bool = false
     }
 }
 
+/// What a surface does when its renderer gives up on a file.
+///
+/// A wallpaper is unattended: a truncated download or a codec this Mac has no path
+/// for leaves the surface frozen on one frame with nobody informed. The desktop-window
+/// engine has had a watchdog and a cooldown list for this since the start; the
+/// extension had nothing — the renderer simply rebuilt itself forever.
+///
+/// Retarget to any other video in the library. Nothing else to move to means the file
+/// is all there is, so leave the last frame up rather than tearing the surface down —
+/// a still picture beats a black desktop.
+func makeFailureHandler(key: DisplayKey) -> @Sendable (URL, String) -> Void {
+    { url, reason in
+        extensionLog("  [playback] \(url.lastPathComponent) unplayable on display \(key.displayID): \(reason)")
+        Lifecycle.queue.async {
+            guard let context = WallpaperState.shared.context(for: key),
+                  let renderer = context.renderer else { return }
+            let alternatives = VideoLibrary.shared.entries.filter {
+                VideoLibrary.shared.videoURL(for: $0.id) != url
+            }
+            guard let pick = alternatives.randomElement(),
+                  let next = VideoLibrary.shared.videoURL(for: pick.id) else {
+                extensionLog("  [playback] nothing else in the library — holding the last frame")
+                return
+            }
+            renderer.variantSelector = makeVariantSelector(
+                choice: pick.id, fallback: next,
+                isShuffle: context.videoID == shuffleChoiceID)
+            renderer.switchVideo(to: next)
+            WallpaperState.shared.updateVideoID(pick.id, for: key)
+            extensionLog("  [playback] retargeted display \(key.displayID) to \(pick.id)")
+        }
+    }
+}
+
 /// Process-wide serialization for wallpaper lifecycle XPC. Every connection gets its
 /// own `WallpaperXPCHandler`, but the Agent multiplexes desktop + Settings-preview +
 /// thumbnail connections, so lifecycle callbacks (acquire/update/invalidate/choice
@@ -330,6 +364,7 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
                         return
                     }
                     renderer.variantSelector = selector
+                    renderer.onPlaybackFailed = makeFailureHandler(key: key)
                     let old = WallpaperState.shared.setRenderer(renderer, videoID: choiceConfiguration, for: key)
                     old?.stop()
                     WallpaperPrefs.shared.setActive(true)
@@ -460,6 +495,7 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
                     traceLog("  [acquire] cold start → replied after still seeded for \(videoURL.lastPathComponent)")
                 }
                 renderer.variantSelector = selector
+                renderer.onPlaybackFailed = makeFailureHandler(key: key)
                 let old = WallpaperState.shared.setRenderer(renderer, videoID: choiceConfiguration, for: key)
                 WallpaperPrefs.shared.setActive(true)
                 // Switch: reply only once the first video frame is composited (cold start
