@@ -12,16 +12,23 @@ public struct RemoteFetcher: Sendable {
     private let limitBytes: Int
     private let session: URLSession
     private let credits: CreditStore
+    private let protectedFiles: ProtectedFiles?
 
+    /// - Parameter protectedFiles: 淘汰時不可以砍的檔案。影片那條要傳
+    ///   「正在播的加上已預載的」——純 LRU 會刪掉正在播的那支，換來的是
+    ///   下一輪排片找不到它而換片，而磁碟空間在檔案句柄關掉之前根本沒釋放。
+    ///   照片那條不必傳：合成是一次讀完就結束，沒有「正在用」這個狀態。
     public init(
         cacheDirectory: URL,
         limitBytes: Int = RemoteFetcher.defaultCacheLimitBytes,
-        session: URLSession = .shared
+        session: URLSession = .shared,
+        protectedFiles: ProtectedFiles? = nil
     ) {
         self.cacheDirectory = cacheDirectory
         self.limitBytes = limitBytes
         self.session = session
         self.credits = CreditStore(directory: cacheDirectory)
+        self.protectedFiles = protectedFiles
     }
 
     /// 抓清單、下載、回傳本機路徑。單張失敗只跳過那張，不中斷整批。
@@ -41,7 +48,8 @@ public struct RemoteFetcher: Sendable {
             }
         }
 
-        try? Materializer.evict(directory: cacheDirectory, limitBytes: limitBytes)
+        try? Materializer.evict(directory: cacheDirectory, limitBytes: limitBytes,
+                                protecting: protectedFiles?.current ?? [])
         // 汰舊之後把出處表裡的孤兒一併清掉，不然它只會一直長
         credits.prune(keeping: (try? FileManager.default.contentsOfDirectory(
             at: cacheDirectory, includingPropertiesForKeys: nil)) ?? [])

@@ -153,9 +153,19 @@ final class RemoteVideoPool {
 
     var onRefilled: (() -> Void)?
 
+    /// 淘汰時不可以砍的——正在播的加上已預載的。排片那邊每輪推一份進來。
+    ///
+    /// 純 LRU 會刪掉正在播的那支：AVPlayer 抓著開啟中的檔案句柄，所以畫面
+    /// 不會馬上壞，但下一輪排片就找不到它、換片，而那些磁碟區塊在句柄關掉
+    /// 之前根本沒釋放——白刪一次還換來一次沒必要的換片。
+    let protectedFiles: ProtectedFiles
+
     init(paths: AppPaths = .standard()) {
+        let protectedFiles = ProtectedFiles()
+        self.protectedFiles = protectedFiles
         self.directory = paths.caches.appending(path: "remoteVideos")
-        self.fetcher = RemoteFetcher(cacheDirectory: directory, limitBytes: Self.cacheLimitBytes)
+        self.fetcher = RemoteFetcher(cacheDirectory: directory, limitBytes: Self.cacheLimitBytes,
+                                     protectedFiles: protectedFiles)
     }
 
     /// 立刻回快取，不等下載。一支影片幾十 MB，await 它會把桌面視窗的切換也卡住。

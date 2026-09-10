@@ -87,6 +87,63 @@ final class MaterializerTests: XCTestCase {
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: cache.path), ["small.bin"])
     }
 
+    /// 正在播的那支被砍掉的話：AVPlayer 抓著句柄所以畫面不會馬上壞，
+    /// 但下一輪排片找不到它就換片，而磁碟空間在句柄關掉前根本沒釋放。
+    func testEvictNeverRemovesAFileInUse() throws {
+        var urls: [URL] = []
+        for index in 0..<5 {
+            let url = try write("f\(index).bin", bytes: 1000, in: cache)
+            try FileManager.default.setAttributes(
+                [.modificationDate: Date(timeIntervalSince1970: 1_000 + Double(index) * 100)],
+                ofItemAtPath: url.path
+            )
+            urls.append(url)
+        }
+
+        // f0 是最舊的，本來第一個被砍——但它正在播。
+        try Materializer.evict(directory: cache, limitBytes: 2_500, protecting: [urls[0]])
+
+        let remaining = try FileManager.default.contentsOfDirectory(atPath: cache.path).sorted()
+        XCTAssertTrue(remaining.contains("f0.bin"), "正在播的不可以被砍，再舊都一樣")
+        XCTAssertFalse(remaining.contains("f1.bin"), "改砍次舊的那個")
+    }
+
+    /// 全部都在用的時候砍不動——**那是對的**。桌布用量超標不該拿正在播的去換。
+    func testEvictStopsRatherThanRemovingProtectedFiles() throws {
+        var urls: [URL] = []
+        for index in 0..<3 {
+            urls.append(try write("f\(index).bin", bytes: 1000, in: cache))
+        }
+
+        let removed = try Materializer.evict(
+            directory: cache, limitBytes: 500, protecting: Set(urls))
+
+        XCTAssertEqual(removed, 0)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: cache.path).count, 3)
+    }
+
+    /// 保護的檔案仍然算進總量——它們確實佔著空間，不能因為砍不到就當成不存在。
+    func testProtectedFilesStillCountTowardTheLimit() throws {
+        let pinned = try write("pinned.bin", bytes: 3000, in: cache)
+        _ = try write("spare.bin", bytes: 100, in: cache)
+
+        let removed = try Materializer.evict(
+            directory: cache, limitBytes: 2_500, protecting: [pinned])
+
+        XCTAssertEqual(removed, 1, "總量已經超標，該砍的還是要砍")
+        XCTAssertFalse(try FileManager.default.contentsOfDirectory(atPath: cache.path)
+            .contains("spare.bin"))
+    }
+
+    func testProtectedFilesBoxRoundTrips() {
+        let box = ProtectedFiles()
+        XCTAssertTrue(box.current.isEmpty)
+        box.update([URL(filePath: "/tmp/a.mp4")])
+        XCTAssertEqual(box.current, [URL(filePath: "/tmp/a.mp4")])
+        box.update([])
+        XCTAssertTrue(box.current.isEmpty)
+    }
+
     func testDefaultLimitIsTwoGigabytes() {
         XCTAssertEqual(Materializer.defaultCacheLimitBytes, 2 * 1024 * 1024 * 1024)
     }

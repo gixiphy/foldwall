@@ -5,6 +5,7 @@
 
 import CryptoKit
 import Foundation
+import os
 
 public struct Materializer: MediaPreparing, Sendable {
 
@@ -110,10 +111,21 @@ public struct Materializer: MediaPreparing, Sendable {
     }
 
     /// 超過上限就從最舊存取的開始砍，砍到低於上限為止。
-    public static func evict(directory: URL, limitBytes: Int) throws {
+    ///
+    /// - Parameter protecting: **正在用的檔案，一律不砍。**
+    ///   純 LRU 會刪掉正在播的那支影片：AVPlayer 抓著開啟中的檔案句柄，
+    ///   所以畫面不會馬上壞，但下一輪排片就找不到它、換片，而且那些磁碟區塊
+    ///   在句柄關掉之前根本沒被釋放——等於白刪一次還換來一次沒必要的換片。
+    ///   保護的檔案仍然算進總量（它們確實佔著空間），只是跳過不刪；
+    ///   全部都被保護時就砍不動，那是對的——桌布用量超標，不該拿正在播的去換。
+    @discardableResult
+    public static func evict(
+        directory: URL, limitBytes: Int, protecting: Set<URL> = [],
+    ) throws -> Int {
         let fm = FileManager.default
         let keys: [URLResourceKey] = [.contentAccessDateKey, .contentModificationDateKey, .fileSizeKey]
         let files = try fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: keys)
+        let pinned = Set(protecting.map(\.standardizedFileURL.path))
 
         var entries: [(url: URL, size: Int, stamp: Date)] = []
         var total = 0
@@ -121,16 +133,44 @@ public struct Materializer: MediaPreparing, Sendable {
             guard let values = try? url.resourceValues(forKeys: Set(keys)),
                   let size = values.fileSize else { continue }
             let stamp = values.contentAccessDate ?? values.contentModificationDate ?? .distantPast
-            entries.append((url, size, stamp))
             total += size
+            guard !pinned.contains(url.standardizedFileURL.path) else { continue }
+            entries.append((url, size, stamp))
         }
 
-        guard total > limitBytes else { return }
+        guard total > limitBytes else { return 0 }
 
+        var removed = 0
         for entry in entries.sorted(by: { $0.stamp < $1.stamp }) {
             guard total > limitBytes else { break }
-            try? fm.removeItem(at: entry.url)
+            guard (try? fm.removeItem(at: entry.url)) != nil else { continue }
             total -= entry.size
+            removed += 1
         }
+        return removed
+    }
+}
+
+/// 淘汰時不可以砍的檔案。
+///
+/// **為什麼要一個共享的盒子而不是一個 closure**：讀它的是快取淘汰
+/// （背景、任意執行緒），寫它的是排片（主執行緒上的播放引擎）。
+/// closure 直接抓 `@MainActor` 的引擎就是跨隔離讀取；改成由排片那邊
+/// 推一份快照進來，兩邊都乾淨。
+///
+/// 快照會過期一點點（剛換的片可能還沒推進來），代價只是那一支這一輪
+/// 沒被保護到——比起讓淘汰完全不知道有誰在播，那是可接受的。
+public final class ProtectedFiles: Sendable {
+
+    private let storage = OSAllocatedUnfairLock(initialState: Set<URL>())
+
+    public init() {}
+
+    public var current: Set<URL> {
+        storage.withLock { $0 }
+    }
+
+    public func update(_ urls: Set<URL>) {
+        storage.withLock { $0 = urls }
     }
 }

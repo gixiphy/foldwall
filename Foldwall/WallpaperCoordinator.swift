@@ -780,6 +780,9 @@ final class WallpaperCoordinator {
         }
 
         if settings.videoEngine.needsDeployment {
+            // extension 那條是實體拷貝：來源檔在拷完之前不能被快取淘汰砍掉，
+            // 否則這一輪的部署會少幾支，而且是靜悄悄地少。
+            remoteVideoPool.protectedFiles.update(Set(videoLibrary.deployedSourceURLs))
             if !effects.contains(.pauseVideo) {
                 syncVideosInBackground(videos: videos, isComplete: index.isComplete)
             }
@@ -1059,6 +1062,9 @@ final class WallpaperCoordinator {
         desktopVideo.apply(plan: plan, layer: settings.desktopVideoLayer, screens: displays,
                            mode: settings.videoPlaybackMode, scale: settings.videoScaleMode)
         desktopVideo.setPaused(currentTier() == .paused)
+        // 快取淘汰不可以砍正在用的檔。純 LRU 會刪掉正在播的那支，
+        // 下一輪排片找不到它就換片，而磁碟空間在檔案句柄關掉前根本沒釋放。
+        remoteVideoPool.protectedFiles.update(desktopVideo.reservedURLs())
     }
 
     /// 有幾台螢幕被標記成播影片。片單的按需下載拿它當「要幾支」。
