@@ -65,6 +65,9 @@ final class WallpaperCoordinator {
     @ObservationIgnored private let settings: AppSettings
     @ObservationIgnored private let bookmarks: BookmarkStore
     @ObservationIgnored private let pipeline: StillPipeline
+    /// 系統圖片桌布 extension 替我們產的 BMP 快取（見 WallpaperImageCache）。
+    /// 每輪合成後順手清，否則它每輪長 37 MB、從不回收。
+    @ObservationIgnored private let wallpaperImageCache = WallpaperImageCache.standard()
     @ObservationIgnored private var folderIndex: FolderIndex!
     @ObservationIgnored private let videoLibrary = VideoLibrary()
     @ObservationIgnored private let remotePool = RemoteSourcePool()
@@ -846,6 +849,7 @@ final class WallpaperCoordinator {
             // os.Logger 的字串是 OSLogMessage 字面量，不能用 + 串
             Log.pipeline.info("已更新 \(outcome.written.count) 螢，跳過 \(outcome.skipped.count) 螢，池 \(pool.count) 張／\(pool.groups.count) 個來源")
             syncAggregateFolder()
+            pruneWallpaperImageCache(written: outcome.written, displays: displays)
         } catch {
             // 失敗保留現桌布，不黑屏
             Log.pipeline.error("合成失敗：\(error.localizedDescription, privacy: .public)")
@@ -1158,6 +1162,24 @@ final class WallpaperCoordinator {
 
     /// 把三個快取的圖彙整成一個實體資料夾，讓系統的螢幕保護程式指得到。
     /// 全程在背景：要走三個目錄、建連結、清斷鏈，不能擋著主執行緒。
+    /// 把系統圖片桌布 extension 替**這一輪寫過的螢幕**產的舊 BMP 清到只剩兩代。
+    ///
+    /// 只傳真的寫了的那幾塊：跳過的螢幕（在播影片、或使用者自己選了圖）那塊快取
+    /// 不是我們的，一張都不能碰。背景執行緒做——列目錄加刪檔幾十毫秒，
+    /// 不必卡著主執行緒，也不影響這輪已經掛上去的桌布。
+    private func pruneWallpaperImageCache(written: [CGDirectDisplayID], displays: [DisplayTarget]) {
+        let ids = Set(written)
+        let targets = displays.filter { ids.contains($0.id) }
+        guard !targets.isEmpty else { return }
+        let cache = wallpaperImageCache
+        Task.detached(priority: .utility) {
+            let outcome = cache.prune(displays: targets)
+            guard outcome.deletedCount > 0 else { return }
+            let mb = Double(outcome.deletedBytes) / 1_048_576
+            Log.pipeline.info("系統桌布快取：清掉 \(outcome.deletedCount, privacy: .public) 張 BMP／\(mb, format: .fixed(precision: 1), privacy: .public) MB")
+        }
+    }
+
     private func syncAggregateFolder() {
         guard aggregateTask == nil else { return }
         let paths = AppPaths.standard()
