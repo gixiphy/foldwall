@@ -80,7 +80,17 @@ targets:
     # 不動 renderer 與省電邏輯：私有 API 斷版時才能 rebase 上游修法。
     type: extensionkit-extension
     platform: macOS
-    sources: [FoldwallExtension]
+    sources:
+      - FoldwallExtension
+      # appex 是沙盒的、**不連結 FoldwallCore**（那是刻意的，見 VideoEngine.swift）。
+      # 播放時間軸與片源診斷這兩塊要兩條引擎講同一套規則，又必須測得到，
+      # 所以原始檔放在 FoldwallCore、兩個 target 各自編一份。
+      # 加檔案到這裡之前先確認它只 import CoreMedia／Foundation，
+      # 不能相依 FoldwallCore 的其他型別或它的字串表。
+      - path: FoldwallCore/VideoTimeline.swift
+        group: FoldwallCore
+      - path: FoldwallCore/VideoSourceProfile.swift
+        group: FoldwallCore
     info:
       path: FoldwallExtension/Info.plist
       properties:
