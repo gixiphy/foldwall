@@ -2002,6 +2002,50 @@
           }
         }
       }
+    },
+    "雲端硬碟（尚未下載）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cloud drive (not downloaded yet)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "云盘（尚未下载）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "雲端硬碟（尚未下載）"
+          }
+        }
+      }
+    },
+    "雲端硬碟（已下載到本機）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cloud drive (downloaded locally)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "云盘（已下载到本机）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "雲端硬碟（已下載到本機）"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

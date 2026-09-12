@@ -48,5 +48,40 @@ final class VideoBufferPolicyTests: XCTestCase {
         XCTAssertFalse(VideoSourceLocation.localDisk.isNetworked)
         XCTAssertTrue(VideoSourceLocation.networkVolume.isNetworked)
         XCTAssertTrue(VideoSourceLocation.remoteStream.isNetworked)
+        XCTAssertFalse(VideoSourceLocation.cloudMaterialized.isNetworked)
+        XCTAssertTrue(VideoSourceLocation.cloudDataless.isNetworked)
+    }
+
+    // MARK: - File Provider
+
+    private let boxFile = URL(filePath: "/Users/x/Library/CloudStorage/Box-Box/寫真/a.mp4")
+
+    /// Box／iCloud 的檔在本機 APFS 卷上，`volumeIsLocal` 會說是本機。那是錯的：
+    /// 沒下載的第一次讀會拉整支下來。
+    func testCloudItemsAreNotLocalEvenThoughTheVolumeIs() {
+        XCTAssertEqual(VideoBufferPolicy.location(for: boxFile, isLocalVolume: true,
+                                                  isCloudItem: true, isMaterialized: false),
+                       .cloudDataless)
+        XCTAssertEqual(VideoBufferPolicy.location(for: boxFile, isLocalVolume: true,
+                                                  isCloudItem: true, isMaterialized: nil),
+                       .cloudDataless, "查不到狀態當成還沒下載")
+    }
+
+    func testMaterializedCloudItemsReadLikeLocalFiles() {
+        let location = VideoBufferPolicy.location(for: boxFile, isLocalVolume: true,
+                                                  isCloudItem: true, isMaterialized: true)
+        XCTAssertEqual(location, .cloudMaterialized)
+        XCTAssertEqual(VideoBufferPolicy.forwardBufferSeconds(for: location),
+                       VideoBufferPolicy.localSeconds)
+        XCTAssertEqual(VideoBufferPolicy.forwardBufferSeconds(for: .cloudDataless),
+                       VideoBufferPolicy.networkSeconds)
+    }
+
+    /// `isUbiquitousItemKey` 對某些 provider 查不到，路徑是第二道判斷。
+    func testCloudStoragePathIsRecognisedByPrefix() {
+        let home = URL(filePath: "/Users/x")
+        XCTAssertTrue(VideoBufferPolicy.isCloudStoragePath(boxFile.path, home: home))
+        XCTAssertFalse(VideoBufferPolicy.isCloudStoragePath(localFile.path, home: home))
+        XCTAssertFalse(VideoBufferPolicy.isCloudStoragePath("/Users/x/Library/CloudStorageX/a.mp4", home: home))
     }
 }

@@ -241,4 +241,45 @@ final class PlaybackEventLogTests: XCTestCase {
         XCTAssertEqual(log.counts[.loopBoundary], 2)
         XCTAssertEqual(log.counts[.failed], 1)
     }
+
+    // MARK: - 政策暫停
+
+    private func policyEvent(_ policy: String, at seconds: TimeInterval, surface: String = "A") -> PlaybackEvent {
+        PlaybackEvent(kind: .policyChanged, engine: "desktopWindow", surface: surface, session: 1,
+                      policy: policy, at: Date(timeIntervalSince1970: seconds))
+    }
+
+    /// 暫停跟停頓是兩件事：睡一整晚不是播放器卡住。
+    func testPausedSummaryPairsPausedWithFull() {
+        var log = PlaybackEventLog()
+        log.record(policyEvent("paused", at: 10))
+        log.record(policyEvent("full", at: 40))
+        log.record(policyEvent("paused", at: 50))
+        log.record(PlaybackEvent(kind: .released, engine: "desktopWindow", surface: "A", session: 1,
+                                 at: Date(timeIntervalSince1970: 55)))
+        let summary = log.pausedSummary(surface: "A", now: Date(timeIntervalSince1970: 100))
+        XCTAssertEqual(summary.count, 2)
+        XCTAssertEqual(summary.totalSeconds, 35, accuracy: 1e-9)
+        XCTAssertFalse(summary.ongoing)
+    }
+
+    func testPausedSummaryCountsAnOpenPauseUpToNow() {
+        var log = PlaybackEventLog()
+        log.record(policyEvent("paused", at: 10))
+        log.record(policyEvent("paused", at: 12))   // 重複的暫停不算第二次
+        let summary = log.pausedSummary(surface: "A", now: Date(timeIntervalSince1970: 20))
+        XCTAssertEqual(summary.count, 1)
+        XCTAssertEqual(summary.totalSeconds, 10, accuracy: 1e-9)
+        XCTAssertTrue(summary.ongoing)
+    }
+
+    func testPausedSummaryIgnoresOtherSurfacesAndStalls() {
+        var log = PlaybackEventLog()
+        log.record(policyEvent("paused", at: 10, surface: "B"))
+        log.record(PlaybackEvent(kind: .stalled, engine: "desktopWindow", surface: "A", session: 1,
+                                 policy: "paused", at: Date(timeIntervalSince1970: 10)))
+        let summary = log.pausedSummary(surface: "A", now: Date(timeIntervalSince1970: 20))
+        XCTAssertEqual(summary.count, 0)
+        XCTAssertEqual(summary.totalSeconds, 0)
+    }
 }

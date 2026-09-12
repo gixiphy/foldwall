@@ -20,17 +20,26 @@ public enum VideoSourceLocation: String, Sendable, Codable, CaseIterable {
     case networkVolume
     /// http(s) 串流。
     case remoteStream
+    /// File Provider（Box／iCloud／Dropbox…）底下的檔，**已經下載到本機**。
+    /// 這些項目在本機 APFS 卷上，`volumeIsLocal` 會說它是本機——但它隨時可能
+    /// 被 provider 收回成 dataless，所以要分開講。讀起來是本機的速度。
+    case cloudMaterialized
+    /// File Provider 底下的檔，**還沒下載**（或查不到狀態）。第一次讀會觸發整支下載，
+    /// 行為是網路。
+    case cloudDataless
 
     public var displayName: String {
         switch self {
         case .localDisk: String(localized: "本機磁碟", bundle: .foldwallCore)
         case .networkVolume: String(localized: "網路磁碟", bundle: .foldwallCore)
         case .remoteStream: String(localized: "網路串流", bundle: .foldwallCore)
+        case .cloudMaterialized: String(localized: "雲端硬碟（已下載到本機）", bundle: .foldwallCore)
+        case .cloudDataless: String(localized: "雲端硬碟（尚未下載）", bundle: .foldwallCore)
         }
     }
 
     /// 讀取本身就可能斷續。診斷時「不定時停一下」要先看這個。
-    public var isNetworked: Bool { self != .localDisk }
+    public var isNetworked: Bool { self != .localDisk && self != .cloudMaterialized }
 }
 
 public enum VideoBufferPolicy {
@@ -48,8 +57,8 @@ public enum VideoBufferPolicy {
 
     public static func forwardBufferSeconds(for location: VideoSourceLocation) -> Double {
         switch location {
-        case .localDisk: localSeconds
-        case .networkVolume: networkSeconds
+        case .localDisk, .cloudMaterialized: localSeconds
+        case .networkVolume, .cloudDataless: networkSeconds
         case .remoteStream: streamSeconds
         }
     }
@@ -59,16 +68,36 @@ public enum VideoBufferPolicy {
     ///   - isLocalVolume: 這個檔案路徑所在的卷是不是本機的（`volumeIsLocalKey`）。
     ///     **查不到就傳 nil**——那時當成網路磁碟：猜錯的代價不對稱，
     ///     把網路當本機是播到一半卡住，把本機當網路只是多預讀一點。
-    public static func location(for url: URL, isLocalVolume: Bool?) -> VideoSourceLocation {
+    ///   - isCloudItem: 是不是 File Provider 的項目（`isUbiquitousItemKey`，或路徑在
+    ///     `~/Library/CloudStorage` 底下）。Box／iCloud 的檔在本機 APFS 卷上，
+    ///     `isLocalVolume` 會說是本機——這個旗標才分得出來。
+    ///   - isMaterialized: 雲端項目已經下載到本機了嗎（`ubiquitousItemDownloadingStatus ==
+    ///     .current`）。**查不到就傳 nil**，當成還沒下載。
+    public static func location(
+        for url: URL, isLocalVolume: Bool?, isCloudItem: Bool = false, isMaterialized: Bool? = nil
+    ) -> VideoSourceLocation {
         guard url.isFileURL else { return .remoteStream }
+        if isCloudItem { return isMaterialized == true ? .cloudMaterialized : .cloudDataless }
         return isLocalVolume == true ? .localDisk : .networkVolume
+    }
+
+    /// `~/Library/CloudStorage` 是 macOS 放 File Provider 掛載點的地方。
+    /// `isUbiquitousItemKey` 對某些 provider 查不到，路徑是第二道判斷。
+    public static func isCloudStoragePath(_ path: String, home: URL = URL.homeDirectory) -> Bool {
+        // `.path` 會把尾巴的斜線吃掉，自己補：不然 `CloudStorageX` 也會過。
+        path.hasPrefix(home.appending(path: "Library/CloudStorage").path + "/")
     }
 
     /// 會碰磁碟的版本。查不到卷資訊就走 `location(for:isLocalVolume:)` 的保守分支。
     public static func location(for url: URL) -> VideoSourceLocation {
         guard url.isFileURL else { return .remoteStream }
-        let values = try? url.resourceValues(forKeys: [.volumeIsLocalKey])
-        return location(for: url, isLocalVolume: values?.volumeIsLocal)
+        let values = try? url.resourceValues(forKeys: [
+            .volumeIsLocalKey, .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
+        ])
+        let isCloud = values?.isUbiquitousItem == true || isCloudStoragePath(url.path)
+        let materialized: Bool? = values?.ubiquitousItemDownloadingStatus.map { $0 == .current }
+        return location(for: url, isLocalVolume: values?.volumeIsLocal,
+                        isCloudItem: isCloud, isMaterialized: materialized)
     }
 
     /// 直接給 `AVPlayerItem.preferredForwardBufferDuration` 的值。

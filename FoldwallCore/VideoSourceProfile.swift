@@ -381,4 +381,36 @@ public struct PlaybackEventLog: Sendable {
         if pending != nil { unmatched += 1 }
         return (matched, total, unmatched)
     }
+
+    /// 被政策暫停了幾次、共多久。看 `policyChanged` 事件的 `policy` 欄位：
+    /// `paused` 開始、`full` 結束；surface 收掉也算結束。
+    ///
+    /// 跟停頓分開算：暫停是我們自己決定的（睡眠、電源分級），不是播放器卡住，
+    /// 混在一起會把「一整晚沒播」記成一次超長停頓。
+    public func pausedSummary(surface: String, now: Date = .now)
+    -> (count: Int, totalSeconds: TimeInterval, ongoing: Bool) {
+        var total: TimeInterval = 0
+        var count = 0
+        var since: Date?
+        for event in events where event.surface == surface {
+            switch event.kind {
+            case .policyChanged:
+                if event.policy == "paused" {
+                    if since == nil { since = event.at; count += 1 }
+                } else if let start = since {
+                    total += event.at.timeIntervalSince(start)
+                    since = nil
+                }
+            case .released:
+                if let start = since {
+                    total += event.at.timeIntervalSince(start)
+                    since = nil
+                }
+            default:
+                break
+            }
+        }
+        if let start = since { total += now.timeIntervalSince(start) }
+        return (count, total, since != nil)
+    }
 }

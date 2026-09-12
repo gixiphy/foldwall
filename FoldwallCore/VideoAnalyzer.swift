@@ -34,7 +34,9 @@ public enum VideoAnalyzer {
                 forKeys: [.fileSizeKey, .contentModificationDateKey, .volumeIsLocalKey])
             result.fileSize = values?.fileSize.map(Int64.init)
             result.contentModified = values?.contentModificationDate
-            result.isLocal = values?.volumeIsLocal
+            // Box／iCloud 的檔在本機卷上，volumeIsLocal 會說是本機；還沒下載的那些
+            // 第一次讀會拉整支，行為是網路（見 VideoBufferPolicy）。
+            result.isLocal = !VideoBufferPolicy.location(for: url).isNetworked
         } else {
             result.isLocal = false
         }
