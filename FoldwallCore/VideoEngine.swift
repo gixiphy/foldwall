@@ -342,3 +342,47 @@ public enum VideoPlaybackPlan {
         }
     }
 }
+
+/// 桌面視窗**裡面**用哪個播放核心。
+///
+/// 為什麼不是 `VideoEngine` 的第三個 case：`SettingsSnapshot` 與 `SyncSnapshots` 對
+/// `VideoEngine` 是嚴格 `decode`，多一個 case 會讓新版寫出的備份在舊版整份解不開；
+/// coordinator 與設定頁十幾處 `needsDeployment` 判斷也都把「非 extension」等同桌面視窗。
+/// 所以核心是桌面視窗底下的一個偏好，`desktopWindow` 的語意不變。
+///
+/// **預設相容播放（AVPlayer）。** 那是每個人今天在用的；mpv 要使用者自己
+/// `brew install mpv`，沒裝就算選了也會回退到 AVPlayer（見 `DesktopVideoEngine`）。
+public enum DesktopPlaybackCore: String, Codable, Sendable, CaseIterable {
+    /// AVFoundation。系統內建、零安裝，某些片會微頓。
+    case avPlayer
+    /// libmpv（使用者自己用 Homebrew 裝）。使用者確認流暢的那條路。
+    case mpv
+
+    public var displayName: String {
+        switch self {
+        case .avPlayer: String(localized: "相容播放（AVPlayer）", bundle: .foldwallCore)
+        case .mpv: String(localized: "流暢播放（mpv）", bundle: .foldwallCore)
+        }
+    }
+
+    public var summary: String {
+        switch self {
+        case .avPlayer:
+            String(localized: """
+                系統內建的播放器，不必裝任何東西。同一支片在這裡微頓、在 mpv 順的話，\
+                換另一個試試。
+                """, bundle: .foldwallCore)
+        case .mpv:
+            String(localized: """
+                用你自己安裝的 mpv（`brew install mpv`）播。沒裝、或載不起來，\
+                就自動改用相容播放，設定頁會說明原因。
+                """, bundle: .foldwallCore)
+        }
+    }
+
+    /// 認不得的值當成 AVPlayer，不要讓整份設定解不開。
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = DesktopPlaybackCore(rawValue: raw) ?? .avPlayer
+    }
+}

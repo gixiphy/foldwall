@@ -932,6 +932,72 @@
         }
       }
     },
+    "libmpv %@ 太舊，至少要 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "libmpv %1$@ is too old; %2$@ or newer is required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "libmpv %1$@ 太旧，至少要 %2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "libmpv %@ 太舊，至少要 %@"
+          }
+        }
+      }
+    },
+    "libmpv 的 API 主版號是 %llu，需要 %llu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "libmpv's client API major version is %1$llu; %2$llu is required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "libmpv 的 API 主版本号是 %1$llu，需要 %2$llu"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "libmpv 的 API 主版號是 %llu，需要 %llu"
+          }
+        }
+      }
+    },
+    "libmpv 的相依找不到：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A library libmpv depends on is missing: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "libmpv 的依赖找不到：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "libmpv 的相依找不到：%@"
+          }
+        }
+      }
+    },
     "macOS 26+・Apple Silicon": {
       "localizations": {
         "en": {
@@ -950,6 +1016,116 @@
           "stringUnit": {
             "state": "translated",
             "value": "macOS 26+・Apple Silicon"
+          }
+        }
+      }
+    },
+    "mpv 出錯，改用 AVPlayer：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv failed, switching to AVPlayer: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv 出错，改用 AVPlayer：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv 出錯，改用 AVPlayer：%@"
+          }
+        }
+      }
+    },
+    "mpv 已經更新，重新啟動 Foldwall 後生效（目前載入的是 %@）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv has been updated on disk. Restart Foldwall to use it (currently loaded: %@)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv 已经更新，重新启动 Foldwall 后生效（目前加载的是 %@）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv 已經更新，重新啟動 Foldwall 後生效（目前載入的是 %@）。"
+          }
+        }
+      }
+    },
+    "mpv 建不起來：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv could not be set up: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv 建不起来：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv 建不起來：%@"
+          }
+        }
+      }
+    },
+    "mpv 的 client API 標頭（**ISC**）隨原始碼保留在 ThirdParty/mpv；libmpv 本身不附帶。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv's client API headers (**ISC**) ship with the source in ThirdParty/mpv; libmpv itself is not bundled."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv 的 client API 头文件（**ISC**）随源代码保留在 ThirdParty/mpv；libmpv 本身不附带。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv 的 client API 標頭（**ISC**）隨原始碼保留在 ThirdParty/mpv；libmpv 本身不附帶。"
+          }
+        }
+      }
+    },
+    "render 呼叫數：%llu": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Render calls: %llu"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "render 调用数：%llu"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "render 呼叫數：%llu"
           }
         }
       }
@@ -1060,6 +1236,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "「備份到 iCloud」會寫兩層；「更新來源」只拉共用的那層，不會動這台的桌布設定。"
+          }
+        }
+      }
+    },
+    "「流暢播放」用的是**你自己安裝的 mpv**（libmpv）。Foldwall 不附帶、不下載它：mpv 與它連的 FFmpeg 是 GPL 建置，Foldwall（MIT）只在你裝了之後於執行期載入，跟呼叫你自己裝的 yt-dlp 是同一條界線。沒裝就用內建的相容播放（AVPlayer），其他功能不受影響。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“Smooth playback” uses **the mpv you installed yourself** (libmpv). Foldwall neither bundles nor downloads it: mpv and the FFmpeg it links against are GPL builds, and Foldwall (MIT) only loads it at run time after you have installed it, the same line it draws for calling your own yt-dlp. Without it, the built-in compatible playback (AVPlayer) is used and nothing else is affected."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“流畅播放”用的是**你自己安装的 mpv**（libmpv）。Foldwall 不附带、不下载它：mpv 与它连的 FFmpeg 是 GPL 构建，Foldwall（MIT）只在你装了之后于运行期加载，跟调用你自己装的 yt-dlp 是同一条界线。没装就用内置的兼容播放（AVPlayer），其他功能不受影响。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「流暢播放」用的是**你自己安裝的 mpv**（libmpv）。Foldwall 不附帶、不下載它：mpv 與它連的 FFmpeg 是 GPL 建置，Foldwall（MIT）只在你裝了之後於執行期載入，跟呼叫你自己裝的 yt-dlp 是同一條界線。沒裝就用內建的相容播放（AVPlayer），其他功能不受影響。"
           }
         }
       }
@@ -2714,6 +2912,28 @@
         }
       }
     },
+    "回退原因：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fallback reason: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回退原因：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回退原因：%@"
+          }
+        }
+      }
+    },
     "回選單列勾 **此螢幕改用影片**。就這樣——不必開系統設定、不會拷貝任何檔案。": {
       "localizations": {
         "en": {
@@ -3154,6 +3374,28 @@
         }
       }
     },
+    "實際核心：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Core in use: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实际核心：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "實際核心：%@"
+          }
+        }
+      }
+    },
     "專注：%@": {
       "localizations": {
         "en": {
@@ -3304,6 +3546,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "已依狀態規則暫停（%@）"
+          }
+        }
+      }
+    },
+    "已偵測到 mpv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv detected"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已检测到 mpv"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已偵測到 mpv"
+          }
+        }
+      }
+    },
+    "已偵測到 mpv %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv %@ detected"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已检测到 mpv %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已偵測到 mpv %@"
           }
         }
       }
@@ -3902,6 +4188,28 @@
         }
       }
     },
+    "從 %@ 秒接著播": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resumed from %@ s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从 %@ 秒接着播"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "從 %@ 秒接著播"
+          }
+        }
+      }
+    },
     "從 iCloud 更新來源": {
       "localizations": {
         "en": {
@@ -4364,6 +4672,28 @@
         }
       }
     },
+    "掉幀計數（解碼／輸出）：%lld／%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dropped frames (decoder / output): %1$lld / %2$lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "掉帧计数（解码／输出）：%1$lld／%2$lld"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "掉幀計數（解碼／輸出）：%lld／%lld"
+          }
+        }
+      }
+    },
     "換掉一台 Mac 時用這裡把舊機的桌布設定接過來。**會覆蓋這台目前的設定。**從**別台**匯入時會跳過「此螢幕改用影片」與「借瀏覽器 cookie」——前者存的是顯示器 UUID、每台都不同，後者的授權在新機器上本來就要重來。": {
       "localizations": {
         "en": {
@@ -4492,6 +4822,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "改了只影響之後才抓的影片。已經在快取裡的不會重抓——要換掉就去「快取位置」清掉。"
+          }
+        }
+      }
+    },
+    "政策暫停：%lld 次，共 %@ 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Policy pauses: %1$lld, %2$@ s in total"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "策略暂停：%1$lld 次，共 %2$@ 秒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "政策暫停：%lld 次，共 %@ 秒"
           }
         }
       }
@@ -4782,6 +5134,28 @@
         }
       }
     },
+    "有新版 %@：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@ is available:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有新版 %@："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有新版 %@："
+          }
+        }
+      }
+    },
     "未命名 Mac": {
       "localizations": {
         "en": {
@@ -4822,6 +5196,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "未命名相簿"
+          }
+        }
+      }
+    },
+    "未安裝——`brew install mpv`。選用，只有「流暢播放」用得到。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not installed — `brew install mpv`. Optional; only “Smooth playback” uses it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未安装——`brew install mpv`。可选，只有“流畅播放”用得到。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未安裝——`brew install mpv`。選用，只有「流暢播放」用得到。"
           }
         }
       }
@@ -4954,6 +5350,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "本機、SMB，以及 Box／pCloud／Dropbox／OneDrive／Google Drive 等雲端硬碟的掛載點——裝了桌面版就是一般資料夾，不需要 OAuth。"
+          }
+        }
+      }
+    },
+    "核心": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Core"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "核心"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "核心"
+          }
+        }
+      }
+    },
+    "核心：AVPlayer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Core: AVPlayer"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "核心：AVPlayer"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "核心：AVPlayer"
+          }
+        }
+      }
+    },
+    "核心：mpv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Core: mpv"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "核心：mpv"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "核心：mpv"
           }
         }
       }
@@ -5376,6 +5838,28 @@
         }
       }
     },
+    "沒有找到 libmpv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "libmpv was not found"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有找到 libmpv"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有找到 libmpv"
+          }
+        }
+      }
+    },
     "沒有找到已知的風險特徵。這不等於畫面一定順——還沒量到的東西（實際呈現時刻、合成負載）不在這份報告裡。": {
       "localizations": {
         "en": {
@@ -5438,6 +5922,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "沙盒 extension 讀不到 app 的來源資料夾，影片必須**實體拷貝**一份進去。來源若是 NAS，那會是幾十 GB——所以預設關閉，而且採**輪替**而非囤積：一次帶到**填滿 %1$lld GB** 為止（幾支視大小而定）。下次螢幕亮起換一批，但**只換四分之一**——重疊的部分不必重拷，每輪從來源搬動的量因此是 %2$lld MB 而不是 %3$lld GB。整個片庫照樣輪得到，只是慢一些。單檔超過 %4$lld GB 一律不收——那是片庫內容，不是桌布循環素材。"
+          }
+        }
+      }
+    },
+    "流暢播放靠它。裝好之後重新啟動 Foldwall 才會用上，在那之前先用相容播放：": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smooth playback depends on it. Restart Foldwall after installing; until then, compatible playback is used:"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "流畅播放靠它。装好之后重新启动 Foldwall 才会用上，在那之前先用兼容播放："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "流暢播放靠它。裝好之後重新啟動 Foldwall 才會用上，在那之前先用相容播放："
           }
         }
       }
@@ -5614,6 +6120,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "無"
+          }
+        }
+      }
+    },
+    "無（畫格經過 CPU）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "none (frames pass through the CPU)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无（画帧经过 CPU）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無（畫格經過 CPU）"
           }
         }
       }
@@ -5900,6 +6428,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "狀態：%@\n\n如果系統設定的「照片」清單裡找不到 Foldwall，代表授權請求還沒送出過——先按下面的「請求授權」。"
+          }
+        }
+      }
+    },
+    "現在用的是相容播放（AVPlayer）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Currently using compatible playback (AVPlayer)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现在用的是兼容播放（AVPlayer）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在用的是相容播放（AVPlayer）"
           }
         }
       }
@@ -6300,6 +6850,28 @@
         }
       }
     },
+    "硬體解碼：%@（interop：%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hardware decoding: %1$@ (interop: %2$@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "硬件解码：%1$@（interop：%2$@）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "硬體解碼：%@（interop：%@）"
+          }
+        }
+      }
+    },
     "確定覆蓋這台": {
       "localizations": {
         "en": {
@@ -6362,6 +6934,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "移除這條規則"
+          }
+        }
+      }
+    },
+    "等待原因：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting reason: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待原因：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待原因：%@"
+          }
+        }
+      }
+    },
+    "等快取": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for cache"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等缓存"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等快取"
           }
         }
       }
@@ -6872,6 +7488,28 @@
         }
       }
     },
+    "處理完重新啟動 Foldwall，再把核心選回來。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After that, restart Foldwall and pick the core again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "处理完重新启动 Foldwall，再把核心选回来。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "處理完重新啟動 Foldwall，再把核心選回來。"
+          }
+        }
+      }
+    },
     "螢幕": {
       "localizations": {
         "en": {
@@ -7044,6 +7682,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "要留意的一件事：拿已登入的帳號去大量抓片，該站有可能把那個帳號判成自動化行為。在意的話用備用帳號登入那個瀏覽器。"
+          }
+        }
+      }
+    },
+    "視窗被完全遮住": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Window fully occluded"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口被完全遮住"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "視窗被完全遮住"
+          }
+        }
+      }
+    },
+    "視窗露出": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Window visible again"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口露出"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "視窗露出"
           }
         }
       }
@@ -7466,6 +8148,50 @@
         }
       }
     },
+    "載入中的 libmpv：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loaded libmpv: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加载中的 libmpv：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "載入中的 libmpv：%@"
+          }
+        }
+      }
+    },
+    "載入中的 libmpv：%@（%@）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loaded libmpv: %1$@ (%2$@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加载中的 libmpv：%1$@（%2$@）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "載入中的 libmpv：%@（%@）"
+          }
+        }
+      }
+    },
     "輪到第幾支影片了": {
       "localizations": {
         "en": {
@@ -7836,6 +8562,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "選擇要當桌布來源的資料夾"
+          }
+        }
+      }
+    },
+    "選用的核心：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected core: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选用的核心：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選用的核心：%@"
           }
         }
       }
@@ -8254,6 +9002,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "電池"
+          }
+        }
+      }
+    },
+    "需要 mpv": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要 mpv"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要 mpv"
           }
         }
       }
@@ -8720,6 +9490,28 @@
         }
       }
     },
+    "（進行中）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " (ongoing)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（进行中）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（進行中）"
+          }
+        }
+      }
+    },
     "，最近一輪 %@": {
       "localizations": {
         "en": {
@@ -8738,6 +9530,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "，最近一輪 %@"
+          }
+        }
+      }
+    },
+    "，視窗目前被完全遮住": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "; the window is currently fully occluded"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "，窗口目前被完全遮住"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "，視窗目前被完全遮住"
           }
         }
       }

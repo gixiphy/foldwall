@@ -57,6 +57,9 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
     public var videoWallpaperEnabled: Bool
     public var videoEngine: VideoEngine
     public var desktopVideoLayer: DesktopVideoLayer
+    /// 桌面視窗裡的播放核心。是偏好不是硬體狀態，可以跨機搬；另一台沒裝 mpv
+    /// 會自己回退到 AVPlayer 並在設定頁講原因。
+    public var desktopPlaybackCore: DesktopPlaybackCore
     /// 一支播完之後怎麼辦。只影響桌面視窗那條路。
     public var videoPlaybackMode: VideoPlaybackMode
     /// 影片怎麼填進螢幕。兩條引擎都吃，跟硬體無關，可以跨機搬。
@@ -87,6 +90,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         videoWallpaperEnabled: Bool,
         videoEngine: VideoEngine,
         desktopVideoLayer: DesktopVideoLayer,
+        desktopPlaybackCore: DesktopPlaybackCore = .avPlayer,
         videoPlaybackMode: VideoPlaybackMode = .repeatAll,
         videoScaleMode: VideoScaleMode = .fill,
         videoDownloadQuality: VideoDownloadQuality = .default,
@@ -107,6 +111,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         self.videoWallpaperEnabled = videoWallpaperEnabled
         self.videoEngine = videoEngine
         self.desktopVideoLayer = desktopVideoLayer
+        self.desktopPlaybackCore = desktopPlaybackCore
         self.videoPlaybackMode = videoPlaybackMode
         self.videoScaleMode = videoScaleMode
         self.videoDownloadQuality = videoDownloadQuality
@@ -119,7 +124,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         case version, savedAt, deviceName, folders, folderUsage, albums
         case remoteSources, playlistSources, sourceRules
         case intervalMinutes, effect, montagePieceCount
-        case videoWallpaperEnabled, videoEngine, desktopVideoLayer
+        case videoWallpaperEnabled, videoEngine, desktopVideoLayer, desktopPlaybackCore
         case videoPlaybackMode, videoScaleMode, videoDownloadQuality
         case launchAtLogin
     }
@@ -148,6 +153,9 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         // 後加的欄位用 decodeIfPresent：舊備份沒有它，那不是損壞。
         // （移除的欄位不必處理——JSONDecoder 本來就會忽略不認得的鍵。）
         playlistSources = try c.decodeIfPresent([PlaylistSource].self, forKey: .playlistSources) ?? []
+        // 舊備份沒有核心：.avPlayer 就是 0.9.2 以前唯一的行為，還原後不會變。
+        desktopPlaybackCore = try c.decodeIfPresent(
+            DesktopPlaybackCore.self, forKey: .desktopPlaybackCore) ?? .avPlayer
         // 舊備份沒有播放模式：套 .repeatAll 這個預設，與全新安裝一致。
         videoPlaybackMode = try c.decodeIfPresent(
             VideoPlaybackMode.self, forKey: .videoPlaybackMode) ?? .repeatAll
@@ -231,6 +239,7 @@ extension SettingsSnapshot {
             videoWallpaperEnabled: videoWallpaperEnabled,
             videoEngine: videoEngine,
             desktopVideoLayer: desktopVideoLayer,
+            desktopPlaybackCore: desktopPlaybackCore,
             videoPlaybackMode: videoPlaybackMode,
             videoScaleMode: videoScaleMode,
             videoDownloadQuality: videoDownloadQuality,

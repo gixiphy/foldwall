@@ -24,6 +24,7 @@ final class AppSettings {
         static let folderUsage = "folderUsage"
         static let videoEngine = "videoEngine"
         static let desktopVideoLayer = "desktopVideoLayer"
+        static let desktopPlaybackCore = "desktopPlaybackCore"
         static let videoPlaybackMode = "videoPlaybackMode"
         static let videoScaleMode = "videoScaleMode"
         static let montagePieceCount = "montagePieceCount"
@@ -108,6 +109,12 @@ final class AppSettings {
     /// 桌面視窗壓在圖示上面還是下面。
     var desktopVideoLayer: DesktopVideoLayer {
         didSet { defaults.set(desktopVideoLayer.rawValue, forKey: Key.desktopVideoLayer) }
+    }
+
+    /// 桌面視窗裡用哪個播放核心：AVPlayer（預設、零安裝）或使用者自己裝的 mpv。
+    /// 只有桌面視窗那條路吃這個設定；系統 extension 不變。
+    var desktopPlaybackCore: DesktopPlaybackCore {
+        didSet { defaults.set(desktopPlaybackCore.rawValue, forKey: Key.desktopPlaybackCore) }
     }
 
     /// 一支播完之後怎麼辦：單片循環／全部循環／隨機。只有桌面視窗那條路吃這個設定
@@ -264,6 +271,8 @@ final class AppSettings {
             .flatMap(VideoEngine.init(rawValue:))) ?? .desktopWindow
         self.desktopVideoLayer = (defaults.string(forKey: Key.desktopVideoLayer)
             .flatMap(DesktopVideoLayer.init(rawValue:))) ?? .belowIcons
+        self.desktopPlaybackCore = (defaults.string(forKey: Key.desktopPlaybackCore)
+            .flatMap(DesktopPlaybackCore.init(rawValue:))) ?? .avPlayer
         self.videoPlaybackMode = (defaults.string(forKey: Key.videoPlaybackMode)
             .flatMap(VideoPlaybackMode.init(rawValue:))) ?? .repeatAll
         self.videoScaleMode = (defaults.string(forKey: Key.videoScaleMode)

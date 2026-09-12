@@ -210,6 +210,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
     public var videoWallpaperEnabled: Bool
     public var videoEngine: VideoEngine
     public var desktopVideoLayer: DesktopVideoLayer
+    public var desktopPlaybackCore: DesktopPlaybackCore
     public var videoPlaybackMode: VideoPlaybackMode
     public var videoScaleMode: VideoScaleMode
     public var videoDownloadQuality: VideoDownloadQuality
@@ -240,6 +241,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         videoWallpaperEnabled: Bool,
         videoEngine: VideoEngine,
         desktopVideoLayer: DesktopVideoLayer,
+        desktopPlaybackCore: DesktopPlaybackCore = .avPlayer,
         videoPlaybackMode: VideoPlaybackMode = .repeatAll,
         videoScaleMode: VideoScaleMode = .fill,
         videoDownloadQuality: VideoDownloadQuality = .default,
@@ -263,6 +265,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         self.videoWallpaperEnabled = videoWallpaperEnabled
         self.videoEngine = videoEngine
         self.desktopVideoLayer = desktopVideoLayer
+        self.desktopPlaybackCore = desktopPlaybackCore
         self.videoPlaybackMode = videoPlaybackMode
         self.videoScaleMode = videoScaleMode
         self.videoDownloadQuality = videoDownloadQuality
@@ -277,7 +280,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         case version, savedAt, deviceName, deviceID
         case folderUsage, albums, disabledRemoteSources, disabledPlaylists, sourceRules
         case intervalMinutes, effect, montagePieceCount, showCredits
-        case videoWallpaperEnabled, videoEngine, desktopVideoLayer
+        case videoWallpaperEnabled, videoEngine, desktopVideoLayer, desktopPlaybackCore
         case videoPlaybackMode, videoScaleMode, videoDownloadQuality, videoCookieSource
         case videoScreens, launchAtLogin
     }
@@ -303,6 +306,8 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         videoWallpaperEnabled = try c.decode(Bool.self, forKey: .videoWallpaperEnabled)
         videoEngine = try c.decode(VideoEngine.self, forKey: .videoEngine)
         desktopVideoLayer = try c.decode(DesktopVideoLayer.self, forKey: .desktopVideoLayer)
+        desktopPlaybackCore = try c.decodeIfPresent(
+            DesktopPlaybackCore.self, forKey: .desktopPlaybackCore) ?? .avPlayer
         videoPlaybackMode = try c.decodeIfPresent(
             VideoPlaybackMode.self, forKey: .videoPlaybackMode) ?? .repeatAll
         videoScaleMode = try c.decodeIfPresent(

@@ -1431,6 +1431,28 @@
         }
       }
     },
+    "流暢播放（mpv）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smooth playback (mpv)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "流畅播放（mpv）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "流暢播放（mpv）"
+          }
+        }
+      }
+    },
     "測試中…": {
       "localizations": {
         "en": {
@@ -1563,6 +1585,28 @@
         }
       }
     },
+    "用你自己安裝的 mpv（`brew install mpv`）播。沒裝、或載不起來，就自動改用相容播放，設定頁會說明原因。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plays with the mpv you installed yourself (`brew install mpv`). If it is missing or fails to load, compatible playback is used automatically and Settings explains why."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用你自己安装的 mpv（`brew install mpv`）播。没装、或加载不起来，就自动改用兼容播放，设置页会说明原因。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用你自己安裝的 mpv（`brew install mpv`）播。沒裝、或載不起來，就自動改用相容播放，設定頁會說明原因。"
+          }
+        }
+      }
+    },
     "直接播來源檔，不拷貝、不佔額外磁碟，整個片庫都能播。全公開 API。**鎖屏不會播。**": {
       "localizations": {
         "en": {
@@ -1581,6 +1625,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "直接播來源檔，不拷貝、不佔額外磁碟，整個片庫都能播。全公開 API。**鎖屏不會播。**"
+          }
+        }
+      }
+    },
+    "相容播放（AVPlayer）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compatible playback (AVPlayer)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "兼容播放（AVPlayer）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相容播放（AVPlayer）"
           }
         }
       }
@@ -1669,6 +1735,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "等比縮到整支影片都看得見。長寬比跟螢幕不一樣就會留黑邊。"
+          }
+        }
+      }
+    },
+    "系統內建的播放器，不必裝任何東西。同一支片在這裡微頓、在 mpv 順的話，換另一個試試。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The system's built-in player; nothing to install. If a clip stutters here but plays smoothly in mpv, try the other core."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统内置的播放器，不必装任何东西。同一支片在这里微顿、在 mpv 顺的话，换另一个试试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統內建的播放器，不必裝任何東西。同一支片在這裡微頓、在 mpv 順的話，換另一個試試。"
           }
         }
       }

@@ -529,6 +529,27 @@ private struct VideoSettings: View {
                         .onChange(of: settings.desktopVideoLayer) { _, _ in onEngineChange() }
                     }
 
+                    controlRow("核心") {
+                        Picker("", selection: $settings.desktopPlaybackCore) {
+                            ForEach(DesktopPlaybackCore.allCases, id: \.self) { core in
+                                Text(core.displayName).tag(core)
+                            }
+                        }
+                        .onChange(of: settings.desktopPlaybackCore) { _, _ in
+                            coordinator.desktopPlaybackCoreDidChange()
+                        }
+                    }
+
+                    Text(Self.markdown(settings.desktopPlaybackCore.summary))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if settings.desktopPlaybackCore == .mpv {
+                        MpvNotice(service: coordinator.mpvService,
+                                  status: coordinator.playbackCoreStatus)
+                    }
+
                     controlRow("播完之後") {
                         Picker("", selection: $settings.videoPlaybackMode) {
                             ForEach(VideoPlaybackMode.allCases, id: \.self) { mode in
@@ -1193,6 +1214,83 @@ private struct YtDlpNotice: View {
             }
             .fixedSize(horizontal: false, vertical: true)
         }
+    }
+}
+
+/// mpv 的安裝提示，仿 YtDlpNotice。四態：已偵測到、有新版、需要安裝、已更新要重啟；
+/// 外加一種「選了 mpv 但現在用的是 AVPlayer」，把引擎回退的原因與解法講出來。
+/// 「版本」分頁另有一段講**為什麼**是外部工具（那是專案的界線，不是操作說明）。
+private struct MpvNotice: View {
+
+    var service: MPVService
+    var status: DesktopPlaybackCoreStatus?
+
+    private var installedVersion: String? {
+        service.installedVersion.flatMap(MPVRuntime.parseVersion).map(\.description)
+    }
+
+    private var loadedVersion: String? {
+        service.loadedVersion.flatMap(MPVRuntime.parseVersion).map(\.description)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if service.libraryPath == nil {
+                Label("需要 mpv", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                Text("流暢播放靠它。裝好之後重新啟動 Foldwall 才會用上，在那之前先用相容播放：")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                command("brew install mpv")
+            } else {
+                Label(installedVersion.map { LocalizedStringKey("已偵測到 mpv \($0)") }
+                          ?? LocalizedStringKey("已偵測到 mpv"),
+                      systemImage: service.isOutdated
+                          ? "arrow.up.circle.fill" : "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(service.isOutdated ? .orange : .green)
+                if service.needsRestart {
+                    // 磁碟上的已經換了，行程裡握著的還是舊的：新版下次啟動才生效。
+                    Text("mpv 已經更新，重新啟動 Foldwall 後生效（目前載入的是 \(loadedVersion ?? "")）。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else if service.isOutdated {
+                    // 只在真的有新版時才唸。查不到上游版本就什麼都不說——
+                    // 不確定的時候指著使用者的工具說它舊最糟。
+                    Text("有新版 \(service.latestVersion ?? "")：")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    command("brew upgrade mpv")
+                }
+                if let failure = status?.failure {
+                    Label("現在用的是相容播放（AVPlayer）", systemImage: "arrow.uturn.backward.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    Text(DesktopVideoEngine.describe(failure))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                    if let brew = failure.brewCommand {
+                        command(brew)
+                        Text("處理完重新啟動 Foldwall，再把核心選回來。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .onAppear { service.refresh() }
+    }
+
+    private func command(_ text: String) -> some View {
+        Text(verbatim: text)
+            .font(.caption.monospaced())
+            .textSelection(.enabled)
+            .padding(.vertical, 2)
+            .padding(.horizontal, 6)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
     }
 }
 
@@ -2483,6 +2581,17 @@ private struct AboutSettings: View {
         return (try? AttributedString(markdown: text)) ?? AttributedString(text)
     }
 
+    /// mpv 也是同一條界線：使用者自己裝，Foldwall 找到它就用、找不到就走內建的。
+    private static var mpvRationale: AttributedString {
+        let text = String(localized: """
+            「流暢播放」用的是**你自己安裝的 mpv**（libmpv）。Foldwall 不附帶、不下載它：\
+            mpv 與它連的 FFmpeg 是 GPL 建置，Foldwall（MIT）只在你裝了之後於執行期載入，\
+            跟呼叫你自己裝的 yt-dlp 是同一條界線。沒裝就用內建的相容播放（AVPlayer），\
+            其他功能不受影響。
+            """)
+        return (try? AttributedString(markdown: text)) ?? AttributedString(text)
+    }
+
     private var version: String {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "?"
@@ -2560,6 +2669,26 @@ private struct AboutSettings: View {
                                 .textSelection(.enabled)
                         }
                     }
+                    Divider()
+                    Text(Self.mpvRationale)
+                        .font(.caption)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 6) {
+                        if let library = MPVRuntime.locateLibrary() {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                            Text(library.path)
+                                .font(.caption.monospaced())
+                                .textSelection(.enabled)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        } else {
+                            Image(systemName: "circle.dashed").foregroundStyle(.secondary)
+                            Text("未安裝——`brew install mpv`。選用，只有「流暢播放」用得到。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                        }
+                    }
                 }
                 .padding(4)
             }
@@ -2571,6 +2700,13 @@ private struct AboutSettings: View {
                     Text("""
                         影片桌布 extension fork 自 **Phosphene**（MIT），\
                         授權原文隨原始碼一起保留。
+                        """)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("""
+                        mpv 的 client API 標頭（**ISC**）隨原始碼保留在 ThirdParty/mpv；\
+                        libmpv 本身不附帶。
                         """)
                         .font(.caption)
                         .foregroundStyle(.secondary)

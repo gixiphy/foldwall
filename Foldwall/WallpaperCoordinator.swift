@@ -78,6 +78,12 @@ final class WallpaperCoordinator {
     @ObservationIgnored private let desktopVideo = DesktopVideoEngine()
     @ObservationIgnored private let playlists = PlaylistService()
     var playlistService: PlaylistService { playlists }
+    /// libmpv 的偵測與版本提示（見 MPVService）。設定頁讀它。
+    @ObservationIgnored let mpvService = MPVService()
+    /// 桌面視窗現在用的是哪個核心、為什麼。引擎決定，這裡只是給設定頁看。
+    private(set) var playbackCoreStatus: DesktopPlaybackCoreStatus?
+    /// 螢幕睡著／鎖定／螢保中。影片暫不暫停只看這個加電源分級（見 syncVideoPause）。
+    @ObservationIgnored private var screensAsleep = false
     @ObservationIgnored private var aggregateTask: Task<Void, Never>?
     @ObservationIgnored private var albumsTask: Task<Void, Never>?
     @ObservationIgnored let backup = SettingsBackup()
@@ -171,6 +177,9 @@ final class WallpaperCoordinator {
         // 挑片的規則仍然在這裡：播放模式、避開別台正在播的、冷卻名單。
         desktopVideo.nextVideoProvider = { [weak self] uuid, current in
             self?.nextVideo(for: uuid, after: current)
+        }
+        desktopVideo.onCoreStatusChanged = { [weak self] status in
+            self?.playbackCoreStatus = status
         }
         // 三個池補到貨就補一輪合成：它們不再擋著 refresh，抓完得有人來收。
         let refill: () -> Void = { [weak self] in self?.refreshSoon("網路／相簿補貨落地") }
@@ -319,7 +328,8 @@ final class WallpaperCoordinator {
     /// 螢幕睡著 → 趁沒人用，把下一批影片拷好。節流仍在（最少 30 分鐘），
     /// 否則螢保停停開開一小時就重拷十輪，走 SMB 會很痛。
     private func screenDidSleep() {
-        desktopVideo.setPaused(true)   // 沒人看的時候不必解碼
+        screensAsleep = true
+        syncVideoPause()   // 沒人看的時候不必解碼
         guard settings.videoWallpaperEnabled else { return }
         rotateVideosOnNextRefresh = true
         refreshNow("螢幕睡著")
@@ -334,7 +344,8 @@ final class WallpaperCoordinator {
     /// 這裡合併成一個短暫的時間窗；排程的 catch-up（`.wake` 事件）也一併在窗內做，
     /// 不再另掛一個觀察者。
     private func screenDidWake() {
-        desktopVideo.setPaused(false)   // 恢復解碼要立刻，不等合併窗
+        screensAsleep = false
+        syncVideoPause()   // 恢復解碼要立刻，不等合併窗
         if settings.videoEngine.needsDeployment,
            settings.videoWallpaperEnabled, videoLibrary.deployedCount == 0 {
             rotateVideosOnNextRefresh = true
@@ -446,6 +457,16 @@ final class WallpaperCoordinator {
 
         forceVideoSync = true
         refreshNow("使用者強制換片源")
+    }
+
+    /// 改了播放核心（AVPlayer ↔ mpv）。只動影片視窗，不重跑蒙太奇；
+    /// 引擎會盡量讓同一支從同一秒接著播。上次回退的紀錄也清掉：使用者剛
+    /// `brew install` 完再選一次，要重新試而不是被舊原因擋住。
+    func desktopPlaybackCoreDidChange() {
+        desktopVideo.resetCoreFallback()
+        if settings.desktopPlaybackCore == .mpv { mpvService.refresh() }
+        guard settings.videoWallpaperEnabled, !settings.videoEngine.needsDeployment else { return }
+        applyDesktopVideoNow("改播放核心")
     }
 
     /// 改了播放模式。循環方式是建 player 當下決定的，得讓引擎重建一次才會生效。
@@ -1064,8 +1085,9 @@ final class WallpaperCoordinator {
         }
 
         desktopVideo.apply(plan: plan, layer: settings.desktopVideoLayer, screens: displays,
-                           mode: settings.videoPlaybackMode, scale: settings.videoScaleMode)
-        desktopVideo.setPaused(currentTier() == .paused)
+                           mode: settings.videoPlaybackMode, scale: settings.videoScaleMode,
+                           core: settings.desktopPlaybackCore)
+        syncVideoPause()
         // 快取淘汰不可以砍正在用的檔。純 LRU 會刪掉正在播的那支，
         // 下一輪排片找不到它就換片，而磁碟空間在檔案句柄關掉前根本沒釋放。
         remoteVideoPool.protectedFiles.update(desktopVideo.reservedURLs())
@@ -1317,6 +1339,7 @@ final class WallpaperCoordinator {
             videoWallpaperEnabled: settings.videoWallpaperEnabled,
             videoEngine: settings.videoEngine,
             desktopVideoLayer: settings.desktopVideoLayer,
+            desktopPlaybackCore: settings.desktopPlaybackCore,
             videoPlaybackMode: settings.videoPlaybackMode,
             videoScaleMode: settings.videoScaleMode,
             videoDownloadQuality: settings.videoDownloadQuality,
@@ -1415,6 +1438,7 @@ final class WallpaperCoordinator {
         settings.showCredits = device.showCredits
         settings.videoEngine = device.videoEngine
         settings.desktopVideoLayer = device.desktopVideoLayer
+        settings.desktopPlaybackCore = device.desktopPlaybackCore
         settings.videoPlaybackMode = device.videoPlaybackMode
         settings.videoScaleMode = device.videoScaleMode
         settings.videoDownloadQuality = device.videoDownloadQuality
@@ -1563,6 +1587,15 @@ final class WallpaperCoordinator {
 
     var focusModes: [FocusMode] { focus.availableModes }
     var activeFocusModeName: String? { focus.activeModeName }
+
+    /// 影片該不該暫停，**只有這一個地方決定**：螢幕睡著／鎖定／螢保中，或電源分級說停。
+    ///
+    /// 以前睡醒直接 setPaused、排片時又依 tier 再 setPaused 一次，兩條各講各的：
+    /// 螢幕睡著那一輪的 refresh 會把剛暫停的影片又放回去播。現在每個來源只改自己的
+    /// 旗標、然後都走這裡；引擎那邊 setPaused 是冪等的，多叫幾次沒關係。
+    private func syncVideoPause() {
+        desktopVideo.setPaused(screensAsleep || currentTier() == .paused)
+    }
 
     private func currentTier() -> PowerTier {
         PowerPolicy.tier(

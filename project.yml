@@ -74,6 +74,11 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Foldwall/Foldwall.entitlements
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: Manual
+        # libmpv 的橋接層（Foldwall/Playback/MPVBridge.m）：ObjC 進 Swift 要橋接標頭；
+        # mpv 的 client API 標頭放在 ThirdParty/mpv（ISC），只用型別與常數，
+        # 二進位一律 dlopen 使用者自己裝的 Homebrew 那份，不在連結期綁定。
+        SWIFT_OBJC_BRIDGING_HEADER: Foldwall/Playback/Foldwall-Bridging-Header.h
+        HEADER_SEARCH_PATHS: "$(SRCROOT)/ThirdParty"
 
   FoldwallExtension:
     # fork 自 Phosphene（MIT），只改 bundle id／顯示名／container。
