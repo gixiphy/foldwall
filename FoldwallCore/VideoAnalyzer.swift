@@ -147,16 +147,81 @@ public enum VideoAnalyzer {
         samples.reserveCapacity(min(limit, 4096))
         while samples.count < limit, let buffer = output.copyNextSampleBuffer() {
             if Task.isCancelled { break }
-            let duration = CMSampleBufferGetDuration(buffer)
-            samples.append(SampleTiming(
-                presentationTimeStamp: CMSampleBufferGetPresentationTimeStamp(buffer),
-                duration: duration.isNumeric && duration > .zero ? duration : nil))
+            samples.append(contentsOf: sampleTimings(of: buffer))
         }
         guard !samples.isEmpty else { return nil }
 
         let nominal = (try? await track.load(.minFrameDuration))
             .flatMap { $0.isNumeric && $0 > .zero ? $0 : nil }
         return TimingStatistics.analyze(samples, nominalFrameDuration: nominal)
+    }
+
+    /// 一個 buffer 裡有幾格、各格的時間。
+    ///
+    /// **一個 buffer 不等於一格。** AVAssetReader 會交出兩種以前被當成「一格」的東西：
+    /// 空 buffer（零格，時間戳無效，出現在格式切換與檔尾），以及多格 buffer
+    /// （幾格擠在一個 buffer 裡，時間資訊只給一份代表全部）。前者讓「沒帶長度的畫格」
+    /// 與 VFR 誤報，後者讓格數少算。實際案例：同一支片排除空 buffer 之後，
+    /// 19,999 格的間隔才跟 ffprobe 對得上。
+    ///
+    /// 抽成純函式是為了測得到——CoreMedia 的 buffer 在測試裡造不出來，
+    /// 但 `CMSampleTimingInfo` 只是個 struct。
+    ///
+    /// - Parameters:
+    ///   - sampleCount: `CMSampleBufferGetNumSamples`。
+    ///   - timings: `CMSampleBufferGetSampleTimingInfoArray` 給的。CoreMedia 的契約是
+    ///     **一格一筆**，或**一筆代表全部**（所有格同長度、時間戳連續）。
+    /// - Returns: 空 buffer 回空陣列——它不是一格，不該算進任何統計。
+    ///   一筆代表多格但沒帶長度時只回第一格：其他格的時間戳算不出來，
+    ///   編一個等距的值就是舊程式碼用 1/60 犯的那種錯。
+    public static func sampleTimings(
+        sampleCount: Int, timings: [CMSampleTimingInfo],
+    ) -> [SampleTiming] {
+        guard sampleCount > 0, let first = timings.first else { return [] }
+        func validDuration(_ time: CMTime) -> CMTime? {
+            time.isNumeric && time > .zero ? time : nil
+        }
+        if timings.count == sampleCount || timings.count > 1 {
+            return timings.map {
+                SampleTiming(presentationTimeStamp: $0.presentationTimeStamp,
+                             duration: validDuration($0.duration))
+            }
+        }
+        // 一筆代表全部
+        let duration = validDuration(first.duration)
+        guard sampleCount > 1, let duration, first.presentationTimeStamp.isNumeric else {
+            return [SampleTiming(presentationTimeStamp: first.presentationTimeStamp,
+                                 duration: duration)]
+        }
+        return (0 ..< sampleCount).map { index in
+            SampleTiming(
+                presentationTimeStamp: CMTimeAdd(
+                    first.presentationTimeStamp,
+                    CMTimeMultiply(duration, multiplier: Int32(index))),
+                duration: duration)
+        }
+    }
+
+    /// 從真的 buffer 把時間資訊撈出來餵給 `sampleTimings(sampleCount:timings:)`。
+    private static func sampleTimings(of buffer: CMSampleBuffer) -> [SampleTiming] {
+        let count = CMSampleBufferGetNumSamples(buffer)
+        guard count > 0 else { return [] }
+
+        var needed: CMItemCount = 0
+        let probe = CMSampleBufferGetSampleTimingInfoArray(
+            buffer, entryCount: 0, arrayToFill: nil, entriesNeededOut: &needed)
+        var infos = [CMSampleTimingInfo](repeating: CMSampleTimingInfo(), count: max(needed, 0))
+        let filled = probe == noErr && needed > 0
+            && CMSampleBufferGetSampleTimingInfoArray(
+                buffer, entryCount: needed, arrayToFill: &infos, entriesNeededOut: nil) == noErr
+        guard filled else {
+            // 撈不到陣列就退回 buffer 層級的那一份：那至少是它自己宣告的值。
+            return sampleTimings(sampleCount: count, timings: [CMSampleTimingInfo(
+                duration: CMSampleBufferGetDuration(buffer),
+                presentationTimeStamp: CMSampleBufferGetPresentationTimeStamp(buffer),
+                decodeTimeStamp: CMSampleBufferGetDecodeTimeStamp(buffer))])
+        }
+        return sampleTimings(sampleCount: count, timings: infos)
     }
 
     /// 一格的時間戳。分析的輸入單位。
