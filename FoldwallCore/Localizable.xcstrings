@@ -331,6 +331,28 @@
         }
       }
     },
+    "mpv 錯誤 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv error %lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv 错误 %lld"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mpv 錯誤 %lld"
+          }
+        }
+      }
+    },
     "provider/model 格式": {
       "localizations": {
         "en": {
@@ -1189,6 +1211,28 @@
         }
       }
     },
+    "格式不支援": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsupported format"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "格式不支持"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "格式不支援"
+          }
+        }
+      }
+    },
     "桌面視窗": {
       "localizations": {
         "en": {
@@ -1361,6 +1405,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "每支影片各自抽一種（填滿螢幕／符合螢幕大小）。同一支在同一台螢幕上抽到的固定不變。"
+          }
+        }
+      }
+    },
+    "沒有可播的軌": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No playable track"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有可播的轨"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有可播的軌"
           }
         }
       }
@@ -1871,6 +1937,28 @@
         }
       }
     },
+    "視訊輸出建不起來": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video output could not be set up"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视频输出建不起来"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "視訊輸出建不起來"
+          }
+        }
+      }
+    },
     "解析度或位元率偏高，解碼與合成負載大。": {
       "localizations": {
         "en": {
@@ -1889,6 +1977,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "解析度或位元率偏高，解碼與合成負載大。"
+          }
+        }
+      }
+    },
+    "讀取失敗": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read the source"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取失败"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讀取失敗"
           }
         }
       }
