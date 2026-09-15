@@ -191,30 +191,40 @@ struct MenuBarView: View {
         }
     }
 
-    /// 每螢一項：勾起來代表那台改播影片，靜態管線跳過。
+    /// 桌面視窗直接選螢幕；系統 extension 必須在系統桌布設定裡指定。
     private var displayMenu: some View {
-        Menu("此螢幕改用影片") {
-            ForEach(Array(coordinator.displays.enumerated()), id: \.element.uuid) { index, display in
-                // 設備名稱優先（"AG493UCX2"）；查不到才退回「螢幕 N」。
-                // 兩台同型號時系統會自己加後綴，不必在這裡編號。
-                let name = ScreenBridge.localizedName(forUUID: display.uuid)
-                    ?? String(localized: "螢幕 \(index + 1)")
-                Button {
-                    coordinator.toggleVideo(for: display)
-                } label: {
-                    Label("\(name)（\(Int(display.canvas.width))×\(Int(display.canvas.height))）",
-                          systemImage: coordinator.isVideoScreen(display) ? "checkmark" : "")
+        Menu {
+            if settings.videoEngine.needsDeployment {
+                Text("請在「系統設定 → 桌布」選擇螢幕，再選 Foldwall 影片")
+                    .font(.caption)
+                Button("打開 系統設定 → 桌布…") { openWallpaperSettings() }
+            } else {
+                ForEach(Array(coordinator.displays.enumerated()), id: \.element.uuid) { index, display in
+                    // 設備名稱優先（"AG493UCX2"）；查不到才退回「螢幕 N」。
+                    // 兩台同型號時系統會自己加後綴，不必在這裡編號。
+                    let name = ScreenBridge.localizedName(forUUID: display.uuid)
+                        ?? String(localized: "螢幕 \(index + 1)")
+                    Toggle(isOn: Binding(
+                        get: { coordinator.isVideoScreen(display) },
+                        set: { selected in
+                            if selected != coordinator.isVideoScreen(display) {
+                                coordinator.toggleVideo(for: display)
+                            }
+                        }
+                    )) {
+                        Text("\(name)（\(Int(display.canvas.width))×\(Int(display.canvas.height))）")
+                    }
+                }
+                if !coordinator.status.videoReady && !settings.videoScreens.isEmpty {
+                    Text("影片尚未備妥，這些螢幕暫由蒙太奇接管")
+                        .font(.caption)
                 }
             }
-            Divider()
-            Text("影片需在「系統設定 → 桌布」選片，再回來勾這裡")
-                .font(.caption)
-            // 入口就放在說明旁邊——它只在這條流程裡用得到，擺在主選單底部
-            // 離使用它的情境太遠。
-            Button("打開 系統設定 → 桌布…") { openWallpaperSettings() }
-            if !coordinator.status.videoReady && !settings.videoScreens.isEmpty {
-                Text("影片尚未備妥，這些螢幕暫由蒙太奇接管")
-                    .font(.caption)
+        } label: {
+            if settings.videoEngine.needsDeployment {
+                Text("指定影片桌布螢幕")
+            } else {
+                Text("此螢幕改用影片")
             }
         }
     }
@@ -228,7 +238,7 @@ struct MenuBarView: View {
     }
 
     private func openWallpaperSettings() {
-        guard let url = URL(string: "x-apple.systempreferences:com.apple.Wallpaper-AppSettings.extension")
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.Wallpaper-Settings.extension")
         else { return }
         NSWorkspace.shared.open(url)
     }

@@ -625,13 +625,15 @@ final class WallpaperCoordinator {
         NSWorkspace.shared.activateFileViewerSelecting([url])
     }
 
-    /// 「此螢幕改用影片」：勾了就不對該螢寫靜態桌布。
+    /// 桌面視窗的螢幕選擇。系統 extension 的指定由系統設定管理。
     func toggleVideo(for display: DisplayTarget) {
+        guard !settings.videoEngine.needsDeployment else { return }
         if settings.videoScreens.contains(display.uuid) {
             settings.videoScreens.remove(display.uuid)
             refreshNow("取消此螢用影片")   // 取消後立刻補一張蒙太奇回去
         } else {
             settings.videoScreens.insert(display.uuid)
+            refreshNow("指定此螢用影片")
         }
     }
 

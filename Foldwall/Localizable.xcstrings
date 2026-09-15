@@ -2868,28 +2868,6 @@
         }
       }
     },
-    "回到選單列，勾 **此螢幕改用影片**。漏掉這步，下一輪靜態蒙太奇會把影片蓋掉。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Back in the menu bar, check **Use Video on This Display**. Skip this and the next static montage will paint over the video."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "回到菜单栏，勾 **此屏幕改用视频**。漏掉这步，下一轮静态蒙太奇会把视频盖掉。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "回到選單列，勾 **此螢幕改用影片**。漏掉這步，下一輪靜態蒙太奇會把影片蓋掉。"
-          }
-        }
-      }
-    },
     "回應格式不符": {
       "localizations": {
         "en": {
@@ -4100,28 +4078,6 @@
         }
       }
     },
-    "影片需在「系統設定 → 桌布」選片，再回來勾這裡": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pick videos in System Settings → Wallpaper first, then check them here"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "视频需在“系统设置 → 墙纸”选片，再回来勾这里"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "影片需在「系統設定 → 桌布」選片，再回來勾這裡"
-          }
-        }
-      }
-    },
     "影片：%@": {
       "localizations": {
         "en": {
@@ -4452,24 +4408,24 @@
         }
       }
     },
-    "打開 系統設定 → 桌布，往下找到 **Foldwall** 區塊。": {
+    "打開 系統設定 → 桌布，選擇要播放的螢幕，再往下找到 **Foldwall** 區塊。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open System Settings → Wallpaper and scroll down to the **Foldwall** section."
+            "value": "Open System Settings → Wallpaper, choose the display, then scroll down to **Foldwall**."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打开 系统设置 → 墙纸，往下找到 **Foldwall** 区块。"
+            "value": "打开 系统设置 → 墙纸，选择要播放的显示器，再向下找到 **Foldwall** 区域。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "打開 系統設定 → 桌布，往下找到 **Foldwall** 區塊。"
+            "value": "打開 系統設定 → 桌布，選擇要播放的螢幕，再往下找到 **Foldwall** 區塊。"
           }
         }
       }
@@ -4558,6 +4514,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "拷貝中…"
+          }
+        }
+      }
+    },
+    "指定影片桌布螢幕": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video wallpaper displays"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指定视频壁纸显示器"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指定影片桌布螢幕"
           }
         }
       }
@@ -7092,6 +7070,28 @@
         }
       }
     },
+    "系統設定會決定哪台螢幕播放影片，不必再回 Foldwall 勾選。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System Settings controls which display plays video. No additional selection in Foldwall is needed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统设置决定哪台显示器播放视频，无需再回 Foldwall 勾选。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統設定會決定哪台螢幕播放影片，不必再回 Foldwall 勾選。"
+          }
+        }
+      }
+    },
     "約 %lld 條字串，分批送出，批量依引擎的速度與回覆完整度自動調整，通常幾分鐘內完成。": {
       "localizations": {
         "en": {
@@ -7836,6 +7836,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "語言"
+          }
+        }
+      }
+    },
+    "請在「系統設定 → 桌布」選擇螢幕，再選 Foldwall 影片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a display in System Settings → Wallpaper, then select a Foldwall video"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在“系统设置 → 墙纸”选择显示器，再选 Foldwall 视频"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請在「系統設定 → 桌布」選擇螢幕，再選 Foldwall 影片"
           }
         }
       }

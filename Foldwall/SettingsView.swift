@@ -660,12 +660,14 @@ private struct VideoSettings: View {
                 打開上面的**啟用影片桌布**開關，在「來源」分頁加入含影片的資料夾，\
                 並在左欄勾選要用的來源。
                 """)
-            step(2, "打開 系統設定 → 桌布，往下找到 **Foldwall** 區塊。")
+            step(2, "打開 系統設定 → 桌布，選擇要播放的螢幕，再往下找到 **Foldwall** 區塊。")
             step(3, """
                 選 **Shuffle All** 就會隨機輪播全部影片；想固定一支就直接點那支。\
                 隨機的切換頻率（喚醒時／5 分鐘／每天…）也在同一個畫面選。
                 """)
-            step(4, "回到選單列，勾 **此螢幕改用影片**。漏掉這步，下一輪靜態蒙太奇會把影片蓋掉。")
+            Text("系統設定會決定哪台螢幕播放影片，不必再回 Foldwall 勾選。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
 
         Button {
@@ -2735,4 +2737,3 @@ private struct AboutSettings: View {
 }
 
 // MARK: - 從網址下載
-

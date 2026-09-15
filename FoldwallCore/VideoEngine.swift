@@ -8,7 +8,7 @@
 //
 //  **系統 extension**：fork 自 Phosphene，dlopen 私有 WallpaperExtensionKit。
 //  唯一能讓影片出現在**鎖屏**的路。代價是私有 API 隨時可能斷、要實體拷貝、
-//  而且設定要兩步（系統設定選片 ＋ 選單勾此螢幕）。
+//  播放螢幕與影片由系統設定指定。
 
 import Foundation
 
