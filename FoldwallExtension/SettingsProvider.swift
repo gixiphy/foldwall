@@ -197,6 +197,7 @@ private func makeShuffleItem(bundleID: String, thumbnailURLs: [URL], contextMenu
                 localizedName: frequency.localizedName,
                 accessibilityIdentifier: nil,
                 localizedInformativeText: nil,
+                isDownloaded: true,
             ))
         },
     )

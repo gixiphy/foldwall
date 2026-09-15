@@ -301,11 +301,14 @@ enum MenuPickerItemEnum: Codable {
     }
 }
 
+/// macOS 27 requires isDownloaded on each picker item, including local shuffle
+/// controls. macOS 26 ignores the additional key.
 struct MenuPickerItem: Codable {
     var id: String
     var localizedName: String
     var accessibilityIdentifier: String?
     var localizedInformativeText: String?
+    var isDownloaded: Bool
 }
 
 struct MenuPickerDivider: Codable {
