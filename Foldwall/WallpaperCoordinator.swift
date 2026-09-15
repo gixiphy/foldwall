@@ -44,6 +44,9 @@ final class WallpaperCoordinator {
         /// 影片是否真的備妥（開關開著、規則沒暫停、container 裡有東西）。
         /// 沒備妥時靜態管線會接管那些螢幕，不留無人管的畫面。
         var videoReady = false
+        /// 能不能清系統圖片桌布留下的 BMP 快取（見 SystemWallpaperAccess）。
+        /// nil＝還沒查過；denied 時跳過清理，UI 帶使用者去開「完全取用磁碟」。
+        var systemCleanupAccess: SystemWallpaperAccess?
 
         /// 三種來源都沒有才算「還沒設定」。
         var hasNoSources: Bool {
@@ -1197,10 +1200,30 @@ final class WallpaperCoordinator {
         guard !targets.isEmpty else { return }
         let cache = wallpaperImageCache
         Task.detached(priority: .utility) {
+            let access = SystemWallpaperAccess.check()
+            await self.noteSystemCleanupAccess(access)
+            guard access != .denied else { return }
             let outcome = cache.prune(displays: targets)
             guard outcome.deletedCount > 0 else { return }
             let mb = Double(outcome.deletedBytes) / 1_048_576
             Log.pipeline.info("系統桌布快取：清掉 \(outcome.deletedCount, privacy: .public) 張 BMP／\(mb, format: .fixed(precision: 1), privacy: .public) MB")
+        }
+    }
+
+    /// 設定頁打開或 app 回到前景時重查，開完權限切回來 UI 就會更新。
+    /// 清理本身留給下一輪：要知道這輪寫了哪幾塊螢幕才清得了。
+    func recheckSystemCleanupAccess() {
+        Task.detached(priority: .utility) {
+            let access = SystemWallpaperAccess.check()
+            await self.noteSystemCleanupAccess(access)
+        }
+    }
+
+    private func noteSystemCleanupAccess(_ access: SystemWallpaperAccess) {
+        guard status.systemCleanupAccess != access else { return }
+        status.systemCleanupAccess = access
+        if access == .denied {
+            Log.pipeline.notice("系統桌布快取：沒有「完全取用磁碟」，跳過清理")
         }
     }
 

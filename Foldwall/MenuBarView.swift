@@ -68,6 +68,10 @@ struct MenuBarView: View {
                     }
                 }
 
+                if coordinator.status.systemCleanupAccess == .denied {
+                    Button("系統桌布舊檔清不掉（需要完全取用磁碟）…") { openPrivacySettings() }
+                }
+
                 Toggle("登入時啟動", isOn: $settings.launchAtLogin)
                 Button("在 Finder 顯示快取") { revealCache() }
             }

@@ -3660,6 +3660,28 @@
         }
       }
     },
+    "已取得「完全取用磁碟」：每輪會清掉系統桌布的舊 BMP": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full Disk Access granted: each cycle clears the system wallpaper's old BMPs"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已获得“完全磁盘访问权限”：每轮会清掉系统壁纸的旧 BMP"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取得「完全取用磁碟」：每輪會清掉系統桌布的舊 BMP"
+          }
+        }
+      }
+    },
     "已從 iCloud 更新來源（%@・%@）": {
       "localizations": {
         "en": {
@@ -5618,6 +5640,28 @@
         }
       }
     },
+    "每換一次蒙太奇，macOS 會替那張圖多存一份整螢幕大小的 BMP（5120×1440 一張約 22 MB），而且系統不一定會回收。這些放在系統自己的資料夾，macOS 不讓 Foldwall 讀，也不會跳授權框——要在「完全取用磁碟」打開 Foldwall，它才能每輪把舊的清掉。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every time the montage changes, macOS stores an extra full-screen BMP of that image (about 22 MB at 5120×1440), and the system doesn't reliably reclaim it. These live in the system's own folder, which macOS won't let Foldwall read, and it shows no permission prompt. Turn Foldwall on under Full Disk Access so it can clear the old ones each cycle."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每换一次蒙太奇，macOS 会替那张图多存一份整屏幕大小的 BMP（5120×1440 一张约 22 MB），而且系统不一定会回收。这些放在系统自己的文件夹，macOS 不让 Foldwall 读，也不会弹出授权框——要在“完全磁盘访问权限”里打开 Foldwall，它才能每轮把旧的清掉。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每換一次蒙太奇，macOS 會替那張圖多存一份整螢幕大小的 BMP（5120×1440 一張約 22 MB），而且系統不一定會回收。這些放在系統自己的資料夾，macOS 不讓 Foldwall 讀，也不會跳授權框——要在「完全取用磁碟」打開 Foldwall，它才能每輪把舊的清掉。"
+          }
+        }
+      }
+    },
     "池 %lld": {
       "localizations": {
         "en": {
@@ -5922,6 +5966,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "流暢播放靠它。裝好之後重新啟動 Foldwall 才會用上，在那之前先用相容播放："
+          }
+        }
+      }
+    },
+    "清單裡沒有 Foldwall 的話，用左下角的 ＋ 從「應用程式」裡加進去。系統要求結束並重新打開 Foldwall 時照做即可。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If Foldwall is not in the list, add it from Applications with the + button at the bottom left. If the system asks to quit and reopen Foldwall, go ahead."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "列表里没有 Foldwall 的话，用左下角的 ＋ 从“应用程序”里加进去。系统要求退出并重新打开 Foldwall 时照做即可。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清單裡沒有 Foldwall 的話，用左下角的 ＋ 從「應用程式」裡加進去。系統要求結束並重新打開 Foldwall 時照做即可。"
           }
         }
       }
@@ -7044,6 +7110,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "系統 extension：輪替頻率在「系統設定 → 桌布」選 Shuffle All 之後設定"
+          }
+        }
+      }
+    },
+    "系統桌布留下的舊檔清不掉": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Old system wallpaper files can't be cleared"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统壁纸留下的旧文件清不掉"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統桌布留下的舊檔清不掉"
+          }
+        }
+      }
+    },
+    "系統桌布舊檔清不掉（需要完全取用磁碟）…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't clear old system wallpaper files (needs Full Disk Access)…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统壁纸旧文件清不掉（需要完全磁盘访问权限）…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統桌布舊檔清不掉（需要完全取用磁碟）…"
           }
         }
       }
@@ -8826,6 +8936,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "重新掃描"
+          }
+        }
+      }
+    },
+    "重新檢查": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check Again"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新检查"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新檢查"
           }
         }
       }

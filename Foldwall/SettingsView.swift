@@ -1640,6 +1640,8 @@ private struct CacheSettings: View {
                 .padding(4)
             }
 
+            systemCleanupNotice
+
             List(rows, id: \.location.id) { row in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -1696,7 +1698,14 @@ private struct CacheSettings: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding()
-        .onAppear(perform: reload)
+        .onAppear {
+            reload()
+            coordinator.recheckSystemCleanupAccess()
+        }
+        // 從系統設定開完權限切回來，這頁要自己更新，不必關掉重開
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            coordinator.recheckSystemCleanupAccess()
+        }
         .confirmationDialog(
             pendingClear.map { String(localized: "清除「\($0.name)」？") } ?? "",
             isPresented: Binding(get: { pendingClear != nil },
@@ -1717,6 +1726,54 @@ private struct CacheSettings: View {
         } message: {
             Text(clearError ?? "")
         }
+    }
+
+    /// 系統圖片桌布自己留下的東西：每輪一張整螢幕 BMP。
+    /// 它在系統的 container 裡，沒有「完全取用磁碟」Foldwall 連看都看不到。
+    @ViewBuilder
+    private var systemCleanupNotice: some View {
+        switch coordinator.status.systemCleanupAccess {
+        case .denied:
+            GroupBox {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("系統桌布留下的舊檔清不掉", systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                    Text("""
+                        每換一次蒙太奇，macOS 會替那張圖多存一份整螢幕大小的 BMP\
+                        （5120×1440 一張約 22 MB），而且系統不一定會回收。\
+                        這些放在系統自己的資料夾，macOS 不讓 Foldwall 讀，也不會跳授權框——\
+                        要在「完全取用磁碟」打開 Foldwall，它才能每輪把舊的清掉。
+                        """)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("清單裡沒有 Foldwall 的話，用左下角的 ＋ 從「應用程式」裡加進去。系統要求結束並重新打開 Foldwall 時照做即可。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack {
+                        Button("打開「完全取用磁碟」", action: openFullDiskAccess)
+                        Button("重新檢查") { coordinator.recheckSystemCleanupAccess() }
+                    }
+                }
+                .padding(4)
+            }
+        case .granted:
+            Label("已取得「完全取用磁碟」：每輪會清掉系統桌布的舊 BMP",
+                  systemImage: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.green)
+        case .notNeeded, nil:
+            EmptyView()
+        }
+    }
+
+    private func openFullDiskAccess() {
+        guard let url = URL(string:
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")
+        else { return }
+        NSWorkspace.shared.open(url)
     }
 
     /// 講清楚刪了會怎樣，而不是只問「確定嗎」。
