@@ -202,8 +202,9 @@ public enum MPVRuntime {
     /// 建 core 時一次設好的選項。
     ///
     /// 基準是使用者確認流暢的原型（`tools/playback-compare`）：`vo=libmpv`、
-    /// `hwdec=auto-safe`、**靜音但保留音訊路徑**（`mute=yes`，不是 `ao=null`／`aid=no`）。
-    /// 關掉音訊解碼、改同步模式這類改動要獨立 A/B，不能假設不影響播放節奏。
+    /// `hwdec=auto-safe`、靜音並保留音訊解碼與同步，但輸出固定用 `ao=null`。
+    /// mpv 0.41 的 CoreAudio hotplug callback 會在裝置變動時崩潰（上游 #18274）；
+    /// `mute=yes` 仍會開實體裝置。null 輸出保留預設計時，不設 `aid=no` 或 untimed。
     ///
     /// **沒有 `start`**：那個選項是每支檔案都套用的，放在這裡會讓之後接上的每一支
     /// 都從同一秒開始。換核心要保留時間點的話，載入後再 seek（見 MPVSurface）。
@@ -215,6 +216,7 @@ public enum MPVRuntime {
             ("vo", "libmpv"),
             ("hwdec", "auto-safe"),
             ("mute", "yes"),
+            ("ao", "null"),
             // 不讀使用者的 mpv.conf、不跑 script：桌布的行為不該被別處的設定改掉。
             ("config", "no"),
             ("load-scripts", "no"),
@@ -257,7 +259,7 @@ public enum MPVRuntime {
     /// 死在這裡），只是不接任何輸出。
     public static func probeOptions() -> [(String, String)] {
         playbackOptions(loop: false).filter { $0.0 != "vo" && $0.0 != "hwdec" }
-            + [("vo", "null"), ("ao", "null")]
+            + [("vo", "null")]
     }
 
     // MARK: - 播到一半的錯誤

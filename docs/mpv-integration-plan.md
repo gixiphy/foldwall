@@ -2,6 +2,10 @@
 
 狀態：進行中。2026-09-11 起草，2026-09-12 依程式碼與本機 IINA 實物驗證修訂；同日完成 P0 全部程式碼（量尺修正、`MPVRuntime`、dlopen 橋接、backend 抽出、渲染生命週期、單螢幕接線、設定頁與 README）、P1 的程式碼項目（即時改模式、單一暫停狀態機、活動宣告、錯誤分類、遮蔽暫停）與 P2 的量測、File Provider 來源身分、政策暫停統計；本機 `brew install mpv`（0.41.0）後用 `tools/engine-harness` 跑過生命週期、壓力、能耗矩陣與兩種載入失敗模擬。正式簽名的 app 抓到並修掉 LuaJIT 被 Hardened Runtime SIGKILL 的問題。**仍要人做**：問題片 20 分鐘肉眼流暢度、真的睡眠喚醒、雙螢插拔與改刷新率、公證與乾淨機器安裝。**結論**：mpv 可用但 CPU 約為 AVPlayer 的 5 倍，預設核心維持 AVPlayer；不自帶 libmpv。
 
+**2026-09-16 閃退修正**：本機三份 Foldwall crash report 都在 CoreAudio 裝置變動通知中，以 `mp_msg_va → mp_msg → hotplug_cb` 空指標存取崩潰，與 [mpv #18274](https://github.com/mpv-player/mpv/issues/18274) 相同。桌布播放改成 `ao=null`；只靜音仍會初始化實體音訊輸出。版本探測沿用這個選項，避免重複 `ao` 鍵。內建 script 仍全關，也不查詢 `audio-device-list`（查詢本身會啟動另一套 hotplug 監聽）。
+
+本機驗證（mpv 0.41.0）：28 項 `MPVRuntimeTests` 通過；獨立程式用正式 `MPVCore` 和含音軌的測試片，在 LLDB 下重現舊設定的同一個 `hotplug_cb` 崩潰。修正後版本探測、三次建立／播放／釋放均通過，`current-ao=null`、播放時間按正常速度推進，`register_hotplug_cb` 斷點命中為零。正式引擎的 40 秒 harness 完成接片、mpv ↔ AVPlayer、暫停恢復與循環模式切換，VideoToolbox 解碼，解碼／輸出掉幀 0／0，結束後視窗與播放器數量均為零。這是短測，長時間肉眼流暢度與真實裝置插拔仍待驗證。
+
 目標是把使用者已確認流暢的 mpv 桌面播放路徑整合進 Foldwall，保留現有排片、螢幕配置與電源政策，並具備復原與長時間播放能力。
 
 libmpv 的取得跟 yt-dlp 走同一條界線：**使用者自己用 Homebrew 裝，Foldwall 偵測、查版本、提示更新，不附帶、不下載、不替他跑 brew。** 沒裝就走 AVPlayer，設定頁講清楚怎麼裝。這條決定拿掉了自帶 LGPL 建置與 Frameworks 打包那整塊前置工作；若 Homebrew 路徑實測不足（見 P2），才回頭評估自帶。
@@ -36,7 +40,7 @@ WallpaperCoordinator（現有來源、排片、冷卻與電源政策）
 - backend 負責載入、播放、定位、縮放、狀態與釋放；排下一支、跨螢幕避重複與來源冷卻仍由現有邏輯決定。
 - 每個螢幕一個 mpv core 和 render context；不同刷新率各自同步，不能共用固定 60 Hz 計時器。
 - 第一版保留原型已驗證的 OpenGL render API。Metal／Vulkan 作獨立後續評估，不把兩次渲染遷移綁在一起。
-- 原型使用靜音但保留音訊路徑（`mute=yes`，沒有 `ao=null` 或 `aid=no`）。初次整合沿用此基準；關掉音訊解碼、改同步模式等須獨立 A/B，不能假設不影響播放節奏。
+- 原型使用靜音但保留音訊路徑（`mute=yes`）。2026-09-16 因 CoreAudio hotplug 閃退，正式播放改用 `ao=null`，保留音訊解碼與預設計時，不設 `aid=no`、untimed 或其他同步模式。詳見下方修正驗證。
 - 新增的桌面核心偏好照既有慣例用 `decodeIfPresent` 加預設值寫進 `SettingsSnapshot` 與 `SyncSnapshots`；舊備份缺這個鍵不是損壞。
 - libmpv 用 dlopen 在執行期載入，不在連結期綁定：app 沒有 mpv 也要能啟動。C 橋接層以 dlsym 取符號，Swift 端只看到一個「載入成功／失敗原因」的結果型別。
 - **一個行程只 dlopen 一次，握著 handle 到行程結束。** `brew upgrade mpv` 會換掉磁碟上的檔，已映射的舊庫照樣能用，但之後再 dlopen 會拿到新版，兩台螢幕各跑一版是在賭。新版一律下次啟動才生效，版本檢查發現「磁碟上的 ≠ 載入中的」就提示重新啟動。

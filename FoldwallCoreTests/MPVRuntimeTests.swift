@@ -153,15 +153,17 @@ final class MPVRuntimeTests: XCTestCase {
 
     // MARK: - 播放選項
 
-    /// 基準是使用者確認流暢的原型：靜音但**保留音訊路徑**，不是 ao=null。
-    /// 有人想省那條路的時候要獨立 A/B，不是順手改這裡。
-    func testOptionsKeepThePrototypeBaseline() {
+    /// 無聲桌布避開 CoreAudio hotplug 崩潰，保留音訊解碼與預設播放計時。
+    func testOptionsAvoidPhysicalAudioDevicesWithoutDisablingTiming() {
         let options = Dictionary(uniqueKeysWithValues: MPVRuntime.playbackOptions(loop: false))
         XCTAssertEqual(options["vo"], "libmpv")
         XCTAssertEqual(options["hwdec"], "auto-safe")
         XCTAssertEqual(options["mute"], "yes")
-        XCTAssertNil(options["ao"])
+        XCTAssertEqual(options["ao"], "null")
         XCTAssertNil(options["aid"])
+        XCTAssertNil(options["ao-null-untimed"])
+        XCTAssertNil(options["untimed"])
+        XCTAssertNil(options["video-sync"])
         XCTAssertEqual(options["keep-open"], "yes")
         XCTAssertEqual(options["loop-file"], "no")
     }
