@@ -299,16 +299,14 @@ public enum UITranslationBatchPolicy {
 public struct CLIUITranslationBatchRunner: UITranslationBatchRunning {
     public let engine: KnownCLIEngine
     public let executable: URL
-    public var model: String?
     /// 一批對慢的模型可能要好幾分鐘。批量的目標秒數也是從這裡推的
     /// （`UITranslationBatchPolicy.batchBudgetSeconds`）。
     public static let defaultTimeout: Duration = .seconds(300)
     public var timeout: Duration = CLIUITranslationBatchRunner.defaultTimeout
 
-    public init(engine: KnownCLIEngine, executable: URL, model: String? = nil) {
+    public init(engine: KnownCLIEngine, executable: URL) {
         self.engine = engine
         self.executable = executable
-        self.model = model
     }
 
     public func translate(_ items: [UITranslationItem], targetLanguage: String) async throws -> UITranslationBatch {
@@ -320,7 +318,6 @@ public struct CLIUITranslationBatchRunner: UITranslationBatchRunning {
         let run = KnownCLIEngine.RunContext(
             sandbox: sandbox,
             schemaFile: CLIExecution.writeSchema(UITranslationPrompt.schemaJSON, into: sandbox),
-            model: engine.supportsModelSelection ? model : nil,
             timeout: timeout)
         return try await CLIExecution.perform(
             engine: engine, executable: executable,

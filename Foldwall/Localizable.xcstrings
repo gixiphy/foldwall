@@ -246,28 +246,6 @@
         }
       }
     },
-    "%@（未安裝）": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ (not installed)"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@（未安装）"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@（未安裝）"
-          }
-        }
-      }
-    },
     "%@（這台沒裝）": {
       "localizations": {
         "en": {
@@ -1680,28 +1658,6 @@
         }
       }
     },
-    "使用預設": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use Default"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用默认"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用預設"
-          }
-        }
-      }
-    },
     "來源": {
       "localizations": {
         "en": {
@@ -2560,6 +2516,50 @@
         }
       }
     },
+    "另有 %lld 支已安裝但無法執行：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld more installed but could not be run: %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另有 %1$lld 个已安装但无法运行：%2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另有 %1$lld 支已安裝但無法執行：%2$@"
+          }
+        }
+      }
+    },
+    "只列出已安裝且可執行的 CLI，一律使用該 CLI 自己的預設模型。Foldwall 不經手任何 API key，計費在你自己的訂閱上。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only CLIs that are installed and actually run are listed, and each always uses its own default model. Foldwall never touches an API key; usage is billed to your own subscription."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只列出已安装且可运行的 CLI，一律使用该 CLI 自己的默认模型。Foldwall 不经手任何 API key，计费在你自己的订阅上。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只列出已安裝且可執行的 CLI，一律使用該 CLI 自己的預設模型。Foldwall 不經手任何 API key，計費在你自己的訂閱上。"
+          }
+        }
+      }
+    },
     "只抓視訊軌，不抓音訊——桌布本來就靜音播放，音訊抓下來只是佔空間。同一個解析度底下挑位元率最高的那條流：站方常常把最糊的那條排在最前面。": {
       "localizations": {
         "en": {
@@ -2622,6 +2622,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "可以用，這支目前會拿到 %@。"
+          }
+        }
+      }
+    },
+    "可用": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可用"
           }
         }
       }
@@ -2732,6 +2754,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "同步來源失敗：%@"
+          }
+        }
+      }
+    },
+    "名單裡的 CLI 都已偵測到。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every CLI on the list has been detected."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名单里的 CLI 都已检测到。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名單裡的 CLI 都已偵測到。"
           }
         }
       }
@@ -3176,6 +3220,28 @@
         }
       }
     },
+    "填入執行檔的完整路徑，按 Return 會立刻重新掃描。掃描順序：自訂路徑 → PATH → 常見安裝位置。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter the full path to the executable; pressing Return rescans right away. Scan order: custom path → PATH → common install locations."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填入可执行文件的完整路径，按 Return 会立刻重新扫描。扫描顺序：自定义路径 → PATH → 常见安装位置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填入執行檔的完整路徑，按 Return 會立刻重新掃描。掃描順序：自訂路徑 → PATH → 常見安裝位置。"
+          }
+        }
+      }
+    },
     "外部工具": {
       "localizations": {
         "en": {
@@ -3330,28 +3396,6 @@
         }
       }
     },
-    "實際會使用 %@。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ will be used instead."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "实际会使用 %@。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "實際會使用 %@。"
-          }
-        }
-      }
-    },
     "實際核心：%@": {
       "localizations": {
         "en": {
@@ -3370,6 +3414,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "實際核心：%@"
+          }
+        }
+      }
+    },
+    "實驗性": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Experimental"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实验性"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "實驗性"
           }
         }
       }
@@ -4144,28 +4210,6 @@
         }
       }
     },
-    "從 %@ 回報的清單挑選": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pick from the list %@ reports"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "从 %@ 报告的列表中挑选"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "從 %@ 回報的清單挑選"
-          }
-        }
-      }
-    },
     "從 %@ 秒接著播": {
       "localizations": {
         "en": {
@@ -4518,6 +4562,28 @@
         }
       }
     },
+    "找不到你的 CLI？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't find your CLI?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到你的 CLI？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到你的 CLI？"
+          }
+        }
+      }
+    },
     "拷貝中…": {
       "localizations": {
         "en": {
@@ -4624,28 +4690,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "掃描中…"
-          }
-        }
-      }
-    },
-    "掃描順序：自訂路徑 → PATH → 常見安裝位置。Foldwall 不經手任何 API key，計費在你自己的訂閱上。": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scan order: custom path → PATH → common install locations. Foldwall never touches an API key; usage is billed to your own subscription."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "扫描顺序：自定义路径 → PATH → 常见安装位置。Foldwall 不经手任何 API key，计费在你自己的订阅上。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "掃描順序：自訂路徑 → PATH → 常見安裝位置。Foldwall 不經手任何 API key，計費在你自己的訂閱上。"
           }
         }
       }
@@ -4800,6 +4844,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "播放方式"
+          }
+        }
+      }
+    },
+    "支援：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supported: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支援：%@"
           }
         }
       }
@@ -5156,6 +5222,28 @@
         }
       }
     },
+    "未偵測到可用的 AI CLI。安裝後按「重新掃描」。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No usable AI CLI detected. Install one, then click Rescan."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未检测到可用的 AI CLI。安装后点“重新扫描”。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未偵測到可用的 AI CLI。安裝後按「重新掃描」。"
+          }
+        }
+      }
+    },
     "未命名 Mac": {
       "localizations": {
         "en": {
@@ -5240,6 +5328,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "未安裝——`brew install yt-dlp`"
+          }
+        }
+      }
+    },
+    "未登入": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not logged in"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未登录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未登入"
+          }
+        }
+      }
+    },
+    "未登入・終端執行 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not logged in · run %@ in Terminal"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未登录・在终端运行 %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未登入・終端執行 %@"
           }
         }
       }
@@ -5530,28 +5662,6 @@
         }
       }
     },
-    "模型": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Model"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "模型"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "模型"
-          }
-        }
-      }
-    },
     "正在掃描資料夾…": {
       "localizations": {
         "en": {
@@ -5702,28 +5812,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "池 %lld 張"
-          }
-        }
-      }
-    },
-    "沒偵測到 `%@`。裝好之後按「重新掃描」，或填入執行檔的完整路徑：": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "`%@` was not found. Install it and click Rescan, or enter the full path to the executable:"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "没检测到 `%@`。装好之后点“重新扫描”，或填入可执行文件的完整路径："
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "沒偵測到 `%@`。裝好之後按「重新掃描」，或填入執行檔的完整路徑："
           }
         }
       }
@@ -9288,28 +9376,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "項目"
-          }
-        }
-      }
-    },
-    "預設": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Default"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "默认"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "預設"
           }
         }
       }

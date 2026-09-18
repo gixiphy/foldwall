@@ -22,6 +22,8 @@ public final class UITranslationStore: Sendable {
     public struct Manifest: Codable, Equatable, Sendable {
         public var language: String
         public var engineID: String
+        /// 舊 manifest 的模型欄位。模型選擇已移除（一律用 CLI 預設），
+        /// 新寫入一律 nil；保留欄位只為了讓舊檔還解得開。
         public var model: String?
         public var date: Date
         /// 翻譯時 App 的 CFBundleVersion；升版後用來提示「有新字串」。

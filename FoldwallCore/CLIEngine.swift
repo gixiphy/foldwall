@@ -1,5 +1,5 @@
 //  CLIEngine.swift
-//  本機 AI CLI（claude／codex／agy／grok／opencode／pi）的目錄、呼叫、輸出解析與錯誤。
+//  本機 AI CLI（claude／codex／agy／grok／opencode／pi…）的目錄、呼叫、探測、輸出解析與錯誤。
 //
 //  移植自 Chorus 的 AdviceEngineRegistry＋CLIAdviceProvider，砍掉送照片那條路——
 //  Foldwall 只拿它翻譯介面文字（見 UITranslationStore）。零金鑰：Foldwall 不經手
@@ -14,69 +14,46 @@ import Foundation
 // MARK: - 目錄
 
 /// 已知 CLI 目錄的一筆。偵測到誰就在設定頁列誰；預設引擎＝claude（存在時）。
+///
+/// 模型一律用各 CLI 自己的預設：模型名／別名的壽命比 App 的發版週期短得多，
+/// 讓使用者在設定頁填一個會過期的字串，只會製造「昨天還好的引擎今天壞了」。
 public struct KnownCLIEngine: Identifiable, Sendable {
+
+    /// 登入狀態的探測方式。三種都只**讀**狀態，不碰憑證內容、不寫任何檔。
+    public enum AuthProbe: Sendable {
+        /// 跑 `<cli> <arguments>`：退出碼 0 = 已登入。
+        case command(arguments: [String])
+        /// 憑證檔（相對家目錄）存在即已登入。
+        case credentialFile(path: String)
+        /// 環境變數任一存在且非空即已登入（吃 API key 的 CLI）。
+        case environmentKey(names: [String])
+    }
+
     public let id: String
     public let executableName: String
     public let displayName: String
     public let codec: CLIOutputCodec
-    /// 支援 `--model`／`-m`：設定頁給一個自訂模型欄位。
-    public let supportsModelSelection: Bool
-    /// 未登入時提示使用者到終端執行的指令。
+    /// headless 行為尚未在本機驗證過：可選，標「實驗性」。
+    public let experimental: Bool
+    /// 這家 CLI 額外需要的環境變數，在 `CLIProcessRunner.whitelistedEnvironment`
+    /// 之後合併（goose 不設 `GOOSE_MODE` 會在非互動模式下等權限確認）。
+    public let extraEnvironment: [String: String]
+    /// 登入狀態怎麼查；沒有可靠查法就 nil（狀態顯示為未知，照常列出）。
+    public let authProbe: AuthProbe?
+    /// 未登入時提示使用者到終端執行的指令；沒有就空字串。
     public let loginCommand: String
 
-    /// 模型欄位的格式提示。各家寫法不同——尤其 opencode 要 `provider/model`，
-    /// 只填模型名會直接失敗，這種事不該讓使用者自己試出來。
-    /// computed 而非存在 catalog 裡：`static let` 會把翻譯結果凍在第一次取用那一刻。
-    public var modelHint: String {
-        switch id {
-        case "claude": String(localized: "別名 opus／sonnet／fable，或完整名稱如 claude-opus-5", bundle: .foldwallCore)
-        case "agy": String(localized: "slug，如 gemini-3.1-pro-high、claude-sonnet-4-6", bundle: .foldwallCore)
-        case "codex": String(localized: "模型名稱，如 gpt-5.6-terra", bundle: .foldwallCore)
-        case "opencode": String(localized: "provider/model 格式", bundle: .foldwallCore)
-        case "pi": String(localized: "provider/model 格式，與 pi --list-models 列的一致", bundle: .foldwallCore)
-        default: String(localized: "模型 ID", bundle: .foldwallCore)
-        }
-    }
-
-    /// 可靠的模型列舉方式；沒有就 nil（欄位維持純輸入，不編造清單）。
-    /// claude 沒有非互動的列舉指令，改用 `suggestedModels` 的穩定別名。
-    public var modelListing: ModelListing? {
-        switch id {
-        case "agy": .command(arguments: ["models"], format: .tabSeparated)
-        case "grok": .command(arguments: ["models"], format: .markerList)
-        case "opencode": .command(arguments: ["models"], format: .plainLines)
-        case "pi": .command(arguments: ["--list-models"], format: .whitespaceColumns)
-        case "codex": .codexModelsCache
-        default: nil
-        }
-    }
-
-    /// 靜態建議項。只放**設計上穩定**的東西（claude 的別名恆指向當代最新模型），
-    /// 不放具體版本號——那種清單放著就會過期。
-    public var suggestedModels: [String] {
-        id == "claude" ? ["opus", "sonnet", "fable", "haiku"] : []
-    }
-
-    /// 模型清單的來源。各家不同，照實反映。
-    public enum ModelListing: Sendable {
-        /// 跑 `<cli> <arguments>` 取得清單。
-        case command(arguments: [String], format: CommandFormat)
-        /// codex 沒有非互動的列舉指令（`codex models` 會轉進互動式 TUI 並因非 TTY 失敗），
-        /// 但它自己在 `~/.codex/models_cache.json` 維護一份抓好的清單——直接讀那份，
-        /// 唯讀、不動使用者的檔案。
-        case codexModelsCache
-
-        public enum CommandFormat: Sendable {
-            /// 每行一個 slug（opencode：`provider/model`）。
-            case plainLines
-            /// 散文清單，項目以 `*`／`-` 起頭（grok：`  * grok-4.6 (default)`）。
-            case markerList
-            /// `<slug>\t<顯示名>`（agy）。
-            case tabSeparated
-            /// 空白對齊的表格＋表頭（pi `--list-models`：`provider  model  context  …`），
-            /// 取 provider 與 model 兩欄拼成 `provider/model`。
-            case whitespaceColumns
-        }
+    public init(id: String, executableName: String, displayName: String, codec: CLIOutputCodec,
+                experimental: Bool = false, extraEnvironment: [String: String] = [:],
+                authProbe: AuthProbe? = nil, loginCommand: String) {
+        self.id = id
+        self.executableName = executableName
+        self.displayName = displayName
+        self.codec = codec
+        self.experimental = experimental
+        self.extraEnvironment = extraEnvironment
+        self.authProbe = authProbe
+        self.loginCommand = loginCommand
     }
 
     /// 單發呼叫需要的執行期資訊。
@@ -86,31 +63,25 @@ public struct KnownCLIEngine: Identifiable, Sendable {
         public var sandbox: URL?
         /// 寫在沙箱裡的 JSON Schema 檔（吃 schema 檔的引擎才用）。
         public var schemaFile: URL?
-        /// 使用者填的模型字串；留空＝用 CLI 自己的預設。
-        public var model: String?
         /// 子行程逾時；CLI 自帶 timeout 參數的會設得比它略短，
         /// 讓 CLI 自己乾淨收尾而不是被我們 SIGTERM。
         public var timeout: Duration
 
-        public init(sandbox: URL? = nil, schemaFile: URL? = nil, model: String? = nil,
-                    timeout: Duration = .seconds(120)) {
+        public init(sandbox: URL? = nil, schemaFile: URL? = nil, timeout: Duration = .seconds(120)) {
             self.sandbox = sandbox
             self.schemaFile = schemaFile
-            self.model = model
             self.timeout = timeout
         }
     }
 
     /// 單發呼叫的參數與 prompt 傳遞方式。
-    /// claude 走 stdin（prompt 長，避開 argv）；其餘以參數帶 prompt。
+    /// claude 與 amp 走 stdin（prompt 長，避開 argv）；其餘以參數帶 prompt。
+    /// **不帶任何模型旗標**：一律用 CLI 自己的預設。
     public func invocation(prompt: String, run: RunContext) -> (arguments: [String], stdin: String?) {
-        let model = run.model?.trimmingCharacters(in: .whitespaces) ?? ""
         switch id {
-        case "claude":
+        case "claude", "openclaude":
             // 翻譯不需要任何工具；不給 --allowedTools 就不會有權限對話框的問題
-            var arguments = ["-p", "--output-format", "json"]
-            if !model.isEmpty { arguments += ["--model", model] }
-            return (arguments, prompt)
+            return (["-p", "--output-format", "json"], prompt)
 
         case "agy":
             var arguments = ["-p", prompt, "--output-format", "json"]
@@ -118,29 +89,24 @@ public struct KnownCLIEngine: Identifiable, Sendable {
             // 不用 --dangerously-skip-permissions（那會放行所有工具）。
             if let sandbox = run.sandbox { arguments += ["--add-dir", sandbox.path] }
             if let schema = run.schemaFile { arguments += ["--json-schema", schema.path] }
-            if !model.isEmpty { arguments += ["--model", model] }
             arguments += ["--print-timeout", "\(Self.innerTimeoutSeconds(run))s"]
             return (arguments, nil)
 
         case "grok":
             var arguments = ["-p", prompt, "--output-format", "json"]
             if let sandbox = run.sandbox { arguments += ["--cwd", sandbox.path] }
-            if !model.isEmpty { arguments += ["--model", model] }
             return (arguments, nil)
 
         case "codex":
             // --skip-git-repo-check 必要——沙箱目錄不是 git repo。
             var arguments = ["exec", "--sandbox", "read-only", "--skip-git-repo-check"]
             if let sandbox = run.sandbox { arguments += ["--cd", sandbox.path] }
-            if !model.isEmpty { arguments += ["--model", model] }
             arguments.append(prompt)
             return (arguments, nil)
 
-        case "opencode":
-            var arguments = ["run", "--dir", run.sandbox?.path ?? FileManager.default.temporaryDirectory.path]
-            if !model.isEmpty { arguments += ["--model", model] }
-            arguments.append(prompt)
-            return (arguments, nil)
+        case "opencode", "kilo":
+            // kilo 與 opencode 同家族，參數一樣。
+            return (["run", "--dir", run.sandbox?.path ?? FileManager.default.temporaryDirectory.path, prompt], nil)
 
         case "pi":
             // pi 沒有 --cd／--cwd，會從行程 cwd 自動撈 AGENTS.md／CLAUDE.md、extensions、
@@ -148,12 +114,67 @@ public struct KnownCLIEngine: Identifiable, Sendable {
             // 機器上的擴充會默默改變翻譯行為（難查、且無法重現）。--no-tools 直接免掉
             // 權限問題：翻譯不需要任何工具。沒有內建 timeout 參數，只靠我們的 watchdog。
             // 參數順序：pi [options] [messages...]，prompt 排最後。
-            var arguments = ["-p", "--no-session", "--no-tools",
-                             "--no-context-files", "--no-extensions",
-                             "--no-skills", "--no-prompt-templates"]
-            if !model.isEmpty { arguments += ["--model", model] }
+            return (["-p", "--no-session", "--no-tools",
+                     "--no-context-files", "--no-extensions",
+                     "--no-skills", "--no-prompt-templates", prompt], nil)
+
+        case "cursor":
+            // --mode ask 是唯讀模式（不會編輯檔案）；--trust 免掉「信任這個目錄嗎」
+            // 的互動確認，在非 TTY 下那個確認會直接讓行程掛住。
+            var arguments = ["-p", "--output-format", "json", "--mode", "ask", "--trust"]
+            if let sandbox = run.sandbox { arguments += ["--workspace", sandbox.path] }
             arguments.append(prompt)
             return (arguments, nil)
+
+        case "hermes":
+            // -Q 壓掉 banner／spinner；--safe-mode 不寫檔、--ignore-rules 不撈使用者的規則檔。
+            return (["chat", "-q", prompt, "-Q", "--oneshot", "--safe-mode", "--ignore-rules"], nil)
+
+        case "copilot":
+            return (["-p", prompt, "-s"], nil)
+
+        case "goose":
+            // --no-session 不落 session 檔、-q 只印最終回覆。
+            // 非互動模式要靠 extraEnvironment 的 GOOSE_MODE=chat 免掉工具權限確認。
+            return (["run", "-t", prompt, "--no-session", "-q"], nil)
+
+        case "amp":
+            // prompt 一律走 stdin：argv 只有 -x（amp 的 headless 開關）。
+            return (["-x"], prompt)
+
+        case "droid":
+            return (["exec", "-o", "json", prompt], nil)
+
+        case "qwen":
+            return (["-p", prompt, "--output-format", "text", "--approval-mode", "plan"], nil)
+
+        case "kimi":
+            // print 模式會強制自動核准工具呼叫；prompt 本身已要求不要動工具。
+            return (["-p", prompt, "--quiet"], nil)
+
+        case "omp":
+            return (["-p", "--no-session", "--no-tools", prompt], nil)
+
+        case "prime-agent":
+            return (["-p", "--no-tools", "--no-session", "--no-extensions", "--no-skills", prompt], nil)
+
+        case "mistral-vibe":
+            return (["-p", prompt, "--output", "text", "--max-turns", "3"], nil)
+
+        case "continue":
+            return (["-p", prompt, "--silent"], nil)
+
+        case "aug":
+            return (["--print", prompt, "--quiet", "--dont-save-session"], nil)
+
+        case "devin":
+            return (["-p", prompt, "--permission-mode", "plan"], nil)
+
+        case "crush":
+            return (["run", "-q", prompt], nil)
+
+        case "kiro":
+            return (["chat", "--no-interactive", prompt], nil)
 
         default:
             return (["-p", prompt], nil)
@@ -169,24 +190,117 @@ public struct KnownCLIEngine: Identifiable, Sendable {
         catalog.first { $0.id == id }
     }
 
-    /// Gemini CLI 不在目錄中：Google 已於 2026-06-18 停用（個人帳號停止服務），
-    /// 官方遷移目標即 Antigravity CLI（agy）。
+    /// 名單與 Chorus 同一份。前八家（claude…hermes）的 headless 行為是實測過的，
+    /// 其餘標 `experimental`。
+    ///
+    /// **刻意不收**的 CLI，以及理由（收進來只會變成難查的「跑完沒有輸出」）：
+    /// - Gemini CLI：Google 2026-06-18 停用個人帳號，官方遷移目標即 agy。
+    /// - Codebuff：純 TUI，不認 `-p`。
+    /// - MiMo Code：沒有文件化的非互動旗標。
+    /// - Trae CN：binary 名稱與文件對不上，且無 JSON 輸出。
+    /// - Ante：preview 階段，CLI 介面未文件化。
+    /// - Rovo Dev：單則指令有 256 字上限，裝不下翻譯的 prompt。
+    /// - Aider：stdout 夾 banner，且模型隨金鑰變。
+    /// - OpenClaw：要先自己起一個 gateway。
+    /// - Cline：只有事件流輸出，沒有終局回覆欄位。
     public static let catalog: [KnownCLIEngine] = [
         KnownCLIEngine(id: "claude", executableName: "claude", displayName: "Claude Code",
-                       codec: .jsonEnvelope, supportsModelSelection: true, loginCommand: "claude /login"),
+                       codec: .jsonEnvelope,
+                       authProbe: .command(arguments: ["auth", "status"]),
+                       loginCommand: "claude /login"),
         KnownCLIEngine(id: "codex", executableName: "codex", displayName: "Codex CLI",
-                       codec: .plainStdout, supportsModelSelection: true, loginCommand: "codex login"),
+                       codec: .plainStdout,
+                       authProbe: .command(arguments: ["login", "status"]),
+                       loginCommand: "codex login"),
         KnownCLIEngine(id: "agy", executableName: "agy", displayName: "Antigravity",
-                       codec: .responseEnvelope, supportsModelSelection: true, loginCommand: "agy"),
+                       codec: .responseEnvelope,
+                       authProbe: .credentialFile(path: ".gemini/antigravity-cli/antigravity-oauth-token"),
+                       loginCommand: "agy"),
         KnownCLIEngine(id: "grok", executableName: "grok", displayName: "Grok Build",
-                       codec: .textEnvelope, supportsModelSelection: true, loginCommand: "grok"),
+                       codec: .textEnvelope,
+                       authProbe: .credentialFile(path: ".grok/auth.json"),
+                       loginCommand: "grok"),
         KnownCLIEngine(id: "opencode", executableName: "opencode", displayName: "OpenCode",
-                       codec: .plainStdout, supportsModelSelection: true, loginCommand: "opencode auth login"),
+                       codec: .plainStdout,
+                       authProbe: .credentialFile(path: ".local/share/opencode/auth.json"),
+                       loginCommand: "opencode auth login"),
         // pi `-p` 預設 text 模式：stdout 只有最終回覆（thinking 不進 stdout），
         // 錯誤與進度在 stderr。未登入時 stderr 是 "No API key found for <provider>."、
         // 退出碼 1（實測 pi 0.85.0）。登入走互動式的 /login，所以登入指令就是 `pi`。
         KnownCLIEngine(id: "pi", executableName: "pi", displayName: "Pi",
-                       codec: .plainStdout, supportsModelSelection: true, loginCommand: "pi"),
+                       codec: .plainStdout,
+                       authProbe: .credentialFile(path: ".pi/agent/auth.json"),
+                       loginCommand: "pi"),
+        KnownCLIEngine(id: "cursor", executableName: "cursor-agent", displayName: "Cursor CLI",
+                       codec: .jsonEnvelope,
+                       authProbe: .command(arguments: ["status", "--format", "json"]),
+                       loginCommand: "cursor-agent login"),
+        KnownCLIEngine(id: "hermes", executableName: "hermes", displayName: "Hermes",
+                       codec: .plainStdout,
+                       authProbe: .command(arguments: ["status"]),
+                       loginCommand: "hermes auth login"),
+        KnownCLIEngine(id: "copilot", executableName: "copilot", displayName: "GitHub Copilot CLI",
+                       codec: .plainStdout, experimental: true,
+                       loginCommand: "copilot"),
+        KnownCLIEngine(id: "goose", executableName: "goose", displayName: "Goose",
+                       codec: .plainStdout, experimental: true,
+                       extraEnvironment: ["GOOSE_MODE": "chat", "GOOSE_DISABLE_SESSION_NAMING": "1"],
+                       loginCommand: "goose configure"),
+        KnownCLIEngine(id: "amp", executableName: "amp", displayName: "Amp",
+                       codec: .plainStdout, experimental: true,
+                       authProbe: .environmentKey(names: ["AMP_API_KEY"]),
+                       loginCommand: "amp login"),
+        KnownCLIEngine(id: "droid", executableName: "droid", displayName: "Factory Droid",
+                       codec: .jsonEnvelope, experimental: true,
+                       authProbe: .environmentKey(names: ["FACTORY_API_KEY"]),
+                       loginCommand: "droid"),
+        KnownCLIEngine(id: "qwen", executableName: "qwen", displayName: "Qwen Code",
+                       codec: .plainStdout, experimental: true,
+                       authProbe: .environmentKey(names: ["OPENAI_API_KEY"]),
+                       loginCommand: ""),
+        KnownCLIEngine(id: "kimi", executableName: "kimi", displayName: "Kimi Code",
+                       codec: .plainStdout, experimental: true,
+                       loginCommand: "kimi"),
+        KnownCLIEngine(id: "omp", executableName: "omp", displayName: "OMP",
+                       codec: .plainStdout, experimental: true,
+                       authProbe: .credentialFile(path: ".omp/agent/auth.json"),
+                       loginCommand: "omp"),
+        KnownCLIEngine(id: "prime-agent", executableName: "prime-agent", displayName: "Prime Agent",
+                       codec: .plainStdout, experimental: true,
+                       authProbe: .credentialFile(path: ".prime/agent/auth.json"),
+                       loginCommand: "prime-agent"),
+        KnownCLIEngine(id: "mistral-vibe", executableName: "vibe", displayName: "Mistral Vibe",
+                       codec: .plainStdout, experimental: true,
+                       authProbe: .environmentKey(names: ["MISTRAL_API_KEY"]),
+                       loginCommand: ""),
+        KnownCLIEngine(id: "continue", executableName: "cn", displayName: "Continue",
+                       codec: .plainStdout, experimental: true,
+                       loginCommand: "cn login"),
+        KnownCLIEngine(id: "aug", executableName: "auggie", displayName: "Auggie",
+                       codec: .plainStdout, experimental: true,
+                       authProbe: .credentialFile(path: ".augment/session.json"),
+                       loginCommand: "auggie login"),
+        KnownCLIEngine(id: "devin", executableName: "devin", displayName: "Devin",
+                       codec: .plainStdout, experimental: true,
+                       authProbe: .command(arguments: ["auth", "status"]),
+                       loginCommand: "devin auth login"),
+        KnownCLIEngine(id: "kilo", executableName: "kilo", displayName: "Kilocode",
+                       codec: .plainStdout, experimental: true,
+                       authProbe: .credentialFile(path: ".local/share/kilo/auth.json"),
+                       loginCommand: "kilo auth login"),
+        KnownCLIEngine(id: "crush", executableName: "crush", displayName: "Charm Crush",
+                       codec: .plainStdout, experimental: true,
+                       loginCommand: ""),
+        KnownCLIEngine(id: "command-code", executableName: "command-code", displayName: "Command Code",
+                       codec: .plainStdout, experimental: true,
+                       loginCommand: ""),
+        KnownCLIEngine(id: "kiro", executableName: "kiro-cli", displayName: "Kiro",
+                       codec: .plainStdout, experimental: true,
+                       authProbe: .command(arguments: ["whoami"]),
+                       loginCommand: "kiro-cli login"),
+        KnownCLIEngine(id: "openclaude", executableName: "openclaude", displayName: "OpenClaude",
+                       codec: .jsonEnvelope, experimental: true,
+                       loginCommand: ""),
     ]
 }
 
@@ -204,6 +318,8 @@ public enum CLIEngineLocator {
         NSHomeDirectory() + "/.grok/bin",
         NSHomeDirectory() + "/.codex/bin",
         NSHomeDirectory() + "/.opencode/bin",
+        NSHomeDirectory() + "/.hermes/bin",
+        NSHomeDirectory() + "/.factory/bin",
         // pi.dev/install.sh：PATH 裡有 ~/.local/bin 或 ~/bin 就放那裡，都沒有時退到這裡
         NSHomeDirectory() + "/.pi/agent/bin",
         NSHomeDirectory() + "/bin",
@@ -229,136 +345,98 @@ public enum CLIEngineLocator {
             .map { URL(fileURLWithPath: $0) }
     }
 
-    /// `--version` 的第一行，供設定頁顯示；失敗回 nil、不影響可用性。
-    public static func readVersion(of url: URL) -> String? {
+}
+
+// MARK: - 探測
+
+/// 執行探測（`--version`）的結果。
+public enum CLIProbeState: Equatable, Sendable {
+    /// 還在跑（掃描剛開始）。
+    case pending
+    /// 期限內結束＝跑得起來；退出碼 0 才有版本字串。
+    case ready(version: String?)
+    /// 跑不起來或逾時：不列進可用清單。
+    case failed
+}
+
+/// 登入狀態。沒有 `authProbe` 的引擎恆為 `.unknown`，照常可選。
+public enum CLIAuthState: Equatable, Sendable {
+    case unknown
+    case loggedIn
+    case notLoggedIn
+}
+
+/// 「檔案在」只是第一關：同一台機器上常有半裝好的 CLI（npm 裝了但 runtime 不在、
+/// wrapper 指向已刪的版本），列出它們只會讓使用者選到一個一按翻譯就失敗的引擎。
+/// 這裡的兩種探測都只是狀態查詢，會阻塞，呼叫端請丟到背景。
+public enum CLIEngineProbe {
+
+    /// 探測（`--version`、auth command）的期限。兩者都該是毫秒級的本機查詢，
+    /// 拖過這個時間就當它壞了——設定頁不該為了一支半裝好的 CLI 卡住。
+    public static let timeout: TimeInterval = 5
+
+    /// 跑 `--version`：這同時是「跑不跑得起來」的判準，版本字串只是附帶收穫。
+    public static func probeExecutable(at url: URL, extraEnvironment: [String: String] = [:]) -> CLIProbeState {
+        guard let result = run(at: url, arguments: ["--version"], extraEnvironment: extraEnvironment) else {
+            return .failed
+        }
+        guard result.status == 0 else { return .ready(version: nil) }
+        let version = result.stdout
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: .newlines).first
+        return .ready(version: (version?.isEmpty ?? true) ? nil : version)
+    }
+
+    /// 單一 auth probe 的判定。失敗（跑不起來、逾時）一律 `.unknown`：
+    /// 探測本身不該變成「不能用這家」的理由。`home` 與 `environment` 可注入供測試。
+    public static func evaluateAuth(
+        _ probe: KnownCLIEngine.AuthProbe,
+        executable: URL,
+        extraEnvironment: [String: String] = [:],
+        home: String = NSHomeDirectory(),
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> CLIAuthState {
+        switch probe {
+        case let .command(arguments):
+            guard let result = run(at: executable, arguments: arguments, extraEnvironment: extraEnvironment) else {
+                return .unknown
+            }
+            return result.status == 0 ? .loggedIn : .notLoggedIn
+
+        case let .credentialFile(path):
+            let full = URL(fileURLWithPath: home).appendingPathComponent(path).path
+            return FileManager.default.fileExists(atPath: full) ? .loggedIn : .notLoggedIn
+
+        case let .environmentKey(names):
+            // App 是 GUI 啟動的，通常拿不到 shell 裡 export 的金鑰；
+            // 拿不到就報未登入，設定頁會提示到終端跑登入指令。
+            let present = names.contains { environment[$0]?.isEmpty == false }
+            return present ? .loggedIn : .notLoggedIn
+        }
+    }
+
+    /// 狀態查詢用的同步 spawn：`timeout` 內沒結束就 terminate 並回 nil。
+    private static func run(
+        at url: URL, arguments: [String], extraEnvironment: [String: String]
+    ) -> (status: Int32, stdout: String)? {
         let process = Process()
         process.executableURL = url
-        process.arguments = ["--version"]
-        process.environment = CLIProcessRunner.whitelistedEnvironment(
+        process.arguments = arguments
+        var environment = CLIProcessRunner.whitelistedEnvironment(
             executableDirectory: url.deletingLastPathComponent().path)
+        environment.merge(extraEnvironment) { _, new in new }
+        process.environment = environment
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = Pipe()
         do { try process.run() } catch { return nil }
-        let deadline = Date().addingTimeInterval(5)
+        let deadline = Date().addingTimeInterval(timeout)
         while process.isRunning, Date() < deadline {
             Thread.sleep(forTimeInterval: 0.05)
         }
         if process.isRunning { process.terminate(); return nil }
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(data: data, encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .components(separatedBy: .newlines).first
-    }
-}
-
-// MARK: - 模型列舉
-
-/// 問 CLI 有哪些模型可用。存在的理由：模型字串各家寫法不同（opencode 要
-/// `provider/model`，只填模型名直接失敗），讓使用者自己猜是不合理的。
-/// 解析是純函式，可單獨測；抓取會打網路，由呼叫端決定何時做與怎麼快取。
-public enum CLIModelLister {
-
-    /// `<cli> models` 的輸出解析。
-    public static func parseModels(
-        _ output: String,
-        format: KnownCLIEngine.ModelListing.CommandFormat
-    ) -> [String] {
-        let lines = output.components(separatedBy: .newlines)
-        switch format {
-        case .tabSeparated:
-            // agy：`<slug>\t<顯示名>`。沒有 tab 的行（"Fetching available models..."
-            // 之類）一律略過。
-            return lines.compactMap { line in
-                let parts = line.split(separator: "\t", maxSplits: 1)
-                guard parts.count == 2 else { return nil }
-                let slug = parts[0].trimmingCharacters(in: .whitespaces)
-                return slug.isEmpty ? nil : slug
-            }
-        case .plainLines:
-            // opencode：每行就是一個 provider/model。沒有斜線的是雜訊行。
-            return lines
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { $0.contains("/") && !$0.contains(" ") }
-        case .markerList:
-            // grok：`  * grok-4.6 (default)`／`  - grok-4.5`；
-            // 標題行（"Available models:"）沒有項目符號，自然被濾掉。
-            return lines.compactMap { line -> String? in
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                guard trimmed.hasPrefix("* ") || trimmed.hasPrefix("- ") else { return nil }
-                let body = trimmed.dropFirst(2).trimmingCharacters(in: .whitespaces)
-                // 去掉 "(default)" 之類的尾註
-                let slug = body.split(separator: " ").first.map(String.init) ?? body
-                return slug.isEmpty ? nil : slug
-            }
-        case .whitespaceColumns:
-            // pi：`provider  model  context  max-out  thinking  images` 表頭＋空白對齊的列。
-            // 只認表頭**之後**、欄數與表頭相同的列——沒登入時它印的是一段散文
-            // （"No models available. Use /login…"），沒有表頭就什麼都不列，
-            // 不會把散文拆成 "No/models"。欄位位置照表頭找，欄位順序改了也不會拼錯。
-            let rows = lines.map { $0.split(whereSeparator: \.isWhitespace).map(String.init) }
-            guard let header = rows.firstIndex(where: { $0.contains("provider") && $0.contains("model") }) else { return [] }
-            let columns = rows[header]
-            let providerColumn = columns.firstIndex(of: "provider") ?? 0
-            let modelColumn = columns.firstIndex(of: "model") ?? 1
-            return rows[(header + 1)...].compactMap { parts in
-                guard parts.count == columns.count, modelColumn < parts.count else { return nil }
-                let provider = parts[providerColumn]
-                let model = parts[modelColumn]
-                guard !provider.isEmpty, !model.isEmpty else { return nil }
-                return "\(provider)/\(model)"
-            }
-        }
-    }
-
-    public static var codexModelsCachePath: String {
-        NSString(string: "~/.codex/models_cache.json").expandingTildeInPath
-    }
-
-    /// codex 的模型快取：取 `visibility == "list"` 的 slug——標 `hide` 的是它自己
-    /// 不放進選單的（legacy／內部），我們也不該列。
-    public static func parseCodexModelsCache(_ data: Data) -> [String] {
-        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let models = object["models"] as? [[String: Any]]
-        else { return [] }
-        return models.compactMap { model in
-            guard let slug = model["slug"] as? String, !slug.isEmpty else { return nil }
-            // 沒有 visibility 欄位時保守納入（欄位是新加的就不該整份變空）
-            guard (model["visibility"] as? String ?? "list") == "list" else { return nil }
-            return slug
-        }
-    }
-
-    /// 依 `listing` 取得清單；失敗回空陣列——沒有下拉選單而已，輸入欄位照常可用。
-    /// **會阻塞**（列舉要打網路，實測 grok／opencode 各十餘秒），呼叫端請丟到背景。
-    public static func fetch(_ listing: KnownCLIEngine.ModelListing, executable: URL) -> [String] {
-        switch listing {
-        case let .command(arguments, format):
-            guard let output = runListing(at: executable, arguments: arguments) else { return [] }
-            return parseModels(output, format: format)
-        case .codexModelsCache:
-            guard let data = FileManager.default.contents(atPath: codexModelsCachePath) else { return [] }
-            return parseCodexModelsCache(data)
-        }
-    }
-
-    private static func runListing(at url: URL, arguments: [String]) -> String? {
-        let process = Process()
-        process.executableURL = url
-        process.arguments = arguments
-        process.environment = CLIProcessRunner.whitelistedEnvironment(
-            executableDirectory: url.deletingLastPathComponent().path)
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        do { try process.run() } catch { return nil }
-        let deadline = Date().addingTimeInterval(30)
-        while process.isRunning, Date() < deadline {
-            Thread.sleep(forTimeInterval: 0.1)
-        }
-        if process.isRunning { process.terminate(); return nil }
-        guard process.terminationStatus == 0 else { return nil }
-        return String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)
+        return (process.terminationStatus, String(data: data, encoding: .utf8) ?? "")
     }
 }
 
@@ -575,13 +653,17 @@ public enum CLIProcessRunner {
         executable: URL,
         arguments: [String],
         stdin stdinText: String?,
-        timeout: Duration
+        timeout: Duration,
+        extraEnvironment: [String: String] = [:]
     ) async throws -> Output {
         let process = Process()
         process.executableURL = executable
         process.arguments = arguments
-        process.environment = whitelistedEnvironment(
+        var environment = whitelistedEnvironment(
             executableDirectory: executable.deletingLastPathComponent().path)
+        // 引擎自己聲明的變數蓋在白名單之上（goose 的 GOOSE_MODE 之類）
+        environment.merge(extraEnvironment) { _, new in new }
+        process.environment = environment
 
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
@@ -742,7 +824,8 @@ public enum CLIExecution {
         do {
             output = try await CLIProcessRunner.run(
                 executable: executable, arguments: invocation.arguments,
-                stdin: invocation.stdin, timeout: run.timeout)
+                stdin: invocation.stdin, timeout: run.timeout,
+                extraEnvironment: engine.extraEnvironment)
         } catch let error as CLIEngineError {
             throw error
         } catch is CancellationError {

@@ -150,19 +150,6 @@ final class UITranslator {
         set { settings.translationEngineID = newValue }
     }
 
-    func model(for engineID: String) -> String {
-        settings.translationModelIDs[engineID] ?? ""
-    }
-
-    func setModel(_ model: String, for engineID: String) {
-        let trimmed = model.trimmingCharacters(in: .whitespaces)
-        if trimmed.isEmpty {
-            settings.translationModelIDs.removeValue(forKey: engineID)
-        } else {
-            settings.translationModelIDs[engineID] = trimmed
-        }
-    }
-
     func customPath(for engineID: String) -> String {
         settings.translationCustomPaths[engineID] ?? ""
     }
@@ -311,8 +298,7 @@ final class UITranslator {
             return
         }
         phase = .running(done: 0, total: total)
-        let model = settings.translationModelIDs[engine.id]
-        let runner = batchRunner ?? CLIUITranslationBatchRunner(engine: engine.engine, executable: engine.url, model: model)
+        let runner = batchRunner ?? CLIUITranslationBatchRunner(engine: engine.engine, executable: engine.url)
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
         let languageName = Self.englishName(for: language)
         typealias Policy = UITranslationBatchPolicy
@@ -431,7 +417,7 @@ final class UITranslator {
                             language: language, strings: strings, plurals: plurals,
                             pluralValueTypes: source.pluralValueTypes,
                             manifest: .init(
-                                language: language, engineID: engine.id, model: model,
+                                language: language, engineID: engine.id, model: nil,
                                 date: Date(), sourceBuild: build,
                                 translated: strings.count + plurals.count,
                                 skipped: skipped.sorted()))

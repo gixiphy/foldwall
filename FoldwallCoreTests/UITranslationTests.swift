@@ -137,9 +137,9 @@ struct CLICodecTests {
 @Suite("CLI engine catalog")
 struct CLIEngineTests {
 
-    @Test("claude 走 stdin、其餘以參數帶 prompt；模型留空不帶 --model")
+    @Test("claude 走 stdin、其餘以參數帶 prompt")
     func invocations() throws {
-        let run = KnownCLIEngine.RunContext(sandbox: URL(fileURLWithPath: "/tmp/x"), model: "  ", timeout: .seconds(60))
+        let run = KnownCLIEngine.RunContext(sandbox: URL(fileURLWithPath: "/tmp/x"), timeout: .seconds(60))
         let claude = try #require(KnownCLIEngine.named("claude")).invocation(prompt: "P", run: run)
         #expect(claude.stdin == "P")
         #expect(claude.arguments == ["-p", "--output-format", "json"])
@@ -149,27 +149,41 @@ struct CLIEngineTests {
         #expect(codex.arguments.first == "exec")
         #expect(codex.arguments.last == "P")
         #expect(codex.arguments.contains("--skip-git-repo-check"))
-        #expect(!codex.arguments.contains("--model"))
 
-        var withModel = run
-        withModel.model = "opus"
-        let claudeModel = try #require(KnownCLIEngine.named("claude")).invocation(prompt: "P", run: withModel)
-        #expect(claudeModel.arguments == ["-p", "--output-format", "json", "--model", "opus"])
+        // cursor：非 TTY 下少了 --trust 會掛在「信任這個目錄嗎」
+        let cursor = try #require(KnownCLIEngine.named("cursor")).invocation(prompt: "P", run: run)
+        #expect(cursor.arguments == ["-p", "--output-format", "json", "--mode", "ask", "--trust",
+                                     "--workspace", "/tmp/x", "P"])
+
+        let amp = try #require(KnownCLIEngine.named("amp")).invocation(prompt: "P", run: run)
+        #expect(amp.stdin == "P")
+        #expect(amp.arguments == ["-x"])
+    }
+
+    /// 模型選擇已移除：模型名的壽命比 App 的發版週期短，一律用 CLI 自己的預設。
+    /// 哪一家偷偷帶了模型旗標，症狀是「昨天還好的引擎今天壞了」。
+    @Test("目錄裡每一家都不帶模型旗標")
+    func noModelFlags() {
+        let run = KnownCLIEngine.RunContext(sandbox: URL(fileURLWithPath: "/tmp/x"),
+                                            schemaFile: URL(fileURLWithPath: "/tmp/x/schema.json"),
+                                            timeout: .seconds(60))
+        for engine in KnownCLIEngine.catalog {
+            let arguments = engine.invocation(prompt: "P", run: run).arguments
+            #expect(!arguments.contains("--model"), "\(engine.id) 帶了 --model")
+            #expect(!arguments.contains("-m"), "\(engine.id) 帶了 -m")
+        }
     }
 
     /// pi 會從行程 cwd 撈 AGENTS.md／extensions／skills，沙箱指不過去，探索旗標一個都不能少——
     /// 少一個的症狀是使用者機器上的擴充默默改變翻譯行為。`--no-tools` 免掉權限對話框。
-    @Test("pi：探索旗標全關、prompt 排最後、模型以 --model 帶")
+    @Test("pi：探索旗標全關、prompt 排最後")
     func piInvocation() throws {
-        var run = KnownCLIEngine.RunContext(sandbox: URL(fileURLWithPath: "/tmp/x"), timeout: .seconds(60))
+        let run = KnownCLIEngine.RunContext(sandbox: URL(fileURLWithPath: "/tmp/x"), timeout: .seconds(60))
         let pi = try #require(KnownCLIEngine.named("pi"))
         let plain = pi.invocation(prompt: "P", run: run)
         #expect(plain.stdin == nil)
         #expect(plain.arguments == ["-p", "--no-session", "--no-tools", "--no-context-files",
                                     "--no-extensions", "--no-skills", "--no-prompt-templates", "P"])
-        run.model = "anthropic/claude-sonnet-4-6"
-        let withModel = pi.invocation(prompt: "P", run: run)
-        #expect(withModel.arguments.suffix(3) == ["--model", "anthropic/claude-sonnet-4-6", "P"])
         #expect(pi.codec == .plainStdout)
         #expect(pi.loginCommand == "pi")
     }
@@ -191,8 +205,7 @@ struct CLIEngineTests {
     @Test("偵測：自訂路徑優先，PATH 裡沒有就回 nil")
     func locate() throws {
         let engine = KnownCLIEngine(id: "fake", executableName: "definitely-not-installed-\(UUID().uuidString)",
-                                    displayName: "Fake", codec: .plainStdout,
-                                    supportsModelSelection: false, loginCommand: "fake")
+                                    displayName: "Fake", codec: .plainStdout, loginCommand: "fake")
         #expect(CLIEngineLocator.locate(engine, environment: ["PATH": "/usr/bin"]) == nil)
         let custom = CLIEngineLocator.locate(engine, customPath: "/usr/bin/true", environment: [:])
         #expect(custom?.path == "/usr/bin/true")
@@ -203,108 +216,21 @@ struct CLIEngineTests {
     @Test("目錄裡每家的官方安裝位置都掃得到")
     func knownDirectoriesCoverEveryEngine() {
         let home = NSHomeDirectory()
-        for suffix in ["/.local/bin", "/.claude/local", "/.grok/bin", "/.codex/bin", "/.opencode/bin", "/.pi/agent/bin"] {
+        for suffix in ["/.local/bin", "/.claude/local", "/.grok/bin", "/.codex/bin", "/.opencode/bin",
+                       "/.pi/agent/bin", "/.hermes/bin", "/.factory/bin"] {
             #expect(CLIEngineLocator.knownDirectories.contains(home + suffix), "少了 \(suffix)")
         }
     }
 
-    /// 三種格式都是照實機輸出寫的（2026-09-02 於 agy 1.1.22／grok／opencode 1.18.26），
-    /// 猜錯的症狀是下拉選單空的或塞滿雜訊行。
-    @Test("模型清單解析：agy 的 tab、grok 的項目符號、opencode 的每行一個")
-    func parseModels() {
-        let agy = """
-        Fetching available models...
-        gemini-3.7-flash-high\tGemini 3.7 Flash (High)
-        gemini-3.7-flash-medium\tGemini 3.7 Flash (Medium)
-        """
-        #expect(CLIModelLister.parseModels(agy, format: .tabSeparated)
-            == ["gemini-3.7-flash-high", "gemini-3.7-flash-medium"])
-
-        let grok = """
-        You are logged in with grok.com.
-
-        Default model: grok-4.6
-
-        Available models:
-          * grok-4.6 (default)
-          - grok-4.5
-        """
-        #expect(CLIModelLister.parseModels(grok, format: .markerList) == ["grok-4.6", "grok-4.5"])
-
-        let opencode = """
-        opencode/claude-opus-5
-        opencode/gemini-3.1-pro
-        這行沒有斜線
-        """
-        #expect(CLIModelLister.parseModels(opencode, format: .plainLines)
-            == ["opencode/claude-opus-5", "opencode/gemini-3.1-pro"])
-    }
-
-    /// pi `--list-models` 是空白對齊的表格（實測 pi 0.84.1，列尾帶空白）。翻譯不需要看圖，
-    /// 所以不像 Chorus 只收 images=yes——全部列。沒登入時它印一段散文而不是表格，
-    /// 這時要回空陣列，不能把 "No models available" 拆成 "No/models"。
-    @Test("模型清單解析：pi 的空白對齊表格，表頭之後全收；沒有表頭就空")
-    func parsePiModels() {
-        let pi = """
-        provider     model              context  max-out  thinking  images
-        opencode-go  deepseek-v4-flash  1M       384K     yes       no
-        opencode-go  gpt-5.6-luna       1.1M     128K     yes       yes
-        anthropic    claude-sonnet-4-6  1M       64K      yes       yes
-        """
-        #expect(CLIModelLister.parseModels(pi, format: .whitespaceColumns)
-            == ["opencode-go/deepseek-v4-flash", "opencode-go/gpt-5.6-luna", "anthropic/claude-sonnet-4-6"])
-
-        let loggedOut = """
-        No models available. Use /login to log into a provider via OAuth or API key. See:
-          /Users/me/.pi/docs/providers.md
-        """
-        #expect(CLIModelLister.parseModels(loggedOut, format: .whitespaceColumns).isEmpty)
-
-        // 欄位順序變了也照表頭找 model 欄；欄數對不上的雜訊行略過
-        let reordered = """
-        Fetching models...
-        model     provider   images
-        gpt-5     openai     yes
-        broken line
-        """
-        #expect(CLIModelLister.parseModels(reordered, format: .whitespaceColumns) == ["openai/gpt-5"])
-    }
-
-    /// codex 標 hide 的是它自己不放進選單的（legacy／內部），我們也不該列；
-    /// 但沒有 visibility 欄位時要保守納入——欄位是新加的話不該讓整份清單變空。
-    @Test("codex 模型快取只取 visibility 是 list 的")
-    func parseCodexModelsCache() throws {
-        let json = """
-        {"models": [
-          {"slug": "gpt-5.6-terra", "visibility": "list"},
-          {"slug": "gpt-5-legacy", "visibility": "hide"},
-          {"slug": "gpt-5.6-mini"},
-          {"slug": ""}
-        ]}
-        """
-        #expect(CLIModelLister.parseCodexModelsCache(Data(json.utf8))
-            == ["gpt-5.6-terra", "gpt-5.6-mini"])
-        #expect(CLIModelLister.parseCodexModelsCache(Data("不是 JSON".utf8)).isEmpty)
-    }
-
-    /// 沒有可靠列舉方式的引擎不該編一份清單出來；claude 只給設計上穩定的別名。
-    @Test("目錄裡每家的模型列舉方式")
-    func modelListing() throws {
-        #expect(try #require(KnownCLIEngine.named("claude")).modelListing == nil)
-        #expect(try #require(KnownCLIEngine.named("claude")).suggestedModels.contains("opus"))
-        for id in ["agy", "grok", "opencode", "codex", "pi"] {
-            #expect(try #require(KnownCLIEngine.named(id)).modelListing != nil, "\(id) 少了列舉方式")
-            #expect(try #require(KnownCLIEngine.named(id)).suggestedModels.isEmpty, "\(id) 不該有靜態清單")
-        }
-    }
-
-    @Test("目錄六家、每家都有模型欄位與格式提示")
+    @Test("目錄：前六家順序不變、id 不重複、實測過的八家不標實驗性")
     func catalog() {
-        #expect(KnownCLIEngine.catalog.map(\.id) == ["claude", "codex", "agy", "grok", "opencode", "pi"])
-        for engine in KnownCLIEngine.catalog {
-            #expect(engine.supportsModelSelection, "\(engine.id) 少了模型欄位")
-            #expect(!engine.modelHint.isEmpty, "\(engine.id) 少了格式提示")
-        }
+        let ids = KnownCLIEngine.catalog.map(\.id)
+        #expect(Array(ids.prefix(6)) == ["claude", "codex", "agy", "grok", "opencode", "pi"])
+        #expect(Set(ids).count == ids.count)
+        let verified = KnownCLIEngine.catalog.filter { !$0.experimental }.map(\.id)
+        #expect(verified == ["claude", "codex", "agy", "grok", "opencode", "pi", "cursor", "hermes"])
+        // goose 不設 GOOSE_MODE 會在非互動模式下等權限確認
+        #expect(KnownCLIEngine.named("goose")?.extraEnvironment["GOOSE_MODE"] == "chat")
     }
 
     @Test("錯誤訊息裡的 token 被遮蔽")
@@ -312,6 +238,82 @@ struct CLIEngineTests {
         let text = CLIExecution.sanitized("failed: Bearer abc.def sk-1234567890abcdef")
         #expect(!text.contains("abc.def"))
         #expect(!text.contains("sk-1234567890abcdef"))
+    }
+}
+
+/// 登入狀態與執行探測。三種 probe 都只讀狀態，所以測得起來：
+/// 憑證檔用臨時家目錄、環境變數用注入的字典、指令用 `/usr/bin/true`／`false`。
+@Suite("CLI engine probes")
+struct CLIEngineProbeTests {
+
+    private func temporaryDirectory(_ prefix: String) throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(prefix)-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    private func stub(_ script: String, in directory: URL) throws -> URL {
+        let url = directory.appendingPathComponent("stub")
+        try script.write(to: url, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
+        return url
+    }
+
+    @Test("credentialFile：檔案存在＝已登入，不存在＝未登入")
+    func credentialFile() throws {
+        let home = try temporaryDirectory("foldwall-auth-home")
+        defer { try? FileManager.default.removeItem(at: home) }
+        let probe = KnownCLIEngine.AuthProbe.credentialFile(path: ".grok/auth.json")
+        let executable = URL(fileURLWithPath: "/usr/bin/true")
+        #expect(CLIEngineProbe.evaluateAuth(probe, executable: executable, home: home.path) == .notLoggedIn)
+
+        let credential = home.appendingPathComponent(".grok/auth.json")
+        try FileManager.default.createDirectory(
+            at: credential.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("{}".utf8).write(to: credential)
+        #expect(CLIEngineProbe.evaluateAuth(probe, executable: executable, home: home.path) == .loggedIn)
+    }
+
+    @Test("environmentKey：任一變數存在且非空＝已登入；缺席或空字串都算未登入")
+    func environmentKey() {
+        let executable = URL(fileURLWithPath: "/usr/bin/true")
+        #expect(CLIEngineProbe.evaluateAuth(
+            .environmentKey(names: ["MISSING_KEY", "AMP_API_KEY"]), executable: executable,
+            environment: ["AMP_API_KEY": "sk-test"]) == .loggedIn)
+        #expect(CLIEngineProbe.evaluateAuth(
+            .environmentKey(names: ["AMP_API_KEY"]), executable: executable, environment: [:]) == .notLoggedIn)
+        // 空字串是「export 了但沒填」，不該當成已登入
+        #expect(CLIEngineProbe.evaluateAuth(
+            .environmentKey(names: ["AMP_API_KEY"]), executable: executable,
+            environment: ["AMP_API_KEY": ""]) == .notLoggedIn)
+    }
+
+    @Test("command：退出碼 0＝已登入、非零＝未登入、跑不起來＝未知")
+    func command() {
+        #expect(CLIEngineProbe.evaluateAuth(
+            .command(arguments: []), executable: URL(fileURLWithPath: "/usr/bin/true")) == .loggedIn)
+        #expect(CLIEngineProbe.evaluateAuth(
+            .command(arguments: []), executable: URL(fileURLWithPath: "/usr/bin/false")) == .notLoggedIn)
+        // 探測失敗不該變成「不能用這家」
+        #expect(CLIEngineProbe.evaluateAuth(
+            .command(arguments: []), executable: URL(fileURLWithPath: "/nonexistent/foldwall-not-a-cli")) == .unknown)
+    }
+
+    @Test("執行探測：退出碼 0 取第一行當版本；不認 --version 但跑得起來＝可用、沒有版本")
+    func probeExecutable() throws {
+        let directory = try temporaryDirectory("foldwall-probe")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let versioned = try stub("#!/bin/sh\nprintf '1.2.3\\nextra line\\n'\n", in: directory)
+        #expect(CLIEngineProbe.probeExecutable(at: versioned) == .ready(version: "1.2.3"))
+
+        let unversioned = try stub("#!/bin/sh\necho 'unknown flag' >&2\nexit 2\n", in: directory)
+        #expect(CLIEngineProbe.probeExecutable(at: unversioned) == .ready(version: nil))
+    }
+
+    @Test("執行探測：跑不起來＝failed（半裝好的 CLI 不該列進可用清單）")
+    func probeFailsForMissingExecutable() {
+        #expect(CLIEngineProbe.probeExecutable(at: URL(fileURLWithPath: "/nonexistent/foldwall-not-a-cli")) == .failed)
     }
 }
 

@@ -36,9 +36,7 @@ final class AppSettings {
         static let uiTranslationLanguage = "uiTranslationLanguage"
         static let builtinLanguage = "builtinLanguage"
         static let translationEngineID = "translationEngineID"
-        static let translationModelIDs = "translationModelIDs"
         static let translationCustomPaths = "translationCustomPaths"
-        static let translationModelCache = "translationModelCache"
     }
 
     @ObservationIgnored private let defaults: UserDefaults
@@ -228,21 +226,9 @@ final class AppSettings {
         didSet { defaults.set(translationEngineID, forKey: Key.translationEngineID) }
     }
 
-    /// 各引擎的自訂模型（engine id → slug）。缺＝用 CLI 自己的預設。
-    var translationModelIDs: [String: String] {
-        didSet { defaults.set(translationModelIDs, forKey: Key.translationModelIDs) }
-    }
-
     /// 各引擎的自訂執行檔路徑（engine id → path），PATH 找不到時用。
     var translationCustomPaths: [String: String] {
         didSet { defaults.set(translationCustomPaths, forKey: Key.translationCustomPaths) }
-    }
-
-    /// 各引擎回報過的模型清單，鍵是 `<engine id>|<version>`。
-    /// 以**版本**當快取鍵：版本沒變就用快取，升版即重抓——列舉會打網路
-    /// （實測 grok／opencode 各十餘秒），不該每次打開設定頁都跑一遍。
-    var translationModelCache: [String: [String]] {
-        didSet { defaults.set(translationModelCache, forKey: Key.translationModelCache) }
     }
 
     /// Keychain 帳號名：每個來源設定各自一把 key。
@@ -293,9 +279,10 @@ final class AppSettings {
         self.uiTranslationLanguage = defaults.string(forKey: Key.uiTranslationLanguage)
         self.builtinLanguage = defaults.string(forKey: Key.builtinLanguage)
         self.translationEngineID = defaults.string(forKey: Key.translationEngineID) ?? "claude"
-        self.translationModelIDs = (defaults.dictionary(forKey: Key.translationModelIDs) as? [String: String]) ?? [:]
         self.translationCustomPaths = (defaults.dictionary(forKey: Key.translationCustomPaths) as? [String: String]) ?? [:]
-        self.translationModelCache = (defaults.dictionary(forKey: Key.translationModelCache) as? [String: [String]]) ?? [:]
+        // 模型選擇已移除（一律用 CLI 自己的預設）：舊版留下的模型與清單快取順手清掉
+        defaults.removeObject(forKey: "translationModelIDs")
+        defaults.removeObject(forKey: "translationModelCache")
         self.playlistSources = (defaults.data(forKey: Key.playlistSources)
             .flatMap { try? JSONDecoder().decode([PlaylistSource].self, from: $0) }) ?? []
         self.sourceRules = (defaults.data(forKey: Key.sourceRules)

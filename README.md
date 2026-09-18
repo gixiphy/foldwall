@@ -238,8 +238,9 @@ Foldwall 自己不讀、不存、也不傳送任何 cookie——只是把「去�
 
 | 項 | 說明 |
 | --- | --- |
-| **支援的 CLI** | Claude Code、Codex CLI、Antigravity、Grok Build、OpenCode、Pi。掃描順序是自訂路徑 → `PATH` → 常見安裝位置；沒偵測到的可以直接填執行檔完整路徑。 |
-| **模型不用自己猜** | 問得到清單的引擎（Antigravity、Grok、OpenCode、Codex、Pi）在模型欄位旁給下拉選單，直接挑；Claude Code 給 `opus`／`sonnet`／`fable`／`haiku` 這些恆指向當代最新模型的別名。欄位**永遠可以自由輸入**——清單可能過期或列不全，不該因此擋住你想用的模型。 |
+| **支援的 CLI** | Claude Code、Codex CLI、Antigravity、Grok Build、OpenCode、Pi、Cursor CLI、Hermes 是實測過的；另外還認得 GitHub Copilot CLI、Goose、Amp、Factory Droid、Qwen Code、Kimi Code 等十幾家，標「實驗性」。掃描順序是自訂路徑 → `PATH` → 常見安裝位置；沒偵測到的可以在「找不到你的 CLI？」填執行檔完整路徑。 |
+| **只列出能用的** | 清單裡只有**已安裝、而且真的跑得起來**的 CLI（`--version` 五秒內結束）；半裝好的（npm 裝了但 runtime 不在）另外用一行交代，不混進來。查得到登入狀態的引擎沒登入時會標出來，連同該去終端機跑的登入指令，也不會被拿去翻譯——省得白等一次逾時。 |
+| **不用選模型** | 一律用該 CLI **自己的預設模型**。模型名稱的壽命比 app 的發版週期短得多，讓你在設定頁填一個會過期的字串，只會製造「昨天還好的引擎今天壞了」；想換模型就在那個 CLI 自己的設定裡換。 |
 | **不經手 API key** | Foldwall 呼叫的是你自己登入的 CLI，計費在你自己的訂閱上。這個 app 裡沒有任何金鑰欄位。 |
 | **四個選項＋自翻的** | 「介面語言」可以選跟隨系統、繁體中文、简体中文、English，以及任何你自己翻好的語言。 |
 | **要重新啟動** | 選好語言之後要重開 Foldwall 才會換。已經畫出來的介面不會因為換了字串表就重繪，與其做半套熱切換不如講清楚。 |

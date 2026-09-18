@@ -353,72 +353,6 @@
         }
       }
     },
-    "provider/model 格式": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "provider/model format"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "provider/model 格式"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "provider/model 格式"
-          }
-        }
-      }
-    },
-    "provider/model 格式，與 pi --list-models 列的一致": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "provider/model format, as listed by pi --list-models"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "provider/model 格式，与 pi --list-models 列出的一致"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "provider/model 格式，與 pi --list-models 列的一致"
-          }
-        }
-      }
-    },
-    "slug，如 gemini-3.1-pro-high、claude-sonnet-4-6": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A slug such as gemini-3.1-pro-high or claude-sonnet-4-6"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "slug，如 gemini-3.1-pro-high、claude-sonnet-4-6"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "slug，如 gemini-3.1-pro-high、claude-sonnet-4-6"
-          }
-        }
-      }
-    },
     "一支放到底再接回開頭，永遠是同一支。接回開頭是無縫的。": {
       "localizations": {
         "en": {
@@ -635,28 +569,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "全部循環"
-          }
-        }
-      }
-    },
-    "別名 opus／sonnet／fable，或完整名稱如 claude-opus-5": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "An alias (opus / sonnet / fable) or a full name such as claude-opus-5"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "别名 opus／sonnet／fable，或完整名称如 claude-opus-5"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "別名 opus／sonnet／fable，或完整名稱如 claude-opus-5"
           }
         }
       }
@@ -1273,50 +1185,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "棕褐"
-          }
-        }
-      }
-    },
-    "模型 ID": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Model ID"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "模型 ID"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "模型 ID"
-          }
-        }
-      }
-    },
-    "模型名稱，如 gpt-5.6-terra": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A model name such as gpt-5.6-terra"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "模型名称，如 gpt-5.6-terra"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "模型名稱，如 gpt-5.6-terra"
           }
         }
       }

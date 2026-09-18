@@ -2354,6 +2354,8 @@ private struct BackupSettings: View {
 private struct LanguageSettings: View {
 
     @Bindable var translator: UITranslator
+    /// 「找不到你的 CLI？」裡選中的引擎；空字串＝用清單第一個。
+    @State private var customEngineID = ""
 
     var body: some View {
         ScrollView {
@@ -2462,95 +2464,151 @@ private struct LanguageSettings: View {
         }
     }
 
-    /// 引擎：目錄裡六家全列，沒裝的標出來；選中的那家給路徑／版本與模型欄位。
+    /// 引擎：只列出**已安裝且可執行**的 CLI，單選；模型不給選，一律用該 CLI 自己的
+    /// 預設（模型名的壽命比 App 的發版週期短）。沒偵測到的在折疊區塊裡補路徑。
     @ViewBuilder
     private var engineSection: some View {
         let registry = translator.registry
-        Picker("引擎", selection: $translator.engineID) {
-            ForEach(KnownCLIEngine.catalog) { engine in
-                if registry.detected(engine.id) != nil {
-                    Text(engine.displayName).tag(engine.id)
-                } else {
-                    Text("\(engine.displayName)（未安裝）").tag(engine.id)
-                }
-            }
-        }
-        .disabled(translator.isRunning)
-
-        if let engine = KnownCLIEngine.named(translator.engineID) {
-            if let detected = registry.detected(engine.id) {
-                // 家目錄縮成 ~：路徑短一截，截圖時也不會露出使用者名稱
-                Text((detected.url.path as NSString).abbreviatingWithTildeInPath
-                    + (detected.version.map { "（\($0)）" } ?? ""))
-                    .font(.caption.monospaced())
+        if registry.available.isEmpty {
+            if registry.hasScanned {
+                Label("未偵測到可用的 AI CLI。安裝後按「重新掃描」。", systemImage: "exclamationmark.triangle")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                if engine.supportsModelSelection {
-                    HStack(spacing: 6) {
-                        Text("模型")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        TextField("", text: Binding(
-                            get: { translator.model(for: engine.id) },
-                            set: { translator.setModel($0, for: engine.id) }
-                        ), prompt: Text("預設"))
-                        .labelsHidden()
-                        .font(.caption)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(maxWidth: 220)
-                        .help(engine.modelHint)
-                        // 列得到清單的引擎給下拉，但**欄位永遠可以自由輸入**——
-                        // 清單可能過期或列不全，不該因此擋住使用者想用的模型。
-                        let options = registry.models[engine.id] ?? []
-                        if !options.isEmpty {
-                            Menu {
-                                Button("使用預設") { translator.setModel("", for: engine.id) }
-                                Divider()
-                                ForEach(options, id: \.self) { slug in
-                                    Button(slug) { translator.setModel(slug, for: engine.id) }
-                                }
-                            } label: {
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .imageScale(.small)
-                            }
-                            .menuStyle(.borderlessButton)
-                            .fixedSize()
-                            .help("從 \(engine.displayName) 回報的清單挑選")
-                        }
-                        Spacer(minLength: 0)
-                    }
-                }
-            } else {
-                Text("沒偵測到 `\(engine.executableName)`。裝好之後按「重新掃描」，或填入執行檔的完整路徑：")
+                Text("支援：\(KnownCLIEngine.catalog.map(\.displayName).joined(separator: ", "))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(registry.available) { entry in
+                    engineRow(entry)
+                }
+            }
+            .disabled(translator.isRunning)
+        }
+
+        if !registry.unrunnable.isEmpty {
+            // 半裝好的 CLI 很常見（npm 裝了但 runtime 不在、wrapper 指向已刪的版本）。
+            // 不混進上面的清單，但要讓使用者知道我們看到了、且為什麼沒列。
+            Text("另有 \(registry.unrunnable.count) 支已安裝但無法執行：\(registry.unrunnable.map(\.engine.displayName).joined(separator: ", "))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Button("重新掃描") { registry.rescan() }
+                .controlSize(.small)
+                .disabled(translator.isRunning)
+            Text("只列出已安裝且可執行的 CLI，一律使用該 CLI 自己的預設模型。Foldwall 不經手任何 API key，計費在你自己的訂閱上。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+
+        DisclosureGroup("找不到你的 CLI？") {
+            customPathForm
+        }
+        .font(.caption)
+        .disabled(translator.isRunning)
+    }
+
+    @ViewBuilder
+    private func engineRow(_ entry: CLIEngineRegistry.DetectedEngine) -> some View {
+        let engine = entry.engine
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
+                if entry.auth != .notLoggedIn {
+                    // 勾選狀態看的是**實際會用到的**引擎，不是設定值本身：選定的引擎被
+                    // 移除時 registry 會回落 claude，只比對設定值就會一個都不打勾。
+                    Toggle(isOn: Binding(
+                        get: { translator.activeEngine?.id == engine.id },
+                        set: { on in if on { translator.engineID = engine.id } }
+                    )) {
+                        Text(engine.displayName)
+                    }
+                    .toggleStyle(.checkbox)
+                } else {
+                    Text(engine.displayName)
+                        .foregroundStyle(.secondary)
+                }
+                if engine.experimental {
+                    Text("實驗性")
+                        .font(.caption2)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(.quaternary, in: Capsule())
+                }
+                Spacer()
+                engineStatus(entry)
+            }
+            // 家目錄縮成 ~：路徑短一截，截圖時也不會露出使用者名稱
+            Text((entry.url.path as NSString).abbreviatingWithTildeInPath
+                + (entry.version.map { "（\($0)）" } ?? ""))
+                .font(.caption.monospaced())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+    }
+
+    /// 狀態欄：探測中轉圈、未登入（附上該去終端跑的指令）、可用。
+    /// 未登入是**唯一**我們能替使用者省下一次逾時的狀態，所以講得比別的細。
+    @ViewBuilder
+    private func engineStatus(_ entry: CLIEngineRegistry.DetectedEngine) -> some View {
+        if entry.probe == .pending {
+            ProgressView().controlSize(.mini)
+        } else if entry.auth == .notLoggedIn {
+            if entry.engine.loginCommand.isEmpty {
+                Text("未登入").font(.caption).foregroundStyle(.orange)
+            } else {
+                Text("未登入・終端執行 \(entry.engine.loginCommand)")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .textSelection(.enabled)
+            }
+        } else {
+            Text("可用").font(.caption).foregroundStyle(.green)
+        }
+    }
+
+    /// 沒偵測到的引擎在這裡補完整路徑。做成一個折疊區塊而不是每列一個欄位：
+    /// 名單有二十幾家，每家掛一個空欄位會讓這一頁變成一堆待填的表格。
+    @ViewBuilder
+    private var customPathForm: some View {
+        let registry = translator.registry
+        let missing = KnownCLIEngine.catalog.filter { engine in
+            !registry.detected.contains { $0.id == engine.id }
+        }
+        if let target = missing.first(where: { $0.id == customEngineID }) ?? missing.first {
+            VStack(alignment: .leading, spacing: 6) {
+                Picker("引擎", selection: Binding(
+                    get: { target.id },
+                    set: { customEngineID = $0 }
+                )) {
+                    ForEach(missing) { engine in
+                        Text(engine.displayName).tag(engine.id)
+                    }
+                }
                 TextField("", text: Binding(
-                    get: { translator.customPath(for: engine.id) },
-                    set: { translator.setCustomPath($0, for: engine.id) }
-                ), prompt: Text(verbatim: "/opt/homebrew/bin/\(engine.executableName)"))
+                    get: { translator.customPath(for: target.id) },
+                    set: { translator.setCustomPath($0, for: target.id) }
+                ), prompt: Text(verbatim: "/opt/homebrew/bin/\(target.executableName)"))
                 .labelsHidden()
                 .font(.caption.monospaced())
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { registry.rescan() }
-            }
-            if let active = translator.activeEngine, active.id != engine.id {
-                // 選的那家沒裝時會回落到裝了的那家，要講清楚實際會用誰
-                Text("實際會使用 \(active.engine.displayName)。")
+                Text("填入執行檔的完整路徑，按 Return 會立刻重新掃描。掃描順序：自訂路徑 → PATH → 常見安裝位置。")
                     .font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-        }
-
-        HStack(spacing: 8) {
-            Button("重新掃描") { registry.rescan() }
-                .controlSize(.small)
-                .disabled(translator.isRunning)
-            Text("掃描順序：自訂路徑 → PATH → 常見安裝位置。Foldwall 不經手任何 API key，計費在你自己的訂閱上。")
+            .padding(.top, 4)
+        } else {
+            Text("名單裡的 CLI 都已偵測到。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -2610,7 +2668,8 @@ private struct LanguageSettings: View {
     let registry = CLIEngineRegistry(settings: settings)
     registry.injectDetected([
         .init(engine: KnownCLIEngine.named("claude")!,
-              url: URL(fileURLWithPath: "/Users/me/.local/bin/claude"), version: "2.1.0"),
+              url: URL(fileURLWithPath: "/Users/me/.local/bin/claude"),
+              probe: .ready(version: "2.1.0"), auth: .loggedIn),
     ])
     let store = UITranslationStore(directory: FileManager.default.temporaryDirectory
         .appending(path: "foldwall-preview-uitranslations"))
