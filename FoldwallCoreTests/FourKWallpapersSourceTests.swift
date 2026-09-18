@@ -1,8 +1,8 @@
 import XCTest
 @testable import FoldwallCore
 
-/// 全部離線：HTML 片段照著 2026-08-25 實際抓下來的頁面剪的。
-/// 站方改版時這些會先壞——那正是重點，比使用者對著空池猜好。
+/// 全部離線：保留舊版絕對連結與 2026-09-19 實際頁面的相對連結。
+/// fixture 鎖住已知格式；網站後續改版仍需實際連線確認。
 final class FourKWallpapersSourceTests: XCTestCase {
 
     private let source = FourKWallpapersSource(category: "")
@@ -58,6 +58,48 @@ final class FourKWallpapersSourceTests: XCTestCase {
         XCTAssertEqual(images[0].url.absoluteString,
                        "https://4kwallpapers.com/movies/spider-man-brand-27093.html")
         XCTAssertEqual(images[0].attribution, "4kwallpapers.com")
+    }
+
+    func testParsesRootRelativeDetailLinks() throws {
+        let html = Data("""
+        <a data-ripples class="wallpapers__canvas_image" href="/abstract/xiaomi-18-fold-27263.html">
+          <img src="/images/walls/thumbs/27263.jpg">
+        </a>
+        <a class="wallpapers__canvas_image" href='/anime/ichigo-kurosaki-27177.html'>Ichigo</a>
+        <a href="/anime/">分類</a>
+        <a href="/iphone-18-pro-stock-wallpapers/">合集</a>
+        """.utf8)
+
+        let images = try source.parse(html)
+        XCTAssertEqual(images.map(\.id), ["27263", "27177"])
+        XCTAssertEqual(images.map(\.url.absoluteString), [
+            "https://4kwallpapers.com/abstract/xiaomi-18-fold-27263.html",
+            "https://4kwallpapers.com/anime/ichigo-kurosaki-27177.html",
+        ])
+        let image = try XCTUnwrap(images.first)
+        XCTAssertEqual(source.detailRequest(for: image)?.url?.absoluteString,
+                       "https://4kwallpapers.com/abstract/xiaomi-18-fold-27263.html")
+        XCTAssertEqual(image.attribution, "4kwallpapers.com")
+    }
+
+    func testMixedLinkFormatsDeduplicateByIDInPageOrder() throws {
+        let html = Data("""
+        <a href="/anime/ichigo-kurosaki-27177.html">相對連結</a>
+        <a href="https://4kwallpapers.com/abstract/xiaomi-18-fold-27263.html">另一張</a>
+        <a href="https://4kwallpapers.com/anime/ichigo-kurosaki-27177.html">絕對連結</a>
+        """.utf8)
+
+        XCTAssertEqual(try source.parse(html).map(\.id), ["27177", "27263"])
+    }
+
+    func testExternalDetailPathsAreNotResolvedOntoSite() throws {
+        let html = Data("""
+        <a href="https://example.com/anime/unrelated-1.html">其他網站</a>
+        <a href="//example.com/anime/unrelated-2.html">其他網站</a>
+        <a href="/anime/ichigo-kurosaki-27177.html">本站</a>
+        """.utf8)
+
+        XCTAssertEqual(try source.parse(html).map(\.id), ["27177"])
     }
 
     /// 抓網頁最可能的失敗是「頁面變了、什麼都抓不到」。

@@ -57,9 +57,10 @@ public struct FourKWallpapersSource: RemotePhotoSource {
     /// 清單頁 → 詳細頁網址。`id` 用網址尾巴那組數字，快取檔名靠它，
     /// 所以同一張圖不管從哪個分類看到都只會下載一次。
     ///
-    /// 形狀：`https://4kwallpapers.com/<分類>/<slug>-<id>.html`
+    /// href 可能是 `/<分類>/<slug>-<id>.html` 或本站的完整網址。
+    /// 從屬性值開頭比對，避免把其他網站網址裡的路徑誤當成本站連結。
     private static let detailPattern = try! NSRegularExpression(
-        pattern: #"https://4kwallpapers\.com/([a-z0-9\-]+)/([a-z0-9\-]+)-(\d+)\.html"#)
+        pattern: #"\bhref\s*=\s*["']((?:https://4kwallpapers\.com)?/[a-z0-9\-]+/[a-z0-9\-]+-(\d+)\.html)["']"#)
 
     public func parse(_ data: Data) throws -> [RemoteImage] {
         guard let html = String(data: data, encoding: .utf8) else {
@@ -71,11 +72,12 @@ public struct FourKWallpapersSource: RemotePhotoSource {
         let range = NSRange(html.startIndex..., in: html)
 
         for match in Self.detailPattern.matches(in: html, range: range) {
-            guard let whole = Range(match.range, in: html),
-                  let idRange = Range(match.range(at: 3), in: html)
+            guard let linkRange = Range(match.range(at: 1), in: html),
+                  let idRange = Range(match.range(at: 2), in: html)
             else { continue }
             let id = String(html[idRange])
-            guard seen.insert(id).inserted, let url = URL(string: String(html[whole]))
+            guard seen.insert(id).inserted,
+                  let url = URL(string: String(html[linkRange]), relativeTo: URL(string: Self.host))?.absoluteURL
             else { continue }
             images.append(RemoteImage(id: id, url: url, attribution: "4kwallpapers.com"))
         }
