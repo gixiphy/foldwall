@@ -12,6 +12,14 @@ build-release/
 DerivedData/
 *.xcworkspace/xcuserdata/
 
+# 防呆：萬一有人沒 source .xcodebuild-env 就在 repo 內 build，產物也不會進 iCloud——
+# 實體放在 iCloud 不同步的 *.nosync，原名是指過去的 symlink（結尾帶斜線的規則對 symlink 無效，另列）。
+# clone 之後要重建：mkdir X.nosync && ln -s X.nosync X
+*.nosync
+/build
+/DerivedData
+/build-release
+
 # 對內的開發筆記、規格與驗收清單，不進倉庫
 docs/DEVELOPMENT.md
 docs/ACCEPTANCE.md
