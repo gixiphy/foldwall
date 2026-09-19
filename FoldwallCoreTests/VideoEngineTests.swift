@@ -383,6 +383,49 @@ final class VideoPlaybackPlanTests: XCTestCase {
             VideoPlaybackPlan.next(after: videos[0], screen: "A", videos: videos, mode: .repeatOne),
             videos[1])
     }
+
+    func testAssignPrefersReadyVideosAndFallsBackWhenNoneAre() {
+        let videos = (1...3).map { video("\($0).mp4") }
+        let ready = VideoPlaybackPlan.assign(
+            screens: ["A"], videos: videos, ready: [videos[2]])
+        XCTAssertEqual(ready["A"], videos[2], "冷開機不要抽到還沒下載的")
+
+        let untouched = VideoPlaybackPlan.assign(screens: ["A"], videos: videos, ready: [])
+        XCTAssertEqual(untouched["A"], videos[0], "空集合＝不過濾，跟以前一樣")
+
+        let missing = VideoPlaybackPlan.assign(
+            screens: ["A"], videos: videos, ready: [video("其他.mp4")])
+        XCTAssertEqual(missing["A"], videos[0], "ready 跟池沒有交集就退回全池")
+    }
+
+    func testAdvancePlaysAReadyTargetImmediately() {
+        let videos = (1...3).map { video("\($0).mp4") }
+        let decision = VideoPlaybackPlan.advance(
+            after: videos[0], screen: "A", videos: videos, mode: .repeatAll,
+            ready: [videos[0]], isReady: { $0 == videos[1] })
+        XCTAssertEqual(decision.play, videos[1])
+        XCTAssertNil(decision.fetch)
+    }
+
+    func testAdvanceFillsWithAReadyVideoWhileTheTargetDownloads() {
+        let videos = (1...4).map { video("\($0).mp4") }
+        // 順序下一支是 2，還沒好。3 被別台佔著。墊檔應該是 4，不是 1（剛播完）、也不是 3。
+        let decision = VideoPlaybackPlan.advance(
+            after: videos[0], screen: "A", videos: videos, busy: [videos[2]],
+            mode: .repeatAll, ready: [videos[0], videos[2], videos[3]],
+            isReady: { $0 != videos[1] })
+        XCTAssertEqual(decision.fetch, videos[1])
+        XCTAssertEqual(decision.play, videos[3])
+    }
+
+    func testAdvanceKeepsTheCurrentVideoWhenNothingIsReady() {
+        let videos = (1...3).map { video("\($0).mp4") }
+        let decision = VideoPlaybackPlan.advance(
+            after: videos[0], screen: "A", videos: videos, mode: .repeatAll,
+            ready: [], isReady: { _ in false })
+        XCTAssertNil(decision.play, "沒有墊檔就維持現在這支")
+        XCTAssertEqual(decision.fetch, videos[1])
+    }
 }
 
 final class VideoPlaybackModeTests: XCTestCase {

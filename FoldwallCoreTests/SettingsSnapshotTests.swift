@@ -106,6 +106,19 @@ final class SettingsSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.folders, sample().folders, "其他欄位不受影響")
     }
 
+    /// 舊備份沒有釋放開關。缺了就是關——不能因為升版突然開始刪雲端檔。
+    func testOlderBackupWithoutReleaseFetchedVideosStaysOff() throws {
+        let encoded = try SettingsSnapshotCodec.encode(sample())
+        var json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        json.removeValue(forKey: "releaseFetchedVideos")
+        let stripped = try JSONSerialization.data(withJSONObject: json)
+
+        let decoded = try SettingsSnapshotCodec.decode(stripped)
+        XCTAssertFalse(decoded.releaseFetchedVideos)
+        XCTAssertEqual(decoded.videoScaleMode, .fit)
+    }
+
     /// 比較內容時不看時間戳與機器名，否則自動同步會兩台互相寫檔寫不停。
     func testContentComparisonIgnoresStampAndDevice() {
         let a = sample(savedAt: Date(timeIntervalSince1970: 1), deviceName: "A")

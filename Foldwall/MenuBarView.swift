@@ -118,6 +118,9 @@ struct MenuBarView: View {
         if status.remoteCount > 0 { parts.append(String(localized: "網路 \(status.remoteCount)")) }
         var base = parts.joined(separator: Self.separator)
         if status.isIndexing { base = String(localized: "\(base)・掃描中") }
+        if let downloading = status.downloadingNext {
+            base = String(localized: "\(base)・正在下載下一支：\(downloading)")
+        }
         if status.isPaused { return String(localized: "\(base)・已暫停") }
         guard let due = status.nextDue else { return base }
         let time = due.formatted(date: .omitted, time: .shortened)

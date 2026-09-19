@@ -85,6 +85,10 @@ final class DesktopVideoEngine {
         var location: VideoSourceLocation
         /// 已經備好、排在佇列裡的下一支。播完就直接接上，不必當場開檔。
         var preloaded: URL?
+        /// 正在背景下載、抓完要排成下一支的目標。還沒交給播放器。
+        var queued: URL?
+        /// 抓完直接切過去，而不是排進預載等這支播完。沒有墊檔可播時用。
+        var switchWhenReady = false
         /// 視窗是照哪個圖層設定建的。視窗層級只在 init 設得了，改了就得重建視窗。
         var layer: DesktopVideoLayer
         /// 使用者要的縮放，`random` 已經抽定；可能還是「填滿高度／寬度」。
@@ -128,6 +132,20 @@ final class DesktopVideoEngine {
     private static let maxRebuildAttempts = 1
 
     private var playing: [String: Playing] = [:]
+    /// 冷開機時池裡沒有已下載的：先不建視窗（靜態桌布照常顯示），抓完才 start。
+    private struct PendingStart {
+        var url: URL
+        var displayID: CGDirectDisplayID
+        var layer: DesktopVideoLayer
+        var mode: VideoPlaybackMode
+        var scale: VideoScaleMode
+        var startAt: Double?
+    }
+    private var pendingStarts: [String: PendingStart] = [:]
+    private var fetchTasks: [String: Task<Void, Never>] = [:]
+    /// 換核心時會先拆掉再重建同一支。那段 teardown 不能把剛抓下來的檔釋放掉。
+    private var holdReleases = false
+    private let prefetcher = VideoPrefetcher(ledgerURL: AppPaths.standard().videoPrefetched)
     private var watchdog: Timer?
     /// 被政策暫停時看門狗要閉嘴，不然暫停會被當成卡住。
     private var isPolicyPaused = false
@@ -164,6 +182,25 @@ final class DesktopVideoEngine {
     /// 還要看冷卻名單。回 nil 就是「沒有下一支」，播完停在最後一格。
     var nextVideoProvider: ((String, URL) -> URL?)?
 
+    /// 設定開著才在 session 結束時釋放自己抓的檔。讀的是當下的值，不另外快取。
+    var shouldReleaseFetchedVideos: () -> Bool = { false }
+    /// 下載開始或結束。選單列的「正在下載下一支」靠這個更新。
+    var onDownloadActivityChanged: (() -> Void)?
+    /// 抓完（true）或釋放（false）。上層的 ready 快取跟著增刪。
+    var onPrefetchChanged: ((URL, Bool) -> Void)?
+
+    /// 正在背景下載的檔名。沒有就空。
+    var downloadingNames: [String] {
+        var names = playing.values.compactMap { $0.queued?.lastPathComponent }
+        names.append(contentsOf: pendingStarts.values.map { $0.url.lastPathComponent })
+        return names.sorted()
+    }
+
+    /// 各螢幕開播時記的片源位置。診斷報告拿來跟分析結束時的狀態對。
+    var playbackLocations: [String: VideoSourceLocation] {
+        playing.mapValues(\.location)
+    }
+
     /// 核心狀態變了（第一次決定、或回退到 AVPlayer）。設定頁靠這個顯示原因。
     var onCoreStatusChanged: ((DesktopPlaybackCoreStatus) -> Void)?
 
@@ -184,9 +221,37 @@ final class DesktopVideoEngine {
     /// - Parameter excluding: 這台螢幕自己的不算。問「我接下來播什麼」時把自己
     ///   算進去的話，答案每問一次就換一個，預載會被反覆換掉。
     func reservedURLs(excluding uuid: String? = nil) -> Set<URL> {
-        Set(playing.filter { $0.key != uuid }
+        var urls = Set(playing.filter { $0.key != uuid }
             .values
-            .flatMap { [$0.url] + ($0.preloaded.map { [$0] } ?? []) })
+            .flatMap { [$0.url] + ($0.preloaded.map { [$0] } ?? []) + ($0.queued.map { [$0] } ?? []) })
+        for (id, pending) in pendingStarts where id != uuid {
+            urls.insert(pending.url)
+        }
+        return urls
+    }
+
+    /// 上層指定「這支抓完排下一支／抓完直接切」。目標已經在抓就只更新旗標。
+    func queueNext(_ uuid: String, url: URL, switchWhenReady: Bool) {
+        if playing[uuid] == nil {
+            guard pendingStarts[uuid] != nil else { return }
+            pendingStarts[uuid]?.url = url
+            beginFetch(uuid, url: url)
+            return
+        }
+        if playing[uuid]?.queued == url, fetchTasks[uuid] != nil {
+            playing[uuid]?.switchWhenReady = switchWhenReady
+            noteDownloadActivity()
+            return
+        }
+        playing[uuid]?.queued = url
+        playing[uuid]?.switchWhenReady = switchWhenReady
+        beginFetch(uuid, url: url)
+    }
+
+    /// 設定剛打開：把已經不在播的、自己抓的那些還回去。
+    func releaseFinishedFetches() {
+        let keep = reservedURLs()
+        Task { await prefetcher.releaseAll(keeping: keep) }
     }
 
     /// 讓畫面符合 `plan`：沒在計畫裡的關掉，換片的重建，沒變的留著。
@@ -204,6 +269,8 @@ final class DesktopVideoEngine {
             if live {
                 for uuid in playing.keys.sorted() {
                     if loop {
+                        cancelFetch(uuid)
+                        playing[uuid]?.queued = nil
                         playing[uuid]?.preloaded = nil
                         if playing[uuid]?.ended == true { replay(uuid) }
                     } else {
@@ -212,7 +279,10 @@ final class DesktopVideoEngine {
                 }
                 Log.video.info("桌面視窗即時改播放模式：\(mode.displayName, privacy: .public)")
             } else {
+                // 整批重建會立刻再 start 同一批。中間的 teardown 不能把剛抓的檔還回去。
+                holdReleases = true
                 stopAll()
+                holdReleases = false
             }
         }
         // 換核心：只作用於影片視窗，不重跑蒙太奇；同一支從同一秒接著播。
@@ -221,10 +291,16 @@ final class DesktopVideoEngine {
         if core != activeCore {
             activeCore = core
             resume = playing.mapValues { ($0.url, $0.surface.currentSeconds) }
+            holdReleases = true
             stopAll()
+            holdReleases = false
             Log.video.info("桌面視窗換核心：\(core.rawValue, privacy: .public)")
         }
         let byUUID = Dictionary(uniqueKeysWithValues: screens.map { ($0.uuid, $0) })
+
+        for uuid in Array(pendingStarts.keys) where plan[uuid] == nil || byUUID[uuid] == nil {
+            cancelPending(uuid)
+        }
 
         for (uuid, current) in playing where plan[uuid] == nil || byUUID[uuid] == nil {
             teardown(uuid)
@@ -236,7 +312,8 @@ final class DesktopVideoEngine {
                 teardown(uuid)
                 continue
             }
-            // 同一支繼續播，不要每輪重啟
+            // 同一支繼續播，不要每輪重啟。queued 也不清：plan 沒換目標，
+            // 背景下載還是這一支的下一支。
             if let current = playing[uuid], current.url == url {
                 reframe(uuid, to: screen)
                 // 縮放改得動已經在播的那個（不像循環方式），所以只設縮放，
@@ -248,6 +325,11 @@ final class DesktopVideoEngine {
                 if current.ended { replay(uuid) }
                 continue
             }
+            // 還在等這支下載完，視窗還沒建。目標沒變就繼續等。
+            if let pending = pendingStarts[uuid], pending.url == url {
+                continue
+            }
+            cancelPending(uuid)
             // 換片：視窗與 player 留著，只換片源。**重建視窗會閃一下黑的**，
             // 而換片現在是每支播完都會發生的事（不再只有睡醒那一次），
             // 每支之間閃一下黑的，那看起來就是壞的。
@@ -270,7 +352,8 @@ final class DesktopVideoEngine {
     }
 
     func stopAll() {
-        for uuid in playing.keys { teardown(uuid) }
+        for uuid in Array(playing.keys) { teardown(uuid) }
+        for uuid in Array(pendingStarts.keys) { cancelPending(uuid) }
     }
 
     /// 使用者又動了核心設定：上次的回退不算數，下一輪重新試。
@@ -421,6 +504,19 @@ final class DesktopVideoEngine {
                 + (paused.ongoing ? String(localized: "（進行中）") : "")
                 + (entry.occluded ? String(localized: "，視窗目前被完全遮住") : ""))
             lines.append("- " + String(localized: "下一支已預載：\(entry.preloaded?.lastPathComponent ?? String(localized: "無"))"))
+            if let queued = entry.queued {
+                lines.append("- " + String(localized: "正在下載：\(queued.lastPathComponent)"))
+            }
+            let slow = events.slowStarts(surface: uuid, threshold: 5)
+            if slow.isEmpty {
+                lines.append("- " + String(localized: "出畫等待：沒有超過 5 秒的"))
+            } else {
+                for item in slow {
+                    let name = Self.fileName(of: item.sourceKey) ?? String(localized: "未知")
+                    let seconds = String(format: "%.1f", item.seconds)
+                    lines.append("- " + String(localized: "出畫等待：\(name) \(seconds) 秒"))
+                }
+            }
             lines.append(contentsOf: entry.surface.diagnosticLines())
             lines.append("")
         }
@@ -432,7 +528,8 @@ final class DesktopVideoEngine {
         lines.append("")
         for event in events.all.suffix(120) {
             let stamp = event.at.formatted(date: .omitted, time: .standard)
-            lines.append("- \(stamp) [\(event.surface)#\(event.session)] \(event.kind.rawValue)"
+            let name = Self.fileName(of: event.sourceKey).map { " \($0)" } ?? ""
+            lines.append("- \(stamp) [\(event.surface)#\(event.session)] \(event.kind.rawValue)\(name)"
                 + (event.detail.map { "：\($0)" } ?? ""))
         }
         lines.append("")
@@ -468,6 +565,26 @@ final class DesktopVideoEngine {
             kind: kind, engine: engineLabel(for: entry), surface: surface,
             session: entry.session, sourceKey: entry.url.absoluteString,
             policy: isPolicyPaused ? "paused" : "full", detail: detail))
+    }
+
+    /// 下載事件的片源是正在抓的那支，不是畫面上這支。
+    private func recordFetch(_ kind: PlaybackEvent.Kind, uuid: String, url: URL, detail: String?) {
+        let engine = playing[uuid].map(engineLabel(for:)) ?? VideoEngine.desktopWindow.rawValue
+        let session = playing[uuid]?.session ?? 0
+        events.record(PlaybackEvent(
+            kind: kind, engine: engine, surface: uuid, session: session,
+            sourceKey: url.absoluteString,
+            policy: isPolicyPaused ? "paused" : "full", detail: detail))
+    }
+
+    private static func fileName(of sourceKey: String?) -> String? {
+        guard let sourceKey, !sourceKey.isEmpty else { return nil }
+        if let url = URL(string: sourceKey), url.lastPathComponent != sourceKey,
+           !url.lastPathComponent.isEmpty {
+            return url.lastPathComponent
+        }
+        let name = URL(fileURLWithPath: sourceKey).lastPathComponent
+        return name.isEmpty ? nil : name
     }
 
     // MARK: - 看門狗
@@ -554,9 +671,19 @@ final class DesktopVideoEngine {
 
     private func start(url: URL, uuid: String, screen: NSScreen, layer: DesktopVideoLayer,
                        mode: VideoPlaybackMode, scale: VideoScaleMode, startAt: Double? = nil) {
+        let location = Self.currentLocation(of: url)
+        // 還沒下載的不建視窗。一開檔播放器就得等整支抓完，畫面會凍在黑的或上一格。
+        if location == .cloudDataless {
+            guard let displayID = Self.displayID(of: screen) else { return }
+            pendingStarts[uuid] = PendingStart(
+                url: url, displayID: displayID, layer: layer, mode: mode, scale: scale, startAt: startAt)
+            beginFetch(uuid, url: url)
+            Log.video.info("先下載再播：\(url.lastPathComponent, privacy: .public)")
+            return
+        }
+
         sessionCounter += 1
         let session = sessionCounter
-        let location = VideoBufferPolicy.location(for: url)
         let surface = makeSurface(uuid: uuid, screen: screen, loop: !mode.advancesAtEnd)
         surface.delegate = self
 
@@ -591,6 +718,12 @@ final class DesktopVideoEngine {
                              mode: VideoPlaybackMode, scale: VideoScaleMode) {
         guard let entry = playing[uuid] else { return }
 
+        // 還沒下載完就不 load。畫面留在現在這支，抓完再切。
+        if Self.currentLocation(of: url) == .cloudDataless {
+            queueNext(uuid, url: url, switchWhenReady: true)
+            return
+        }
+
         // 已經備好的就是它：直接接上，不必再開一次檔。
         if entry.preloaded == url, entry.surface.hasPreloaded {
             entry.surface.advanceToPreloaded()
@@ -604,7 +737,7 @@ final class DesktopVideoEngine {
 
         sessionCounter += 1
         let session = sessionCounter
-        let location = VideoBufferPolicy.location(for: url)
+        let location = Self.currentLocation(of: url)
 
         reframe(uuid, to: screen)
         // 隨機縮放是「每支各抽一種」，換片就得重抽——這裡是新的那支。
@@ -612,6 +745,10 @@ final class DesktopVideoEngine {
         let wanted = Self.resolve(scale, uuid: uuid, url: url)
         let applied = wanted.resolved(videoAspect: nil, screenAspect: Self.aspect(of: screen))
         entry.surface.setScale(applied)
+        let previous = entry.url
+        if entry.queued != nil, entry.queued != url {
+            cancelFetch(uuid)
+        }
         entry.surface.load(url, location: location, loop: !mode.advancesAtEnd, startAt: nil)
         playing[uuid]?.url = url
         playing[uuid]?.session = session
@@ -624,6 +761,7 @@ final class DesktopVideoEngine {
         playing[uuid]?.waitingSince = nil
         playing[uuid]?.ended = false
         playing[uuid]?.rebuildAttempts = 0
+        if previous != url { maybeRelease(previous) }
         if let updated = playing[uuid] { record(.switched, entry: updated, surface: uuid) }
         applyRunState(uuid)
         preloadNext(uuid)
@@ -637,25 +775,47 @@ final class DesktopVideoEngine {
     /// 播放器會自己預先準備，接縫只剩佇列切換。
     private func preloadNext(_ uuid: String) {
         guard let entry = playing[uuid], activeMode.advancesAtEnd else { return }
-        guard let provider = nextVideoProvider,
-              let next = provider(uuid, entry.url), next != entry.preloaded else { return }
+        let next: URL?
+        if let queued = entry.queued {
+            next = queued
+        } else {
+            next = nextVideoProvider?(uuid, entry.url)
+        }
+        guard let next, next != entry.preloaded else { return }
+        if entry.queued == next, fetchTasks[uuid] != nil { return }
 
-        let location = VideoBufferPolicy.location(for: next)
+        let location = Self.currentLocation(of: next)
+        if location == .cloudDataless {
+            // 排進佇列只代表「有下一支」，不代表讀得到。開檔會把畫面凍住等整支下載。
+            if entry.queued != next {
+                playing[uuid]?.queued = next
+                playing[uuid]?.switchWhenReady = false
+            }
+            beginFetch(uuid, url: next)
+            return
+        }
+
         guard entry.surface.preload(next, location: location) else { return }
         playing[uuid]?.preloaded = next
+        if playing[uuid]?.queued == next {
+            cancelFetch(uuid)
+            playing[uuid]?.queued = nil
+            playing[uuid]?.switchWhenReady = false
+        }
         Log.video.debug("預載下一支：\(next.lastPathComponent, privacy: .public)")
     }
 
     /// 已預載的那支接上了（播完自動接、或使用者按「下一片」）：把帳更新過來。
     private func adoptPreloaded(_ uuid: String) {
         guard let entry = playing[uuid], let next = entry.preloaded else { return }
+        let previous = entry.url
         sessionCounter += 1
         let newSession = sessionCounter
         entry.surface.adoptPreloaded()
 
         playing[uuid]?.url = next
         playing[uuid]?.session = newSession
-        playing[uuid]?.location = VideoBufferPolicy.location(for: next)
+        playing[uuid]?.location = Self.currentLocation(of: next)
         playing[uuid]?.preloaded = nil
         playing[uuid]?.startedAt = .now
         playing[uuid]?.waitingSince = nil
@@ -674,6 +834,7 @@ final class DesktopVideoEngine {
             record(.switched, entry: updated, surface: uuid,
                    detail: String(localized: "預載接上，無停頓"))
         }
+        if previous != next { maybeRelease(previous) }
     }
 
     /// 從頭再播一次同一支：上層排的「下一支」就是它自己（池裡只剩這支，
@@ -758,6 +919,8 @@ final class DesktopVideoEngine {
     }
 
     private func teardown(_ uuid: String) {
+        let queued = playing[uuid]?.queued
+        cancelFetch(uuid)
         guard let entry = playing.removeValue(forKey: uuid) else { return }
         if let observer = entry.occlusionObserver {
             NotificationCenter.default.removeObserver(observer)
@@ -768,16 +931,122 @@ final class DesktopVideoEngine {
         events.record(PlaybackEvent(
             kind: .released, engine: engineLabel(for: entry), surface: uuid,
             session: entry.session, sourceKey: entry.url.absoluteString))
+        maybeRelease(entry.url)
+        if let queued, queued != entry.url { maybeRelease(queued) }
+        if let preloaded = entry.preloaded, preloaded != entry.url, preloaded != queued {
+            maybeRelease(preloaded)
+        }
         stopWatchdogIfIdle()
         updateActivity()
+        noteDownloadActivity()
     }
 
     private static func screen(for target: DisplayTarget) -> NSScreen? {
+        guard let screen = screen(id: target.id) else { return nil }
+        return screen
+    }
+
+    private static func screen(id: CGDirectDisplayID) -> NSScreen? {
         NSScreen.screens.first { screen in
-            guard let number = screen.deviceDescription[
-                NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return false }
-            return CGDirectDisplayID(number.uint32Value) == target.id
+            Self.displayID(of: screen) == id
         }
+    }
+
+    private static func displayID(of screen: NSScreen) -> CGDirectDisplayID? {
+        (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)
+            .map { CGDirectDisplayID($0.uint32Value) }
+    }
+
+    /// resource values 會留在 URL 實例上。開播前查過一次「還沒下載」，
+    /// 抓完再用同一顆 URL 查會永遠是舊答案，於是視窗永遠建不起來。
+    private static func currentLocation(of url: URL) -> VideoSourceLocation {
+        let fresh = url.isFileURL ? URL(fileURLWithPath: url.path) : url
+        return VideoBufferPolicy.location(for: fresh)
+    }
+
+    private func beginFetch(_ uuid: String, url: URL) {
+        fetchTasks[uuid]?.cancel()
+        let started = Date()
+        recordFetch(.fetching, uuid: uuid, url: url, detail: nil)
+        fetchTasks[uuid] = Task { [weak self] in
+            guard let self else { return }
+            let ok = await self.prefetcher.fetch(url)
+            guard !Task.isCancelled else { return }
+            self.fetchFinished(uuid: uuid, url: url, ok: ok, started: started)
+        }
+        noteDownloadActivity()
+    }
+
+    private func fetchFinished(uuid: String, url: URL, ok: Bool, started: Date) {
+        let stillWanted = playing[uuid]?.queued == url || pendingStarts[uuid]?.url == url
+        guard stillWanted else { return }
+        fetchTasks[uuid] = nil
+        let seconds = Date().timeIntervalSince(started)
+        guard ok else {
+            noteDownloadActivity()
+            return
+        }
+        recordFetch(.fetched, uuid: uuid, url: url,
+                    detail: String(localized: "下載 \(String(format: "%.1f", seconds)) 秒"))
+        onPrefetchChanged?(url, true)
+
+        if let pending = pendingStarts[uuid], pending.url == url {
+            pendingStarts[uuid] = nil
+            guard let screen = Self.screen(id: pending.displayID) ?? NSScreen.main else {
+                noteDownloadActivity()
+                return
+            }
+            start(url: url, uuid: uuid, screen: screen, layer: pending.layer,
+                  mode: pending.mode, scale: pending.scale, startAt: pending.startAt)
+            noteDownloadActivity()
+            return
+        }
+
+        guard playing[uuid]?.queued == url else {
+            noteDownloadActivity()
+            return
+        }
+        let switchNow = playing[uuid]?.switchWhenReady == true
+        playing[uuid]?.queued = nil
+        playing[uuid]?.switchWhenReady = false
+        if switchNow, let entry = playing[uuid],
+           let screen = entry.window.screen ?? NSScreen.main {
+            switchVideo(uuid, to: url, screen: screen, mode: activeMode, scale: entry.scale)
+        } else if let entry = playing[uuid] {
+            let location = Self.currentLocation(of: url)
+            if entry.surface.preload(url, location: location) {
+                playing[uuid]?.preloaded = url
+            }
+        }
+        noteDownloadActivity()
+    }
+
+    private func cancelFetch(_ uuid: String) {
+        fetchTasks[uuid]?.cancel()
+        fetchTasks[uuid] = nil
+    }
+
+    private func cancelPending(_ uuid: String) {
+        let url = pendingStarts[uuid]?.url
+        pendingStarts[uuid] = nil
+        cancelFetch(uuid)
+        if let url { maybeRelease(url) }
+        noteDownloadActivity()
+    }
+
+    private func maybeRelease(_ url: URL) {
+        guard !holdReleases, shouldReleaseFetchedVideos() else { return }
+        if reservedURLs().contains(url) { return }
+        if pendingStarts.values.contains(where: { $0.url == url }) { return }
+        Task { [weak self] in
+            guard let self else { return }
+            guard await self.prefetcher.release(url) else { return }
+            self.onPrefetchChanged?(url, false)
+        }
+    }
+
+    private func noteDownloadActivity() {
+        onDownloadActivityChanged?()
     }
 }
 
@@ -797,6 +1066,13 @@ extension DesktopVideoEngine: DesktopPlaybackSurfaceDelegate {
         let finished = entry.url
 
         guard entry.preloaded != nil else {
+            if entry.queued != nil {
+                record(.loopBoundary, entry: entry, surface: uuid,
+                       detail: String(localized: "下一支還在下載，先重播"))
+                Log.video.info("播畢，下一支還在下載，先重播：\(finished.lastPathComponent, privacy: .public)")
+                replay(uuid)
+                return
+            }
             playing[uuid]?.ended = true
             record(.loopBoundary, entry: entry, surface: uuid,
                    detail: String(localized: "沒有下一支，停在最後一格"))

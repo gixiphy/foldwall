@@ -244,8 +244,9 @@ public enum VideoAnalyzer {
 /// 從時間戳算出統計。純函式，所以測得到。
 public enum TimingStatistics {
 
-    /// 間隔差多少才算「不是固定幀率」。取最小間隔的一成——時間基準換算的
-    /// 整數誤差遠小於這個，真正的 VFR 或掉格遠大於這個。
+    /// 間隔差多少才算「不是固定幀率」。取比較端的一成——時間基準換算的
+    /// 整數誤差遠小於這個，真正的 VFR 遠大於這個。比的是 p90 對 p10，
+    /// 不是最大對最小：一個離群間隔不該把整支判成可變幀率。
     public static let variabilityTolerance = 0.1
 
     /// - Parameter samples: **解碼順序**的時間戳。呈現順序的統計會在這裡自己排。
@@ -289,8 +290,14 @@ public enum TimingStatistics {
             analysis.minIntervalSeconds = ordered.first
             analysis.maxIntervalSeconds = ordered.last
             analysis.medianIntervalSeconds = ordered[ordered.count / 2]
-            if let smallest = ordered.first, let largest = ordered.last, smallest > 0 {
-                analysis.isVariableFrameRate = largest > smallest * (1 + variabilityTolerance)
+            // 最大對最小會被一個離群間隔整支判成可變幀率（29.97 fps 裡夾一格
+            // 0.13 秒就是這種）。改看分佈的兩端：p90 仍明顯大於 p10 才算。
+            if let low = Self.percentile(ordered, 0.10),
+               let high = Self.percentile(ordered, 0.90), low > 0 {
+                analysis.isVariableFrameRate = high > low * (1 + variabilityTolerance)
+            }
+            if let median = analysis.medianIntervalSeconds, median > 0 {
+                analysis.outlierIntervalCount = ordered.count { $0 > median * 1.5 }
             }
         }
 
@@ -305,5 +312,12 @@ public enum TimingStatistics {
             analysis.lastPresentationEndSeconds = tail.map { CMTimeAdd(last, $0).seconds }
         }
         return analysis
+    }
+
+    /// 排序過的樣本上的分位數。用最近順位，樣本少的時候也不會去插值編一個沒出現過的間隔。
+    private static func percentile(_ sorted: [Double], _ p: Double) -> Double? {
+        guard !sorted.isEmpty else { return nil }
+        let index = Int((Double(sorted.count - 1) * p).rounded())
+        return sorted[min(max(index, 0), sorted.count - 1)]
     }
 }

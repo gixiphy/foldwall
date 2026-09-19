@@ -70,8 +70,12 @@ public struct VideoSourceProfile: Codable, Sendable, Equatable {
         public var minIntervalSeconds: Double?
         public var medianIntervalSeconds: Double?
         public var maxIntervalSeconds: Double?
-        /// 間隔不只一種。
+        /// 間隔不只一種。一個離群值不算——那會把固定幀率的片判成可變的。
+        /// 看的是 p90 對 p10，不是最大對最小。
         public var isVariableFrameRate: Bool
+        /// 比中位數長一半以上的間隔有幾個。可變幀率的判定刻意放掉單一離群，
+        /// 但那個離群本身仍是事實，報告要列出來。
+        public var outlierIntervalCount: Int
         /// 有幾格的 sample 自己沒帶長度。
         public var samplesMissingDuration: Int
         /// 有幾格的 PTS 比前一格小——解碼順序裡這是正常的 B-frame，
@@ -88,6 +92,7 @@ public struct VideoSourceProfile: Codable, Sendable, Equatable {
             medianIntervalSeconds: Double? = nil,
             maxIntervalSeconds: Double? = nil,
             isVariableFrameRate: Bool = false,
+            outlierIntervalCount: Int = 0,
             samplesMissingDuration: Int = 0,
             nonMonotonicPresentationCount: Int = 0,
             hasBFrames: Bool = false,
@@ -99,6 +104,7 @@ public struct VideoSourceProfile: Codable, Sendable, Equatable {
             self.medianIntervalSeconds = medianIntervalSeconds
             self.maxIntervalSeconds = maxIntervalSeconds
             self.isVariableFrameRate = isVariableFrameRate
+            self.outlierIntervalCount = outlierIntervalCount
             self.samplesMissingDuration = samplesMissingDuration
             self.nonMonotonicPresentationCount = nonMonotonicPresentationCount
             self.hasBFrames = hasBFrames
@@ -280,6 +286,10 @@ public struct PlaybackEvent: Codable, Sendable, Equatable {
         case recovered
         /// 資源釋放（深度暫停、surface 收掉）。
         case released
+        /// 下一支在雲端，開始背景下載。還沒交給播放器。
+        case fetching
+        /// 背景下載完成，可以開檔了。
+        case fetched
     }
 
     public var kind: Kind
@@ -412,5 +422,29 @@ public struct PlaybackEventLog: Sendable {
         }
         if let start = since { total += now.timeIntervalSince(start) }
         return (count, total, since != nil)
+    }
+
+    /// 出畫前等了多久。配對同一個 session 的 `started`／`switched` 到後面的 `firstFrame`。
+    ///
+    /// 停頓統計不算這段：它只算已經出畫之後的 `stalled`。換片後盯著凍住的
+    /// 最後一格等幾分鐘，以前的報告完全看不出來。
+    public func slowStarts(surface: String, threshold: TimeInterval) -> [(sourceKey: String?, seconds: TimeInterval)] {
+        var pending: [Int: (sourceKey: String?, at: Date)] = [:]
+        var found: [(sourceKey: String?, seconds: TimeInterval)] = []
+        for event in events where event.surface == surface {
+            switch event.kind {
+            case .started, .switched:
+                pending[event.session] = (event.sourceKey, event.at)
+            case .firstFrame:
+                guard let start = pending.removeValue(forKey: event.session) else { continue }
+                let seconds = event.at.timeIntervalSince(start.at)
+                if seconds > threshold {
+                    found.append((start.sourceKey, seconds))
+                }
+            default:
+                break
+            }
+        }
+        return found
     }
 }

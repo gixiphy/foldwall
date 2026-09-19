@@ -565,6 +565,18 @@ private struct VideoSettings: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+
+                    Toggle("播完後釋放 Foldwall 下載的影片", isOn: $settings.releaseFetchedVideos)
+                        .onChange(of: settings.releaseFetchedVideos) { _, _ in
+                            coordinator.releaseFetchedVideosDidChange()
+                        }
+                    Text("""
+                        關著時磁碟用量交給雲端硬碟自己的快取管理，隨機播放一天可能多幾十 GB。\
+                        開了只釋放 Foldwall 自己抓的，你手動下載的不碰；同一支再抽到要重抓。
+                        """)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text(Self.extensionRotationNote)
                         .font(.caption)

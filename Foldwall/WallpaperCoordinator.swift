@@ -47,6 +47,8 @@ final class WallpaperCoordinator {
         /// 能不能清系統圖片桌布留下的 BMP 快取（見 SystemWallpaperAccess）。
         /// nil＝還沒查過；denied 時跳過清理，UI 帶使用者去開「完全取用磁碟」。
         var systemCleanupAccess: SystemWallpaperAccess?
+        /// 正在背景下載的下一支，檔名。選單列用來解釋「按了下一片為什麼沒換」。
+        var downloadingNext: String?
 
         /// 三種來源都沒有才算「還沒設定」。
         var hasNoSources: Bool {
@@ -128,6 +130,9 @@ final class WallpaperCoordinator {
     /// **只留影片清單，不留整份索引快照。** 快照裡還有 69 萬筆的圖片陣列，
     /// 掛在這裡等於在索引重掃之後多釘一份幾十 MB 的舊清單。
     @ObservationIgnored private var lastVideoCandidates: [URL]?
+    /// 已經讀得到的影片。雲端路徑才 stat，其餘直接算讀得到。
+    /// 抓完或釋放時增刪，不必等下一輪全量重掃。
+    @ObservationIgnored private var readyVideos: Set<URL> = []
     /// 診斷正在跑。它會把幾支影片各讀一遍，不該被連按兩次而跑兩輪。
     @ObservationIgnored private var isDiagnosing = false
     @ObservationIgnored private var cycleNonce = UInt64(Date().timeIntervalSince1970)
@@ -180,6 +185,18 @@ final class WallpaperCoordinator {
         // 挑片的規則仍然在這裡：播放模式、避開別台正在播的、冷卻名單。
         desktopVideo.nextVideoProvider = { [weak self] uuid, current in
             self?.nextVideo(for: uuid, after: current)
+        }
+        desktopVideo.shouldReleaseFetchedVideos = { [weak self] in
+            self?.settings.releaseFetchedVideos ?? false
+        }
+        desktopVideo.onDownloadActivityChanged = { [weak self] in
+            self?.publishDownloading()
+        }
+        desktopVideo.onPrefetchChanged = { [weak self] url, ready in
+            guard let self else { return }
+            if ready { self.readyVideos.insert(url) }
+            else { self.readyVideos.remove(url) }
+            self.publishDownloading()
         }
         desktopVideo.onCoreStatusChanged = { [weak self] status in
             self?.playbackCoreStatus = status
@@ -486,6 +503,19 @@ final class WallpaperCoordinator {
         applyDesktopVideoNow("改影片縮放")
     }
 
+    /// 釋放開關。開了就把已經不在播的、自己抓的那些還回去；關了什麼都不做。
+    func releaseFetchedVideosDidChange() {
+        guard settings.releaseFetchedVideos else { return }
+        guard settings.videoWallpaperEnabled, !settings.videoEngine.needsDeployment else { return }
+        desktopVideo.releaseFinishedFetches()
+    }
+
+    private func publishDownloading() {
+        let names = desktopVideo.downloadingNames
+        let text = names.isEmpty ? nil : names.joined(separator: "、")
+        if status.downloadingNext != text { status.downloadingNext = text }
+    }
+
     /// 把 extension 那條路吃得到的設定寫進它的 container。
     /// extension 是沙盒的、也不連 FoldwallCore，只能靠這個檔＋Darwin 通知。
     private func pushExtensionPrefs() {
@@ -561,7 +591,8 @@ final class WallpaperCoordinator {
         let report = await VideoDiagnostics.report(
             engine: settings.videoEngine,
             playing: subjects,
-            desktopReport: desktopVideo.diagnosticsReport())
+            desktopReport: desktopVideo.diagnosticsReport(),
+            openedAs: desktopVideo.playbackLocations)
         return VideoDiagnostics.write(report)
     }
 
@@ -786,12 +817,24 @@ final class WallpaperCoordinator {
         let usage = settings.folderUsage
         let videos = await Task.detached(priority: .userInitiated) {
             let urls = allVideos.map { URL(filePath: $0, directoryHint: .notDirectory) }
-            return SourceUsageMap.filter(urls, roots: videoRoots, usage: usage, needing: .video)
+            let filtered = SourceUsageMap.filter(urls, roots: videoRoots, usage: usage, needing: .video)
+            // 只對雲端路徑 stat。其餘讀得到，不必每支都問 File Provider。
+            var ready = Set<URL>()
+            for url in filtered {
+                if VideoBufferPolicy.isCloudStoragePath(url.path) {
+                    let fresh = URL(fileURLWithPath: url.path)
+                    if VideoBufferPolicy.location(for: fresh) != .cloudDataless {
+                        ready.insert(url)
+                    }
+                } else {
+                    ready.insert(url)
+                }
+            }
+            return (filtered, ready)
         }.value
-        status.videoCount = videos.count
-
-        // 換片那條路要重用這份候選，不必為了換一支影片再跑一次整條管線
-        lastVideoCandidates = videos
+        status.videoCount = videos.0.count
+        lastVideoCandidates = videos.0
+        readyVideos = videos.1
 
         // 片單**在分岔之前**做：兩條引擎都要吃。
         //
@@ -813,11 +856,11 @@ final class WallpaperCoordinator {
             // 否則這一輪的部署會少幾支，而且是靜悄悄地少。
             remoteVideoPool.protectedFiles.update(Set(videoLibrary.deployedSourceURLs))
             if !effects.contains(.pauseVideo) {
-                syncVideosInBackground(videos: videos, isComplete: index.isComplete)
+                syncVideosInBackground(videos: videos.0, isComplete: index.isComplete)
             }
         } else {
             // 桌面視窗：**不拷貝**，AVPlayer 直接吃來源 URL
-            await applyDesktopVideo(candidates: videos, effects: effects)
+            await applyDesktopVideo(candidates: videos.0, effects: effects)
         }
 
         let displays = ScreenBridge.currentDisplays()
@@ -1064,16 +1107,18 @@ final class WallpaperCoordinator {
             rotateVideosOnNextRefresh = false
             settings.videoRotationCursor &+= 1
             plan = VideoPlaybackPlan.assign(
-                screens: screens, videos: pool, cycle: settings.videoRotationCursor)
+                screens: screens, videos: pool, cycle: settings.videoRotationCursor,
+                ready: readyVideos)
         } else {
             plan = VideoPlaybackPlan.keeping(
                 current: desktopVideo.playingURLs, screens: screens,
-                videos: pool, cycle: settings.videoRotationCursor)
+                videos: pool, cycle: settings.videoRotationCursor, ready: readyVideos)
         }
 
         // 播完了、或使用者按了「下一片」的那幾台，在這裡才往前一步。
         // 放在 keeping 之後：先讓沒事的螢幕定下來，換片的那台才知道要避開哪幾支。
         let advancing = pendingVideoAdvance.intersection(screens)
+        var fetches: [(uuid: String, url: URL, switchWhenReady: Bool)] = []
         if !advancing.isEmpty {
             // 整個清空而不只扣掉這批：沒被勾影片的螢幕（拔掉的、取消勾選的）
             // 留在裡面也永遠等不到，只會一直佔著。
@@ -1081,21 +1126,38 @@ final class WallpaperCoordinator {
             for uuid in advancing.sorted() {
                 videoAdvanceNonce &+= 1
                 let busy = Set(plan.filter { $0.key != uuid }.map(\.value))
-                guard let next = VideoPlaybackPlan.next(
+                let decision = VideoPlaybackPlan.advance(
                     after: desktopVideo.playingURLs[uuid], screen: uuid, videos: pool,
-                    busy: busy, mode: settings.videoPlaybackMode, nonce: videoAdvanceNonce)
-                else { continue }
-                plan[uuid] = next
+                    busy: busy, mode: settings.videoPlaybackMode, nonce: videoAdvanceNonce,
+                    ready: readyVideos,
+                    isReady: Self.isReadyNow)
+                if let fetch = decision.fetch {
+                    // 沒有墊檔就抓完直接切；有墊檔就排成再下一支，畫面先切到墊檔。
+                    fetches.append((uuid, fetch, decision.play == nil))
+                }
+                if let play = decision.play {
+                    plan[uuid] = play
+                }
             }
         }
 
         desktopVideo.apply(plan: plan, layer: settings.desktopVideoLayer, screens: displays,
                            mode: settings.videoPlaybackMode, scale: settings.videoScaleMode,
                            core: settings.desktopPlaybackCore)
+        for fetch in fetches {
+            desktopVideo.queueNext(fetch.uuid, url: fetch.url, switchWhenReady: fetch.switchWhenReady)
+        }
+        publishDownloading()
         syncVideoPause()
         // 快取淘汰不可以砍正在用的檔。純 LRU 會刪掉正在播的那支，
         // 下一輪排片找不到它就換片，而磁碟空間在檔案句柄關掉前根本沒釋放。
         remoteVideoPool.protectedFiles.update(desktopVideo.reservedURLs())
+    }
+
+    /// 目標那支現查一次。快取只拿來篩墊檔；這裡錯了就會把沒抓完的交給播放器。
+    private static func isReadyNow(_ url: URL) -> Bool {
+        guard VideoBufferPolicy.isCloudStoragePath(url.path) else { return true }
+        return VideoBufferPolicy.location(for: URL(fileURLWithPath: url.path)) != .cloudDataless
     }
 
     /// 有幾台螢幕被標記成播影片。片單的按需下載拿它當「要幾支」。
@@ -1367,6 +1429,7 @@ final class WallpaperCoordinator {
             desktopPlaybackCore: settings.desktopPlaybackCore,
             videoPlaybackMode: settings.videoPlaybackMode,
             videoScaleMode: settings.videoScaleMode,
+            releaseFetchedVideos: settings.releaseFetchedVideos,
             videoDownloadQuality: settings.videoDownloadQuality,
             videoCookieSource: settings.videoCookieSource,
             videoScreens: settings.videoScreens.sorted(),
@@ -1466,6 +1529,7 @@ final class WallpaperCoordinator {
         settings.desktopPlaybackCore = device.desktopPlaybackCore
         settings.videoPlaybackMode = device.videoPlaybackMode
         settings.videoScaleMode = device.videoScaleMode
+        settings.releaseFetchedVideos = device.releaseFetchedVideos
         settings.videoDownloadQuality = device.videoDownloadQuality
         settings.launchAtLogin = device.launchAtLogin
         if sameMachine {

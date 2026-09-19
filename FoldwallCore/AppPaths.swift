@@ -36,6 +36,8 @@ public struct AppPaths: Sendable {
     /// 使用者用本機 AI CLI 翻出來的介面語言（見 UITranslationStore）。
     /// 放 Application Support：翻一輪要花模型幾分鐘，不是那種該被系統回收的東西。
     public var uiTranslations: URL { applicationSupport.appending(path: "UITranslations") }
+    /// Foldwall 自己觸發下載的雲端影片。釋放設定重開 app 之後仍只動這些。
+    public var videoPrefetched: URL { applicationSupport.appending(path: "video-prefetched.json") }
     /// SMB 來源的本機拷貝（可重建，可被清）。
     public var smbCache: URL { caches.appending(path: "smb") }
     /// 網路來源下載的原圖。

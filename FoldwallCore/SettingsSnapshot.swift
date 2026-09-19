@@ -64,6 +64,8 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
     public var videoPlaybackMode: VideoPlaybackMode
     /// 影片怎麼填進螢幕。兩條引擎都吃，跟硬體無關，可以跨機搬。
     public var videoScaleMode: VideoScaleMode
+    /// 播完後釋放本 app 自己抓下來的雲端影片。預設關，交給雲端硬碟的快取。
+    public var releaseFetchedVideos: Bool
     /// 片單影片的下載畫質上限。跟硬體無關，是純粹的偏好，可以跨機搬。
     ///
     /// **`videoCookieSource` 刻意不收。** 那是「借哪個瀏覽器的登入狀態」，
@@ -93,6 +95,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         desktopPlaybackCore: DesktopPlaybackCore = .avPlayer,
         videoPlaybackMode: VideoPlaybackMode = .repeatAll,
         videoScaleMode: VideoScaleMode = .fill,
+        releaseFetchedVideos: Bool = false,
         videoDownloadQuality: VideoDownloadQuality = .default,
         launchAtLogin: Bool
     ) {
@@ -114,6 +117,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         self.desktopPlaybackCore = desktopPlaybackCore
         self.videoPlaybackMode = videoPlaybackMode
         self.videoScaleMode = videoScaleMode
+        self.releaseFetchedVideos = releaseFetchedVideos
         self.videoDownloadQuality = videoDownloadQuality
         self.launchAtLogin = launchAtLogin
     }
@@ -125,7 +129,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         case remoteSources, playlistSources, sourceRules
         case intervalMinutes, effect, montagePieceCount
         case videoWallpaperEnabled, videoEngine, desktopVideoLayer, desktopPlaybackCore
-        case videoPlaybackMode, videoScaleMode, videoDownloadQuality
+        case videoPlaybackMode, videoScaleMode, releaseFetchedVideos, videoDownloadQuality
         case launchAtLogin
     }
 
@@ -162,6 +166,7 @@ public struct SettingsSnapshot: Codable, Sendable, Equatable {
         // 舊備份沒有縮放：.fill 就是 0.6.2 以前寫死的行為，還原後畫面不會變。
         videoScaleMode = try c.decodeIfPresent(
             VideoScaleMode.self, forKey: .videoScaleMode) ?? .fill
+        releaseFetchedVideos = try c.decodeIfPresent(Bool.self, forKey: .releaseFetchedVideos) ?? false
         // 舊備份沒有畫質上限：.p1080 就是 0.6.8 以前寫死的值，還原後畫質不會變。
         videoDownloadQuality = try c.decodeIfPresent(
             VideoDownloadQuality.self, forKey: .videoDownloadQuality) ?? .default
@@ -242,6 +247,7 @@ extension SettingsSnapshot {
             desktopPlaybackCore: desktopPlaybackCore,
             videoPlaybackMode: videoPlaybackMode,
             videoScaleMode: videoScaleMode,
+            releaseFetchedVideos: releaseFetchedVideos,
             videoDownloadQuality: videoDownloadQuality,
             launchAtLogin: launchAtLogin
         )

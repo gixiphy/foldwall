@@ -180,6 +180,28 @@
         }
       }
     },
+    "%@・正在下載下一支：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · downloading next: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@・正在下载下一支：%2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@・正在下載下一支：%2$@"
+          }
+        }
+      }
+    },
     "%@（%lld×%lld）": {
       "localizations": {
         "en": {
@@ -436,24 +458,24 @@
         }
       }
     },
-    "- **規律微頓、慢速橫移特別明顯**：先看「呈現節奏」。幀率與螢幕更新率不整除（24 或 25 fps 播在 60 Hz 上）本來就會這樣，改播放器沒有用。\n- **不定時停一下**：看「停頓」次數與長度，以及片源位置。網路磁碟與串流的停頓要往讀取那邊查，不是解碼。\n- **每次播回開頭頓一下**：看「接縫偏差」。持續同號累積代表循環時間軸有問題；偏差是 0 而畫面仍然跳，那是片源首尾本來就不連續。\n- **解鎖或切換桌面之後忽快忽慢**：看政策事件的密度。": {
+    "- **規律微頓、慢速橫移特別明顯**：先看「呈現節奏」。幀率與螢幕更新率不整除（24 或 25 fps 播在 60 Hz 上）本來就會這樣，改播放器沒有用。\n- **不定時停一下**：看「停頓」次數與長度，以及片源位置。網路磁碟與串流的停頓要往讀取那邊查，不是解碼。\n- **每次播回開頭頓一下**：看「接縫偏差」。持續同號累積代表循環時間軸有問題；偏差是 0 而畫面仍然跳，那是片源首尾本來就不連續。\n- **換片後很久才出畫**：看出畫等待與片源位置。還沒下載的雲端檔會整支抓完才有第一格。\n- **解鎖或切換桌面之後忽快忽慢**：看政策事件的密度。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "- **Regular micro-stutter, most visible on slow pans**: look at presentation cadence first. A frame rate that does not divide into the refresh rate (24 or 25 fps on 60 Hz) always looks like this, and changing the player will not help.\n- **Occasional pauses**: look at the stall count and duration, and at where the source lives. Stalls on a network volume or a stream point at reading, not decoding.\n- **A hitch every time it loops back**: look at the seam drift. Drift that accumulates with a consistent sign means the loop timeline is wrong; drift of 0 with a visible jump means the source itself is discontinuous end to start.\n- **Speed changes after unlocking or switching desktops**: look at how dense the policy events are."
+            "value": "- **Regular micro-stutter, most visible on slow pans**: look at presentation cadence first. A frame rate that does not divide into the refresh rate (24 or 25 fps on 60 Hz) always looks like this, and changing the player will not help.\n- **Occasional pauses**: look at the stall count and duration, and at where the source lives. Stalls on a network volume or a stream point at reading, not decoding.\n- **A hitch every time it loops back**: look at the seam drift. Drift that accumulates with a consistent sign means the loop timeline is wrong; drift of 0 with a visible jump means the source itself is discontinuous end to start.\n- **A long wait for the first frame after a change**: look at the time-to-first-frame and where the source lives. A cloud file that is not downloaded yet has no first frame until the whole file arrives.\n- **Speed changes after unlocking or switching desktops**: look at how dense the policy events are."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "- **规律微顿、慢速横移特别明显**：先看「呈现节奏」。帧率与屏幕刷新率不整除（24 或 25 fps 播在 60 Hz 上）本来就会这样，改播放器没有用。\n- **不定时停一下**：看「停顿」次数与长度，以及片源位置。网络磁盘与串流的停顿要往读取那边查，不是解码。\n- **每次播回开头顿一下**：看「接缝偏差」。持续同号累积代表循环时间轴有问题；偏差是 0 而画面仍然跳，那是片源首尾本来就不连续。\n- **解锁或切换桌面之后忽快忽慢**：看政策事件的密度。"
+            "value": "- **规律微顿、慢速横移特别明显**：先看「呈现节奏」。帧率与屏幕刷新率不整除（24 或 25 fps 播在 60 Hz 上）本来就会这样，改播放器没有用。\n- **不定时停一下**：看「停顿」次数与长度，以及片源位置。网络磁盘与串流的停顿要往读取那边查，不是解码。\n- **每次播回开头顿一下**：看「接缝偏差」。持续同号累积代表循环时间轴有问题；偏差是 0 而画面仍然跳，那是片源首尾本来就不连续。\n- **换片后很久才出画**：看出画等待与片源位置。还没下载的云端文件会整支抓完才有第一格。\n- **解锁或切换桌面之后忽快忽慢**：看政策事件的密度。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "- **規律微頓、慢速橫移特別明顯**：先看「呈現節奏」。幀率與螢幕更新率不整除（24 或 25 fps 播在 60 Hz 上）本來就會這樣，改播放器沒有用。\n- **不定時停一下**：看「停頓」次數與長度，以及片源位置。網路磁碟與串流的停頓要往讀取那邊查，不是解碼。\n- **每次播回開頭頓一下**：看「接縫偏差」。持續同號累積代表循環時間軸有問題；偏差是 0 而畫面仍然跳，那是片源首尾本來就不連續。\n- **解鎖或切換桌面之後忽快忽慢**：看政策事件的密度。"
+            "value": "- **規律微頓、慢速橫移特別明顯**：先看「呈現節奏」。幀率與螢幕更新率不整除（24 或 25 fps 播在 60 Hz 上）本來就會這樣，改播放器沒有用。\n- **不定時停一下**：看「停頓」次數與長度，以及片源位置。網路磁碟與串流的停頓要往讀取那邊查，不是解碼。\n- **每次播回開頭頓一下**：看「接縫偏差」。持續同號累積代表循環時間軸有問題；偏差是 0 而畫面仍然跳，那是片源首尾本來就不連續。\n- **換片後很久才出畫**：看出畫等待與片源位置。還沒下載的雲端檔會整支抓完才有第一格。\n- **解鎖或切換桌面之後忽快忽慢**：看政策事件的密度。"
           }
         }
       }
@@ -1372,6 +1394,28 @@
         }
       }
     },
+    "下一支還在下載，先重播": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next one is still downloading, replaying this one"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一支还在下载，先重播"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一支還在下載，先重播"
+          }
+        }
+      }
+    },
     "下一片影片": {
       "localizations": {
         "en": {
@@ -1390,6 +1434,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "下一片影片"
+          }
+        }
+      }
+    },
+    "下載 %@ 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded in %@ s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载 %@ 秒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載 %@ 秒"
           }
         }
       }
@@ -1944,6 +2010,28 @@
         }
       }
     },
+    "偏長的間隔": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Long intervals"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "偏长的间隔"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "偏長的間隔"
+          }
+        }
+      }
+    },
     "停頓 %@ 秒": {
       "localizations": {
         "en": {
@@ -2226,6 +2314,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "出畫 %@ 秒"
+          }
+        }
+      }
+    },
+    "出畫等待：%@ %@ 秒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time to first frame: %@ %@ s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "出画等待：%1$@ %2$@ 秒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "出畫等待：%1$@ %2$@ 秒"
+          }
+        }
+      }
+    },
+    "出畫等待：沒有超過 5 秒的": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time to first frame: none over 5 s"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "出画等待：没有超过 5 秒的"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "出畫等待：沒有超過 5 秒的"
           }
         }
       }
@@ -3458,6 +3590,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "專注：%@"
+          }
+        }
+      }
+    },
+    "尚未下載": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not downloaded yet"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未下载"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未下載"
           }
         }
       }
@@ -4804,6 +4958,28 @@
         }
       }
     },
+    "播完後釋放 Foldwall 下載的影片": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release videos Foldwall downloaded after they finish"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播完后释放 Foldwall 下载的影片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播完後釋放 Foldwall 下載的影片"
+          }
+        }
+      }
+    },
     "播放 session：%lld": {
       "localizations": {
         "en": {
@@ -5152,6 +5328,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "有 %lld 個來源離線或無權限"
+          }
+        }
+      }
+    },
+    "有 %lld 個間隔明顯偏長（最大 %@ 秒）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld intervals are clearly long (longest %@ s)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有 %1$lld 个间隔明显偏长（最大 %2$@ 秒）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有 %1$lld 個間隔明顯偏長（最大 %2$@ 秒）"
           }
         }
       }
@@ -5658,6 +5856,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "桌面視窗引擎"
+          }
+        }
+      }
+    },
+    "正在下載：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下载：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下載：%@"
           }
         }
       }
@@ -9182,6 +9402,28 @@
         }
       }
     },
+    "開播時": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When playback started"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开播时"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開播時"
+          }
+        }
+      }
+    },
     "開著的話，這台的來源一改就寫上去，別台也會自動跟上；同一輪裡兩邊都改過就**以 iCloud 上那份為準**——沒有合併，後寫的贏。桌布設定只會**往上備份**，不會自動套到別台。只想要單向搬家的話，用上面兩顆按鈕就好。": {
       "localizations": {
         "en": {
@@ -9222,6 +9464,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "間隔"
+          }
+        }
+      }
+    },
+    "關著時磁碟用量交給雲端硬碟自己的快取管理，隨機播放一天可能多幾十 GB。開了只釋放 Foldwall 自己抓的，你手動下載的不碰；同一支再抽到要重抓。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off: disk use is left to the cloud drive's own cache, and a day of shuffle can add tens of GB. On: only videos Foldwall downloaded are released, not ones you downloaded yourself; the same file has to be downloaded again next time."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关着时磁盘用量交给云端硬盘自己的缓存管理，随机播放一天可能多几十 GB。开了只释放 Foldwall 自己抓的，你手动下载的不碰；同一支再抽到要重抓。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關著時磁碟用量交給雲端硬碟自己的快取管理，隨機播放一天可能多幾十 GB。開了只釋放 Foldwall 自己抓的，你手動下載的不碰；同一支再抽到要重抓。"
           }
         }
       }

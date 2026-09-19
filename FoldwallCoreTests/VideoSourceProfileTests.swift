@@ -282,4 +282,26 @@ final class PlaybackEventLogTests: XCTestCase {
         XCTAssertEqual(summary.count, 0)
         XCTAssertEqual(summary.totalSeconds, 0)
     }
+
+    /// 出畫前的等待以前不算停頓。超過門檻的要配得出檔名與秒數。
+    func testSlowStartsPairTheOpenWithTheFirstFrame() {
+        var log = PlaybackEventLog()
+        log.record(PlaybackEvent(
+            kind: .started, engine: "desktopWindow", surface: "A", session: 1,
+            sourceKey: "file:///videos/slow.mp4", at: Date(timeIntervalSince1970: 0)))
+        log.record(PlaybackEvent(
+            kind: .firstFrame, engine: "desktopWindow", surface: "A", session: 1,
+            sourceKey: "file:///videos/slow.mp4", at: Date(timeIntervalSince1970: 8)))
+        log.record(PlaybackEvent(
+            kind: .switched, engine: "desktopWindow", surface: "A", session: 2,
+            sourceKey: "file:///videos/fast.mp4", at: Date(timeIntervalSince1970: 20)))
+        log.record(PlaybackEvent(
+            kind: .firstFrame, engine: "desktopWindow", surface: "A", session: 2,
+            sourceKey: "file:///videos/fast.mp4", at: Date(timeIntervalSince1970: 20.2)))
+
+        let slow = log.slowStarts(surface: "A", threshold: 5)
+        XCTAssertEqual(slow.count, 1)
+        XCTAssertEqual(slow[0].sourceKey, "file:///videos/slow.mp4")
+        XCTAssertEqual(slow[0].seconds, 8, accuracy: 1e-9)
+    }
 }

@@ -40,15 +40,32 @@ final class TimingStatisticsTests: XCTestCase {
 
     // MARK: - 可變幀率
 
-    func testUnevenIntervalsAreReportedAsVariable() {
+    /// 抽掉一格會讓那個位置的間隔變成兩倍。那是一個離群，不是可變幀率。
+    func testASingleLongIntervalIsAnOutlierNotVariableFrameRate() {
         var samples = constant(12)
-        // 抽掉一格 → 那個位置的間隔變成兩倍。
         samples.remove(at: 5)
         let analysis = TimingStatistics.analyze(samples)
 
-        XCTAssertTrue(analysis.isVariableFrameRate)
+        XCTAssertFalse(analysis.isVariableFrameRate,
+                       "一個離群間隔不該把整支固定幀率判成可變")
+        XCTAssertEqual(analysis.outlierIntervalCount, 1)
         XCTAssertEqual(analysis.maxIntervalSeconds ?? 0, 2.0 / 24.0, accuracy: 1e-9)
         XCTAssertEqual(analysis.minIntervalSeconds ?? 0, 1.0 / 24.0, accuracy: 1e-9)
+    }
+
+    /// 間隔在兩種長度之間來回，分佈的兩端都站得住，這才是可變幀率。
+    func testAlternatingIntervalsAreVariableFrameRate() {
+        var time = CMTime.zero
+        var samples: [VideoAnalyzer.SampleTiming] = []
+        for index in 0 ..< 24 {
+            samples.append(VideoAnalyzer.SampleTiming(presentationTimeStamp: time, duration: Self.frame24))
+            let step = CMTime(value: index.isMultiple(of: 2) ? 1 : 3, timescale: 24)
+            time = CMTimeAdd(time, step)
+        }
+        let analysis = TimingStatistics.analyze(samples)
+
+        XCTAssertTrue(analysis.isVariableFrameRate)
+        XCTAssertGreaterThan(analysis.outlierIntervalCount, 0)
     }
 
     /// 23.976 在 24000 時基下每格是 1001，換算過去會有整數誤差。
@@ -140,9 +157,15 @@ final class TimingStatisticsTests: XCTestCase {
     // MARK: - 接到分類
 
     func testAnalysisFeedsTheRiskClassification() {
-        var samples = constant(24)
-        samples.remove(at: 5)
-        samples[0].duration = nil
+        var time = CMTime.zero
+        var samples: [VideoAnalyzer.SampleTiming] = []
+        for index in 0 ..< 24 {
+            var sample = VideoAnalyzer.SampleTiming(presentationTimeStamp: time, duration: Self.frame24)
+            if index == 0 { sample.duration = nil }
+            samples.append(sample)
+            let step = CMTime(value: index.isMultiple(of: 2) ? 1 : 3, timescale: 24)
+            time = CMTimeAdd(time, step)
+        }
 
         var profile = VideoSourceProfile(sourceKey: "x")
         profile.isLocal = true

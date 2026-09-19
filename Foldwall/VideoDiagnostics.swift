@@ -48,6 +48,7 @@ enum VideoDiagnostics {
         engine: VideoEngine,
         playing: [String: URL],
         desktopReport: String,
+        openedAs: [String: VideoSourceLocation] = [:],
     ) async -> String {
         let stamp = Date.now.formatted(date: .abbreviated, time: .standard)
         let engineName = engine.displayName
@@ -72,7 +73,8 @@ enum VideoDiagnostics {
             lines.append("## " + String(localized: "片源"))
             lines.append("")
             for (uuid, url) in subjects {
-                lines.append(contentsOf: await sourceSection(uuid: uuid, url: url))
+                lines.append(contentsOf: await sourceSection(
+                    uuid: uuid, url: url, openedAs: openedAs[uuid]))
             }
         }
 
@@ -92,6 +94,7 @@ enum VideoDiagnostics {
             的停頓要往讀取那邊查，不是解碼。
             - **每次播回開頭頓一下**：看「接縫偏差」。持續同號累積代表循環時間軸有問題；\
             偏差是 0 而畫面仍然跳，那是片源首尾本來就不連續。
+            - **換片後很久才出畫**：看出畫等待與片源位置。還沒下載的雲端檔會整支抓完才有第一格。
             - **解鎖或切換桌面之後忽快忽慢**：看政策事件的密度。
             """))
         lines.append("")
@@ -121,9 +124,17 @@ enum VideoDiagnostics {
         return rate > 0 ? Double(rate) : nil
     }
 
-    private static func sourceSection(uuid: String, url: URL) async -> [String] {
+    private static func sourceSection(uuid: String, url: URL,
+                                      openedAs: VideoSourceLocation?) async -> [String] {
         var profile = await VideoAnalyzer.profile(of: url)
         profile.timing = await VideoAnalyzer.timingAnalysis(of: url)
+
+        // 分析會讀檔，讀的過程中檔可能剛好下載完。表格與待查方向用同一個時間點，
+        // 不要用分析器一開始記下的舊狀態。
+        let location = url.isFileURL
+            ? VideoBufferPolicy.location(for: URL(fileURLWithPath: url.path))
+            : .remoteStream
+        profile.isLocal = !location.isNetworked
 
         let hz = NSScreen.screens.first { screenUUID(of: $0) == uuid }
             .flatMap(refreshHz(of:))
@@ -152,13 +163,22 @@ enum VideoDiagnostics {
         row(&lines, String(localized: "軌道起點"), seconds(profile.trackStartSeconds))
         row(&lines, String(localized: "軌道長度"), seconds(profile.trackDurationSeconds))
         row(&lines, String(localized: "容器長度"), seconds(profile.containerDurationSeconds))
-        row(&lines, String(localized: "片源位置"), VideoBufferPolicy.location(for: url).displayName)
+        row(&lines, String(localized: "片源位置"), location.displayName)
+        if openedAs == .cloudDataless, location != .cloudDataless {
+            lines.append("| \(String(localized: "開播時")) | \(String(localized: "尚未下載")) |")
+        }
 
         if let timing = profile.timing {
             row(&lines, String(localized: "分析畫格數"), "\(timing.sampleCount)")
             row(&lines, String(localized: "呈現間隔（最小／中位／最大）"),
                 "\(interval(timing.minIntervalSeconds))／\(interval(timing.medianIntervalSeconds))／\(interval(timing.maxIntervalSeconds))")
             row(&lines, String(localized: "可變幀率"), timing.isVariableFrameRate ? yes : no)
+            if timing.outlierIntervalCount > 0 {
+                let count = timing.outlierIntervalCount
+                let max = interval(timing.maxIntervalSeconds)
+                row(&lines, String(localized: "偏長的間隔"),
+                    String(localized: "有 \(count) 個間隔明顯偏長（最大 \(max) 秒）"))
+            }
             row(&lines, String(localized: "有 B-frame"), timing.hasBFrames ? yes : no)
             row(&lines, String(localized: "沒帶長度的畫格"), "\(timing.samplesMissingDuration)")
             row(&lines, String(localized: "重複的呈現時間戳"), "\(timing.nonMonotonicPresentationCount)")

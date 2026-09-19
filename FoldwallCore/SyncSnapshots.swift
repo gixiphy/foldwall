@@ -213,6 +213,8 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
     public var desktopPlaybackCore: DesktopPlaybackCore
     public var videoPlaybackMode: VideoPlaybackMode
     public var videoScaleMode: VideoScaleMode
+    /// 播完後釋放本 app 自己抓下來的雲端影片。預設關。
+    public var releaseFetchedVideos: Bool
     public var videoDownloadQuality: VideoDownloadQuality
     public var videoCookieSource: VideoCookieSource
     /// 標記「這台改用影片」的螢幕，存 display UUID。
@@ -244,6 +246,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         desktopPlaybackCore: DesktopPlaybackCore = .avPlayer,
         videoPlaybackMode: VideoPlaybackMode = .repeatAll,
         videoScaleMode: VideoScaleMode = .fill,
+        releaseFetchedVideos: Bool = false,
         videoDownloadQuality: VideoDownloadQuality = .default,
         videoCookieSource: VideoCookieSource = .none,
         videoScreens: [String] = [],
@@ -268,6 +271,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         self.desktopPlaybackCore = desktopPlaybackCore
         self.videoPlaybackMode = videoPlaybackMode
         self.videoScaleMode = videoScaleMode
+        self.releaseFetchedVideos = releaseFetchedVideos
         self.videoDownloadQuality = videoDownloadQuality
         self.videoCookieSource = videoCookieSource
         self.videoScreens = videoScreens
@@ -281,7 +285,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         case folderUsage, albums, disabledRemoteSources, disabledPlaylists, sourceRules
         case intervalMinutes, effect, montagePieceCount, showCredits
         case videoWallpaperEnabled, videoEngine, desktopVideoLayer, desktopPlaybackCore
-        case videoPlaybackMode, videoScaleMode, videoDownloadQuality, videoCookieSource
+        case videoPlaybackMode, videoScaleMode, releaseFetchedVideos, videoDownloadQuality, videoCookieSource
         case videoScreens, launchAtLogin
     }
 
@@ -312,6 +316,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
             VideoPlaybackMode.self, forKey: .videoPlaybackMode) ?? .repeatAll
         videoScaleMode = try c.decodeIfPresent(
             VideoScaleMode.self, forKey: .videoScaleMode) ?? .fill
+        releaseFetchedVideos = try c.decodeIfPresent(Bool.self, forKey: .releaseFetchedVideos) ?? false
         videoDownloadQuality = try c.decodeIfPresent(
             VideoDownloadQuality.self, forKey: .videoDownloadQuality) ?? .default
         videoCookieSource = try c.decodeIfPresent(

@@ -236,14 +236,19 @@ public enum VideoPlaybackPlan {
     ///   - screens: 要播影片的螢幕識別碼（已由上層過濾掉沒勾的）。
     ///   - videos: 可用的影片。
     ///   - cycle: 用來決定這一輪從哪一支開始，讓每次喚醒換一批。
+    ///   - ready: 已經讀得到的子集。非空就只從裡面分配——冷開機不要抽到
+    ///     還沒下載的雲端檔，否則第一格要等整支抓完。**空集合＝不過濾**，
+    ///     跟以前一樣：一支都還沒下載時總得有東西可播（引擎會先不建視窗、背景抓）。
     /// - Returns: 螢幕 → 影片。影片不夠時會重複使用，不留空螢幕。
     public static func assign(
-        screens: [String], videos: [URL], cycle: Int = 0
+        screens: [String], videos: [URL], cycle: Int = 0, ready: Set<URL> = []
     ) -> [String: URL] {
         guard !screens.isEmpty, !videos.isEmpty else { return [:] }
+        let preferred = videos.filter { ready.contains($0) }
+        let pool = preferred.isEmpty ? videos : preferred
         // 用 absoluteString 排：池裡混著 file:// 與 http(s)://，
         // 而 standardizedFileURL 對遠端 URL 沒有意義。
-        let ordered = videos.sorted { $0.absoluteString < $1.absoluteString }
+        let ordered = pool.sorted { $0.absoluteString < $1.absoluteString }
 
         var plan: [String: URL] = [:]
         for (index, screen) in screens.sorted().enumerated() {
@@ -263,7 +268,8 @@ public enum VideoPlaybackPlan {
     /// 影片和蒙太奇是**兩條不同節奏**的東西：蒙太奇按間隔輪換，影片只在
     /// 螢幕重新亮起（或使用者動作）時才換一批。要換的時候呼叫端改用 `assign`。
     public static func keeping(
-        current: [String: URL], screens: [String], videos: [URL], cycle: Int = 0
+        current: [String: URL], screens: [String], videos: [URL], cycle: Int = 0,
+        ready: Set<URL> = []
     ) -> [String: URL] {
         guard !screens.isEmpty, !videos.isEmpty else { return [:] }
         let available = Set(videos)
@@ -287,7 +293,7 @@ public enum VideoPlaybackPlan {
         let remaining = videos.filter { !used.contains($0) }
         let fresh = assign(screens: pending,
                            videos: remaining.isEmpty ? videos : remaining,
-                           cycle: cycle)
+                           cycle: cycle, ready: ready)
         plan.merge(fresh) { _, new in new }
         return plan
     }
@@ -340,6 +346,37 @@ public enum VideoPlaybackPlan {
             }
             return ordered[start % ordered.count]
         }
+    }
+
+    /// 往前一步，但目標還沒下載完時不要把畫面交給它。
+    ///
+    /// 先用 `next` 抽目標，隨機分佈不變。目標讀得到就直接播。讀不到就在
+    /// `ready` 上再抽一次當墊檔：畫面立刻有東西，目標繼續在背景抓、排成再下一支。
+    /// 墊檔也沒有就回 `(nil, 目標)`——呼叫端維持現在這支（或冷開機先不建視窗）。
+    ///
+    /// - Parameter isReady: **只拿來判目標**，而且該現查。`ready` 是快取，
+    ///   只用來篩墊檔池；兩份不一致時以現查為準，不要把沒抓完的當成墊檔。
+    public static func advance(
+        after current: URL?,
+        screen: String,
+        videos: [URL],
+        busy: Set<URL> = [],
+        mode: VideoPlaybackMode,
+        nonce: UInt64 = 0,
+        ready: Set<URL> = [],
+        isReady: (URL) -> Bool
+    ) -> (play: URL?, fetch: URL?) {
+        guard let target = next(
+            after: current, screen: screen, videos: videos, busy: busy, mode: mode, nonce: nonce
+        ) else { return (nil, nil) }
+        if isReady(target) { return (target, nil) }
+
+        let fillers = videos.filter { ready.contains($0) }
+        let picked = next(
+            after: current, screen: screen, videos: fillers, busy: busy, mode: mode, nonce: nonce)
+        // 快取把目標算進去、現查卻說還沒好：不能拿它當墊檔，否則又是盯著凍住的畫面等。
+        let play = picked == target ? nil : picked
+        return (play, target)
     }
 }
 
