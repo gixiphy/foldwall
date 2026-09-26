@@ -76,6 +76,7 @@ public struct StillPipeline: Sendable {
     /// 那是 aspectFill 的本質，不是這個地板能解的。
     public static let backdropMaxUpscale: CGFloat = 2
 
+    private let history: DisplayHistory?
     private let composer: any MontageComposing
     private let desktop: any DesktopSetting
     private let paths: AppPaths
@@ -89,8 +90,10 @@ public struct StillPipeline: Sendable {
         desktop: any DesktopSetting,
         paths: AppPaths,
         preparer: (any MediaPreparing)? = nil,
-        credits: (any CreditLookup)? = nil
+        credits: (any CreditLookup)? = nil,
+        history: DisplayHistory? = nil
     ) {
+        self.history = history
         self.composer = composer
         self.desktop = desktop
         self.paths = paths
@@ -173,7 +176,8 @@ public struct StillPipeline: Sendable {
         tier: PowerTier,
         cycleNonce: UInt64,
         pieceCountOverride: Int? = nil,
-        showCredits: Bool = true
+        showCredits: Bool = true,
+        repeatPolicy: DisplayRepeatPolicy = DisplayRepeatPolicy()
     ) async throws -> Outcome {
         var outcome = Outcome()
         guard tier != .paused else { return outcome }
@@ -198,10 +202,12 @@ public struct StillPipeline: Sendable {
 
             // 多要一張給背景：背景是低透明度鋪滿的那層，用掉一張片就會重複。
             // 池不夠時 loadImages 自然會少給，合成端會退回用第一張。
-            let pieces = await loadPieces(
+            let loaded = await loadPieces(
                 from: pool, count: count + 1, seed: seed,
                 maxPixel: Self.decodeMaxPixel(canvas: display.canvas, pieceCount: count),
-                includeCredits: showCredits)
+                includeCredits: showCredits,
+                excluding: history?.excludedKeys(policy: repeatPolicy) ?? [])
+            let pieces = loaded.pieces
             guard !pieces.isEmpty else {
                 // 這台沒圖可用 → 保留現桌布，不寫黑圖
                 outcome.poolWasEmpty = true
@@ -216,7 +222,14 @@ public struct StillPipeline: Sendable {
                 effect: effect
             )
             let url = try write(composite, uuid: display.uuid, nonce: cycleNonce)
-            try await desktop.setDesktopImageURL(url, for: display.id)
+            do {
+                try await desktop.setDesktopImageURL(url, for: display.id)
+            } catch {
+                // A failed update must not become the "latest" image on a Space switch.
+                try? FileManager.default.removeItem(at: url)
+                throw error
+            }
+            history?.record(loaded.keys)
             outcome.written.append(display.id)
         }
 
@@ -263,10 +276,11 @@ public struct StillPipeline: Sendable {
     /// **輪流抽而不是攤平隨機抽**：見 SourcePool。攤平的話張數多的來源會吃掉整張圖。
     private func loadPieces(
         from pool: SourcePool, count: Int, seed: UInt64, maxPixel: Int,
-        includeCredits: Bool = true
-    ) async -> [MontagePiece] {
-        guard !pool.isEmpty else { return [] }
-        var rotation = SourceRotation(pool: pool, seed: seed)
+        includeCredits: Bool = true, excluding: Set<String> = []
+    ) async -> (pieces: [MontagePiece], keys: [String]) {
+        guard !pool.isEmpty else { return ([], []) }
+        var rotation = SourceRotation(pool: pool, seed: seed, excluding: excluding)
+        var keys: [String] = []
         var images: [MontagePiece] = []
         var attempts = 0
         // 剔除從索引時挪到這裡後，撞到不合格的機率變高 → 預算跟著放寬。
@@ -287,6 +301,7 @@ public struct StillPipeline: Sendable {
                     local, maxPixel: maxPixel, minimumShortSide: MediaIndexer.minimumShortSide)
             }
             if let image = loaded {
+                keys.append(DisplayHistory.key(for: url))
                 // 出處要查**原始**的 url，不是物化後的本機副本。
                 // 關掉標註時連查都不必查——省掉每片一次的表查詢。
                 images.append(MontagePiece(
@@ -294,7 +309,7 @@ public struct StillPipeline: Sendable {
                     credit: includeCredits ? credits?.credit(for: url) : nil))
             }
         }
-        return images
+        return (images, keys)
     }
 
     private func write(_ image: CGImage, uuid: String, nonce: UInt64) throws -> URL {
@@ -325,7 +340,18 @@ public struct StillPipeline: Sendable {
         })
         let keep = Set(nonces.sorted(by: >).prefix(Self.generationsKept))
 
-        for url in files {
+        var latestByDisplay: [String: URL] = [:]
+        for url in files.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
+            let name = url.deletingPathExtension().lastPathComponent
+            guard let split = name.lastIndex(of: "-"), let nonce = UInt64(name[name.index(after: split)...]) else { continue }
+            let display = String(name[..<split])
+            let previous = latestByDisplay[display].flatMap {
+                UInt64($0.deletingPathExtension().lastPathComponent.split(separator: "-").last ?? "")
+            } ?? 0
+            if latestByDisplay[display] == nil || nonce > previous { latestByDisplay[display] = url }
+        }
+        let retained = Set(latestByDisplay.values)
+        for url in files where !retained.contains(url) {
             let nonce = url.deletingPathExtension().lastPathComponent
                 .split(separator: "-").last.flatMap { UInt64($0) }
             if let nonce, !keep.contains(nonce) {

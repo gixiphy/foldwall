@@ -92,6 +92,8 @@ targets:
       # 所以原始檔放在 FoldwallCore、兩個 target 各自編一份。
       # 加檔案到這裡之前先確認它只 import CoreMedia／Foundation，
       # 不能相依 FoldwallCore 的其他型別或它的字串表。
+      - path: FoldwallCore/DisplayHistory.swift
+        group: FoldwallCore
       - path: FoldwallCore/VideoTimeline.swift
         group: FoldwallCore
       - path: FoldwallCore/VideoSourceProfile.swift

@@ -23,6 +23,7 @@ final class VideoLibrary {
         var fps: Double
         var resolution: CGSize
         var dateAdded: Date
+        var sourcePath: String?
     }
 
     /// 我們自己的帳本：來源路徑 → entry id。用來做差異同步與移除。
@@ -113,6 +114,17 @@ final class VideoLibrary {
             }
         }
 
+        for entry in ledger {
+            let file = Self.videosURL.appending(path: entry.entryID).appending(path: "metadata.json")
+            if let data = try? Data(contentsOf: file),
+               var metadata = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               metadata["sourcePath"] == nil {
+                metadata["sourcePath"] = entry.sourcePath
+                if let updated = try? JSONSerialization.data(withJSONObject: metadata) {
+                    try? updated.write(to: file, options: .atomic)
+                }
+            }
+        }
         notifyExtension()
     }
 
@@ -178,7 +190,8 @@ final class VideoLibrary {
                 duration: probe.duration,
                 fps: probe.fps,
                 resolution: probe.resolution,
-                dateAdded: .now
+                dateAdded: .now,
+                sourcePath: DisplayHistory.key(for: url)
             )
             try JSONEncoder().encode(metadata)
                 .write(to: dir.appending(path: "metadata.json"), options: .atomic)

@@ -11,6 +11,7 @@ import FoldwallCore
 final class AppSettings {
 
     enum Key {
+        static let displayRepeatPolicy = "displayRepeatPolicy"
         static let intervalMinutes = "intervalMinutes"
         static let effect = "effect"
         static let videoScreens = "videoScreens"
@@ -41,6 +42,14 @@ final class AppSettings {
     }
 
     @ObservationIgnored private let defaults: UserDefaults
+
+    var displayRepeatPolicy: DisplayRepeatPolicy {
+        didSet {
+            if let data = try? JSONEncoder().encode(displayRepeatPolicy) {
+                defaults.set(data, forKey: Key.displayRepeatPolicy)
+            }
+        }
+    }
 
     var intervalMinutes: Int {
         didSet { defaults.set(intervalMinutes, forKey: Key.intervalMinutes) }
@@ -245,6 +254,9 @@ final class AppSettings {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.displayRepeatPolicy = defaults.data(forKey: Key.displayRepeatPolicy)
+            .flatMap { try? JSONDecoder().decode(DisplayRepeatPolicy.self, from: $0) }
+            ?? DisplayRepeatPolicy()
 
         let storedInterval = defaults.integer(forKey: Key.intervalMinutes)
         self.intervalMinutes = Scheduler.intervalOptions.contains(storedInterval)

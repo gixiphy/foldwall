@@ -17,6 +17,7 @@ struct VideoEntry: Codable {
     var fps: Double
     var resolution: CGSize
     var dateAdded: Date
+    var sourcePath: String?
     var variants: [VideoVariant]?
 }
 

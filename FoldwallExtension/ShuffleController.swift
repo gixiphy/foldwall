@@ -14,7 +14,30 @@ final class ShuffleController: @unchecked Sendable {
 
     private let queue = DispatchQueue(label: "app.foldwall.shuffle")
     private let lock = OSAllocatedUnfairLock(initialState: State())
+    private let history = DisplayHistory(fileURL: FileManager.default.homeDirectoryForCurrentUser
+        .appending(path: "Documents/display-history.json"))
     private var timer: (any DispatchSourceTimer)?
+    // Reservations are transient admission guards, not successful-display history.
+    // A renderer releases its claim only after presentation, failure, or teardown.
+    private let presentationLock = NSLock()
+    private var pendingPresentations: [UUID: String] = [:]
+
+    func reserveDisplay(_ url: URL, owner: UUID, limited: Bool) -> Bool {
+        presentationLock.withLock {
+            let key = sourceKey(for: url)
+            if let pending = pendingPresentations[owner] { return pending == key }
+            if limited {
+                guard !history.excludedKeys(policy: WallpaperPrefs.shared.displayRepeatPolicy).contains(key),
+                      !pendingPresentations.values.contains(key) else { return false }
+            }
+            pendingPresentations[owner] = key
+            return true
+        }
+    }
+
+    func releaseDisplay(owner: UUID) {
+        presentationLock.withLock { _ = pendingPresentations.removeValue(forKey: owner) }
+    }
 
     private struct State {
         /// Whether any surface is currently acquired with the shuffle choice.
@@ -148,23 +171,9 @@ final class ShuffleController: @unchecked Sendable {
                 syncActiveWithContexts()
                 return
             }
-            let current = lock.withLock(\.pick)
-            if let current, library.contains(current) { return }
-            guard let next = library.randomElement(),
-                  let url = VideoLibrary.shared.videoURL(for: next) else { return }
-            setPick(next)
-            let renderers = WallpaperState.shared.renderers(forVideoID: shuffleChoiceID)
-            for renderer in renderers {
-                renderer.variantSelector = makeVariantSelector(choice: next, fallback: url,
-                                                               isShuffle: true)
-                renderer.switchVideo(to: url)
+            for renderer in WallpaperState.shared.renderers(forVideoID: shuffleChoiceID) {
+                renderer.advanceShuffle(onlyIfMissingFrom: Set(library))
             }
-            if !renderers.isEmpty {
-                PhospheneExtension.recomputeAndApplyPolicy()
-                WallpaperState.shared.currentVideoID = next
-                WallpaperPrefs.shared.updateCurrentVideo()
-            }
-            extensionLog("[Shuffle] pick left the library — retargeted \(renderers.count) renderer(s) to \(next)")
         }
     }
 
@@ -216,29 +225,40 @@ final class ShuffleController: @unchecked Sendable {
     /// leaves the clip alone and lets the timer / wake path do the switching. The
     /// swap is gapless because the renderer preloads whatever we return here.
     ///
-    /// **The answer lands one clip early.** `prepareNextReader` runs right after a
-    /// swap, so we are picking the successor of the clip that just STARTED, not of
-    /// the one that is about to end. That makes the recorded pick (and the "now
-    /// playing" name the app reads) one clip ahead for the duration of a clip.
-    /// Correcting it would need a swap callback threaded back through
-    /// `VideoRenderer` — not worth touching that file for a display string.
     func videoIDForLoopBoundary(current: String) -> String? {
         let advancing = lock.withLock { $0.active && $0.frequency == .afterEachVideo }
         guard advancing else { return nil }
 
-        let library = VideoLibrary.shared.entries.map(\.id)
-        // One video in the library IS repeat-one; nothing to advance to.
-        guard library.count >= 2 else { return nil }
-        var next = library.randomElement() ?? library[0]
-        if next == current {
-            let index = library.firstIndex(of: next) ?? 0
-            next = library[(index + 1) % library.count]
+        let eligible = eligibleIDs()
+        return eligible.filter { $0 != current }.randomElement() ?? eligible.first
+    }
+
+    func sourceKey(for url: URL) -> String {
+        let id = url.deletingLastPathComponent().lastPathComponent
+        return VideoLibrary.shared.entry(for: id)?.sourcePath ?? "extension-video:" + id
+    }
+
+    func noteDisplayed(_ url: URL, isShuffle: Bool, owner: UUID) {
+        presentationLock.withLock {
+            history.record([sourceKey(for: url)])
+            pendingPresentations.removeValue(forKey: owner)
         }
-        setPick(next)
-        WallpaperState.shared.currentVideoID = next
+        guard isShuffle else { return }
+        let id = url.deletingLastPathComponent().lastPathComponent
+        setPick(id)
+        WallpaperState.shared.currentVideoID = id
         WallpaperPrefs.shared.updateCurrentVideo()
-        extensionLog("[Shuffle] loop boundary → \(next)")
-        return next
+    }
+
+    func eligibleIDs() -> [String] {
+        let excluded = history.excludedKeys(policy: WallpaperPrefs.shared.displayRepeatPolicy)
+        return VideoLibrary.shared.entries.filter {
+            !excluded.contains($0.sourcePath ?? "extension-video:" + $0.id)
+        }.map(\.id)
+    }
+
+    var advancesAfterEachVideo: Bool {
+        lock.withLock { $0.active && $0.frequency == .afterEachVideo }
     }
 
     // MARK: - Private
@@ -246,8 +266,12 @@ final class ShuffleController: @unchecked Sendable {
     private func currentOrNewPick() -> String? {
         let existing = lock.withLock(\.pick)
         let library = VideoLibrary.shared.entries.map(\.id)
-        if let existing, library.contains(existing) { return existing }
-        guard let fresh = library.randomElement() else { return nil }
+        let eligible = eligibleIDs()
+        if let existing, eligible.contains(existing) { return existing }
+        // A cold acquire can retain its saved still while the renderer waits for admission.
+        guard let fresh = eligible.randomElement() else {
+            return existing.flatMap { library.contains($0) ? $0 : nil }
+        }
         setPick(fresh)
         return fresh
     }
@@ -295,36 +319,9 @@ final class ShuffleController: @unchecked Sendable {
     /// context. Runs on `queue`.
     private func advance(reason: String) {
         lock.withLock { $0.pendingAdvance = false }
-        let library = VideoLibrary.shared.entries.map(\.id)
-        guard library.count >= 2 else {
-            traceLog("[Shuffle] advance skipped — \(library.count) video(s) in library")
-            return
-        }
-        let current = lock.withLock(\.pick)
-        var next = library.randomElement() ?? library[0]
-        if next == current {
-            let index = library.firstIndex(of: next) ?? 0
-            next = library[(index + 1) % library.count]
-        }
-        guard let url = VideoLibrary.shared.videoURL(for: next) else {
-            extensionLog("[Shuffle] advance failed — no file for \(next)")
-            return
-        }
-        setPick(next)
-
         let renderers = WallpaperState.shared.renderers(forVideoID: shuffleChoiceID)
-        for renderer in renderers {
-            renderer.variantSelector = makeVariantSelector(choice: next, fallback: url,
-                                                           isShuffle: true)
-            renderer.switchVideo(to: url)
-        }
-        // switchVideo restarts the pipeline running; immediately re-assert the
-        // current policy so a paused surface (alwaysPauseDesktop, occlusion, …)
-        // pauses again instead of playing through.
+        for renderer in renderers { renderer.advanceShuffle() }
         PhospheneExtension.recomputeAndApplyPolicy()
-
-        WallpaperState.shared.currentVideoID = next
-        WallpaperPrefs.shared.updateCurrentVideo()
-        extensionLog("[Shuffle] advanced to \(next) on \(renderers.count) renderer(s) (\(reason))")
+        extensionLog("[Shuffle] requested advance on \(renderers.count) renderer(s) (\(reason))")
     }
 }

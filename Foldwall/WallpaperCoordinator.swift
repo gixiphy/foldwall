@@ -93,6 +93,8 @@ final class WallpaperCoordinator {
     @ObservationIgnored private var albumsTask: Task<Void, Never>?
     @ObservationIgnored let backup = SettingsBackup()
     /// 播不動的影片先冷卻，不要每輪重新選中同一支。
+    @ObservationIgnored private let displayHistory = DisplayHistory(
+        fileURL: VideoLibrary.documentsURL.appending(path: "display-history.json"))
     @ObservationIgnored private var playbackCooldown = PlaybackCooldown()
 
     @ObservationIgnored private var scheduler: Scheduler
@@ -150,7 +152,7 @@ final class WallpaperCoordinator {
             credits: CombinedCreditLookup([
                 CreditStore(directory: paths.remoteCache),
                 CreditStore(directory: paths.remoteVideoCache),
-            ])
+            ]), history: displayHistory
         )
         // 背景掃描落地時立刻補一輪，不必乾等到下一個間隔。
         // store：上次的索引落地在磁碟上，冷啟動直接接手，不必重掃一次全量才有圖。
@@ -178,6 +180,15 @@ final class WallpaperCoordinator {
         // 一支播完了。有預載的話引擎已經自己接上去了，這裡只是更新帳；
         // 沒有預載（provider 回 nil，例如池空了）才需要重排一輪。
         // 單片循環不會走到這裡（那條路無縫接回開頭）。
+        desktopVideo.onVideoDisplayed = { [weak self] url in
+            guard let self else { return }
+            self.displayHistory.record([DisplayHistory.key(for: url)])
+            self.desktopVideo.revalidatePreloads()
+        }
+        desktopVideo.canReplayVideo = { [weak self] url in
+            guard let self else { return false }
+            return !self.excludedVideoKeys().contains(DisplayHistory.key(for: url))
+        }
         desktopVideo.onVideoEnded = { [weak self] uuid, url in
             self?.videoDidEnd(screen: uuid, url: url)
         }
@@ -215,6 +226,14 @@ final class WallpaperCoordinator {
                 if self.focus.refresh() { self.refreshNow("專注模式改變") }
                 self.syncSettingsTick()
                 self.dispatch(.tick(now: .now))
+                if self.settings.videoPlaybackMode == .shuffle,
+                   self.settings.displayRepeatPolicy.isEnabled,
+                   self.desktopVideo.endedScreens.contains(where: { uuid in
+                       guard let current = self.desktopVideo.playingURLs[uuid] else { return false }
+                       return self.nextVideo(for: uuid, after: current) != nil
+                   }) {
+                    self.applyDesktopVideoNow("顯示限制到期")
+                }
             }
         }
         // 心跳只是輪詢，不必準點：給系統餘裕合併喚醒，省電（尤其電池上）。
@@ -518,8 +537,23 @@ final class WallpaperCoordinator {
 
     /// 把 extension 那條路吃得到的設定寫進它的 container。
     /// extension 是沙盒的、也不連 FoldwallCore，只能靠這個檔＋Darwin 通知。
+    /// 改了重複顯示限制。**不重跑整條靜態管線**：每按一下 stepper 就重合成一張圖
+    /// 太重，而且換設定不該把現桌布換掉——圖片等下一次排程再套新規則。
+    /// 只有被限制卡住、停在最後一格等片的影片螢幕需要立刻重排（放寬或關閉時才有片可接）。
+    func displayRepeatPolicyDidChange() {
+        pushExtensionPrefs()
+        desktopVideo.revalidatePreloads()
+        if !desktopVideo.endedScreens.isEmpty { applyDesktopVideoNow("改重複顯示限制") }
+    }
+
+    private func excludedVideoKeys() -> Set<String> {
+        guard settings.videoPlaybackMode == .shuffle else { return [] }
+        return displayHistory.excludedKeys(policy: settings.displayRepeatPolicy)
+    }
+
     private func pushExtensionPrefs() {
-        ExtensionPrefs.write(videoScaleMode: settings.videoScaleMode)
+        ExtensionPrefs.write(videoScaleMode: settings.videoScaleMode,
+                             displayRepeatPolicy: settings.displayRepeatPolicy)
     }
 
     /// 一支播完了。
@@ -563,8 +597,14 @@ final class WallpaperCoordinator {
         // 使用者按「下一片」用的，被預載查詢推著跑的話按鈕就不隨機了。
         let nonce = SeededGenerator.seed(cycleNonce: 0,
                                          displayUUID: uuid + "\u{0}" + current.absoluteString)
+        let excluded = excludedVideoKeys()
+        let eligible = pool.filter {
+            !excluded.contains(DisplayHistory.key(for: $0))
+                && (settings.videoPlaybackMode != .shuffle || !settings.displayRepeatPolicy.isEnabled
+                    || (($0 != current || desktopVideo.endedScreens.contains(uuid)) && !busy.contains($0)))
+        }
         return VideoPlaybackPlan.next(
-            after: current, screen: uuid, videos: pool, busy: busy,
+            after: current, screen: uuid, videos: eligible, busy: busy,
             mode: settings.videoPlaybackMode, nonce: nonce)
     }
 
@@ -912,7 +952,7 @@ final class WallpaperCoordinator {
                 displays: displays, skipIDs: skipIDs, pool: pool,
                 effect: settings.effect, tier: tier, cycleNonce: cycleNonce,
                 pieceCountOverride: settings.montagePieceCount,
-                showCredits: settings.showCredits
+                showCredits: settings.showCredits, repeatPolicy: settings.displayRepeatPolicy
             )
             status.poolWasEmpty = outcome.poolWasEmpty
             // os.Logger 的字串是 OSLogMessage 字面量，不能用 + 串
@@ -1103,7 +1143,23 @@ final class WallpaperCoordinator {
         // 少了這道，池一有風吹草動（下載落地、快取淘汰、重掃）影片就被換掉重播。
         let screens = marked.map(\.uuid)
         var plan: [String: URL]
-        if rotateVideosOnNextRefresh {
+        let limited = settings.videoPlaybackMode == .shuffle && settings.displayRepeatPolicy.isEnabled
+        let excluded = excludedVideoKeys()
+        let eligible = pool.filter { !excluded.contains(DisplayHistory.key(for: $0)) }
+        if limited {
+            let current = desktopVideo.currentOrPendingURLs
+            plan = current.filter { screens.contains($0.key) && pool.contains($0.value) }
+            for uuid in screens.sorted() where rotateVideosOnNextRefresh || plan[uuid] == nil {
+                let busy = Set(plan.filter { $0.key != uuid }.map(\.value))
+                let available = eligible.filter { !busy.contains($0) && $0 != current[uuid] }
+                if let next = VideoPlaybackPlan.next(after: current[uuid], screen: uuid,
+                    videos: available, mode: .shuffle, nonce: videoAdvanceNonce) {
+                    plan[uuid] = next
+                    videoAdvanceNonce &+= 1
+                }
+            }
+            rotateVideosOnNextRefresh = false
+        } else if rotateVideosOnNextRefresh {
             rotateVideosOnNextRefresh = false
             settings.videoRotationCursor &+= 1
             plan = VideoPlaybackPlan.assign(
@@ -1117,7 +1173,7 @@ final class WallpaperCoordinator {
 
         // 播完了、或使用者按了「下一片」的那幾台，在這裡才往前一步。
         // 放在 keeping 之後：先讓沒事的螢幕定下來，換片的那台才知道要避開哪幾支。
-        let advancing = pendingVideoAdvance.intersection(screens)
+        let advancing = pendingVideoAdvance.union(desktopVideo.endedScreens).intersection(screens)
         var fetches: [(uuid: String, url: URL, switchWhenReady: Bool)] = []
         if !advancing.isEmpty {
             // 整個清空而不只扣掉這批：沒被勾影片的螢幕（拔掉的、取消勾選的）
@@ -1127,7 +1183,8 @@ final class WallpaperCoordinator {
                 videoAdvanceNonce &+= 1
                 let busy = Set(plan.filter { $0.key != uuid }.map(\.value))
                 let decision = VideoPlaybackPlan.advance(
-                    after: desktopVideo.playingURLs[uuid], screen: uuid, videos: pool,
+                    after: desktopVideo.playingURLs[uuid], screen: uuid,
+                    videos: limited ? eligible.filter { !busy.contains($0) } : pool,
                     busy: busy, mode: settings.videoPlaybackMode, nonce: videoAdvanceNonce,
                     ready: readyVideos,
                     isReady: Self.isReadyNow)
@@ -1429,6 +1486,7 @@ final class WallpaperCoordinator {
             desktopPlaybackCore: settings.desktopPlaybackCore,
             videoPlaybackMode: settings.videoPlaybackMode,
             videoScaleMode: settings.videoScaleMode,
+            displayRepeatPolicy: settings.displayRepeatPolicy,
             releaseFetchedVideos: settings.releaseFetchedVideos,
             videoDownloadQuality: settings.videoDownloadQuality,
             videoCookieSource: settings.videoCookieSource,
@@ -1529,6 +1587,9 @@ final class WallpaperCoordinator {
         settings.desktopPlaybackCore = device.desktopPlaybackCore
         settings.videoPlaybackMode = device.videoPlaybackMode
         settings.videoScaleMode = device.videoScaleMode
+        settings.displayRepeatPolicy = device.displayRepeatPolicy
+        pushExtensionPrefs()
+        desktopVideo.revalidatePreloads()
         settings.releaseFetchedVideos = device.releaseFetchedVideos
         settings.videoDownloadQuality = device.videoDownloadQuality
         settings.launchAtLogin = device.launchAtLogin

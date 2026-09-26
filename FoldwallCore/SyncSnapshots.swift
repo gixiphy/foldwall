@@ -212,6 +212,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
     public var desktopVideoLayer: DesktopVideoLayer
     public var desktopPlaybackCore: DesktopPlaybackCore
     public var videoPlaybackMode: VideoPlaybackMode
+    public var displayRepeatPolicy: DisplayRepeatPolicy
     public var videoScaleMode: VideoScaleMode
     /// 播完後釋放本 app 自己抓下來的雲端影片。預設關。
     public var releaseFetchedVideos: Bool
@@ -246,6 +247,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         desktopPlaybackCore: DesktopPlaybackCore = .avPlayer,
         videoPlaybackMode: VideoPlaybackMode = .repeatAll,
         videoScaleMode: VideoScaleMode = .fill,
+        displayRepeatPolicy: DisplayRepeatPolicy = DisplayRepeatPolicy(),
         releaseFetchedVideos: Bool = false,
         videoDownloadQuality: VideoDownloadQuality = .default,
         videoCookieSource: VideoCookieSource = .none,
@@ -271,6 +273,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         self.desktopPlaybackCore = desktopPlaybackCore
         self.videoPlaybackMode = videoPlaybackMode
         self.videoScaleMode = videoScaleMode
+        self.displayRepeatPolicy = displayRepeatPolicy
         self.releaseFetchedVideos = releaseFetchedVideos
         self.videoDownloadQuality = videoDownloadQuality
         self.videoCookieSource = videoCookieSource
@@ -286,6 +289,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         case intervalMinutes, effect, montagePieceCount, showCredits
         case videoWallpaperEnabled, videoEngine, desktopVideoLayer, desktopPlaybackCore
         case videoPlaybackMode, videoScaleMode, releaseFetchedVideos, videoDownloadQuality, videoCookieSource
+        case displayRepeatPolicy
         case videoScreens, launchAtLogin
     }
 
@@ -316,6 +320,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
             VideoPlaybackMode.self, forKey: .videoPlaybackMode) ?? .repeatAll
         videoScaleMode = try c.decodeIfPresent(
             VideoScaleMode.self, forKey: .videoScaleMode) ?? .fill
+        displayRepeatPolicy = try c.decodeIfPresent(DisplayRepeatPolicy.self, forKey: .displayRepeatPolicy) ?? DisplayRepeatPolicy()
         releaseFetchedVideos = try c.decodeIfPresent(Bool.self, forKey: .releaseFetchedVideos) ?? false
         videoDownloadQuality = try c.decodeIfPresent(
             VideoDownloadQuality.self, forKey: .videoDownloadQuality) ?? .default

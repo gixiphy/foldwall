@@ -57,6 +57,21 @@ final class SyncSnapshotsTests: XCTestCase {
         )
     }
 
+    func testRepeatPolicySurvivesDeviceBackup() throws {
+        var settings = device()
+        settings.displayRepeatPolicy = DisplayRepeatPolicy(isEnabled: false, hours: 72, maxDisplays: 3)
+        let restored = try JSONDecoder().decode(DeviceSettings.self, from: JSONEncoder().encode(settings))
+        XCTAssertEqual(restored.displayRepeatPolicy, settings.displayRepeatPolicy)
+        XCTAssertFalse(restored.hasSameContent(as: device()))
+    }
+
+    func testOlderBackupDefaultsToOneDisplayPerDay() throws {
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(device())) as? [String: Any])
+        json.removeValue(forKey: "displayRepeatPolicy")
+        let restored = try JSONDecoder().decode(DeviceSettings.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertEqual(restored.displayRepeatPolicy, DisplayRepeatPolicy())
+    }
+
     // MARK: - 往返
 
     func testCatalogRoundTrip() throws {

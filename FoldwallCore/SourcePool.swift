@@ -117,7 +117,8 @@ public struct SourceRotation {
     /// 也不該讓它在同一張圖裡出現兩次。
     private var used: Set<String> = []
 
-    public init(pool: SourcePool, seed: UInt64) {
+    public init(pool: SourcePool, seed: UInt64, excluding: Set<String> = []) {
+        self.used = excluding
         var rng = SeededGenerator(seed: seed)
         let shuffled = pool.groups.shuffled(using: &rng)
         self.groups = shuffled

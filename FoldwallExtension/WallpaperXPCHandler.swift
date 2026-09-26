@@ -13,14 +13,22 @@ import QuartzCore
 ///   with the shuffle choice. Only those may advance to a DIFFERENT video at a loop
 ///   boundary — a surface pinned to one video must keep looping that video even while
 ///   another display is shuffling.
-func makeVariantSelector(choice: String?, fallback: URL, isShuffle: Bool = false) -> @Sendable () -> URL {
-    {
+func makeVariantSelector(choice: String?, fallback: URL, isShuffle: Bool = false) -> @Sendable (URL) -> URL? {
+    { currentURL in
         guard let selected = choice else { return fallback }
         // "After Each Video": the next clip is chosen here, at the loop boundary, so
         // the renderer can preload it and swap gaplessly.
-        let videoID = isShuffle
-            ? (ShuffleController.shared.videoIDForLoopBoundary(current: selected) ?? selected)
-            : selected
+        let currentID = currentURL.deletingLastPathComponent().lastPathComponent
+        let videoID: String
+        if isShuffle && ShuffleController.shared.advancesAfterEachVideo {
+            guard let next = ShuffleController.shared.videoIDForLoopBoundary(current: currentID) else {
+                // An exhausted pool holds the final frame until a source becomes eligible.
+                return WallpaperPrefs.shared.displayRepeatPolicy.isEnabled ? nil : currentURL
+            }
+            videoID = next
+        } else {
+            videoID = isShuffle ? currentID : selected
+        }
         let state = WallpaperState.shared
         let prefs = WallpaperPrefs.shared
         let policy = PlaybackPolicy.compute(
@@ -53,8 +61,10 @@ func makeFailureHandler(key: DisplayKey) -> @Sendable (URL, String) -> Void {
         Lifecycle.queue.async {
             guard let context = WallpaperState.shared.context(for: key),
                   let renderer = context.renderer else { return }
+            let eligible = Set(ShuffleController.shared.eligibleIDs())
             let alternatives = VideoLibrary.shared.entries.filter {
                 VideoLibrary.shared.videoURL(for: $0.id) != url
+                    && (context.videoID != shuffleChoiceID || eligible.contains($0.id))
             }
             guard let pick = alternatives.randomElement(),
                   let next = VideoLibrary.shared.videoURL(for: pick.id) else {
@@ -65,7 +75,7 @@ func makeFailureHandler(key: DisplayKey) -> @Sendable (URL, String) -> Void {
                 choice: pick.id, fallback: next,
                 isShuffle: context.videoID == shuffleChoiceID)
             renderer.switchVideo(to: next)
-            WallpaperState.shared.updateVideoID(pick.id, for: key)
+            WallpaperState.shared.updateVideoID(context.videoID == shuffleChoiceID ? shuffleChoiceID : pick.id, for: key)
             extensionLog("  [playback] retargeted display \(key.displayID) to \(pick.id)")
         }
     }
@@ -261,7 +271,9 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
         // sentinel to the concrete video this surface should render. Contexts keep
         // the RAW choice so re-acquires and switch decisions compare correctly.
         let shuffleFrequency = extractPickerOptionValue("shuffleFrequency", fromRequest: request)
-        ShuffleController.shared.noteAcquire(choice: choiceConfiguration, frequencyID: shuffleFrequency)
+        if !isPreview {
+            ShuffleController.shared.noteAcquire(choice: choiceConfiguration, frequencyID: shuffleFrequency)
+        }
         let renderChoice = ShuffleController.shared.resolveChoice(choiceConfiguration)
         acquiredAsPreview = isPreview
 
@@ -303,6 +315,7 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
         // accumulation, no orphan). Only swap the video if the choice actually
         // changed; re-selecting the same wallpaper is a no-op.
         if let existing = WallpaperState.shared.context(for: key) {
+            if !isPreview { existing.renderer?.countsDisplays = true }
             traceLog("  [acquire] REUSE ctx=\(existing.contextId) display=\(key.displayID) storedVideoID=\(existing.videoID ?? "nil") newChoice=\(choiceConfiguration ?? "nil") renderer=\(existing.renderer.map { "#\($0.debugID)" } ?? "nil") videoURL=\(findVideoURL(forChoice: choiceConfiguration)?.lastPathComponent ?? "nil")")
 
             // Geometry may have changed since this surface was created — a bigger/smaller
@@ -345,6 +358,8 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
                 // Building a fresh renderer here (new AVSampleBufferDisplayLayer) is
                 // what broke switching — a layer added to an already-hosted context
                 // doesn't composite. Reuse the existing layer instead.
+                renderer.countsDisplays = renderer.countsDisplays || !isPreview
+                renderer.isShufflePlayback = choiceConfiguration == shuffleChoiceID
                 renderer.variantSelector = selector
                 renderer.switchVideo(to: videoURL)
                 WallpaperState.shared.updateVideoID(choiceConfiguration, for: key)
@@ -354,7 +369,7 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
                 // attach one to the existing root layer. The claim prevents a racing
                 // (preview) acquire from creating a duplicate renderer on the same layer.
                 let boxedRoot = SendableBox(value: existing.rootLayer)
-                Task { [boxedRoot, videoURL, cachedStill, selector, key, choiceConfiguration] in
+                Task { [boxedRoot, videoURL, cachedStill, selector, key, choiceConfiguration, isPreview] in
                     let renderer: VideoRenderer
                     do {
                         renderer = try await VideoRenderer.create(rootLayer: boxedRoot.value, videoURL: videoURL, stillImage: cachedStill)
@@ -363,6 +378,8 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
                         WallpaperState.shared.clearRendererPending(for: key)
                         return
                     }
+                    renderer.countsDisplays = renderer.countsDisplays || !isPreview
+                renderer.isShufflePlayback = choiceConfiguration == shuffleChoiceID
                     renderer.variantSelector = selector
                     renderer.surfaceKey = "display \(key.displayID)"
                     renderer.onPlaybackFailed = makeFailureHandler(key: key)
@@ -478,7 +495,7 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
             let boxedReply = SendableBox(value: replyObj)
             let selector = makeVariantSelector(choice: renderChoice, fallback: videoURL,
                                                isShuffle: choiceConfiguration == shuffleChoiceID)
-            Task { [coldStart, boxedRoot, boxedReply, videoURL, cachedStill, selector, key, choiceConfiguration] in
+            Task { [coldStart, boxedRoot, boxedReply, videoURL, cachedStill, selector, key, choiceConfiguration, isPreview] in
                 let renderer: VideoRenderer
                 do {
                     renderer = try await VideoRenderer.create(rootLayer: boxedRoot.value, videoURL: videoURL, stillImage: cachedStill)
@@ -495,6 +512,8 @@ final class WallpaperXPCHandler: NSObject, WallpaperExtensionXPCProtocol {
                     reply(boxedReply.value, nil)
                     traceLog("  [acquire] cold start → replied after still seeded for \(videoURL.lastPathComponent)")
                 }
+                renderer.countsDisplays = renderer.countsDisplays || !isPreview
+                renderer.isShufflePlayback = choiceConfiguration == shuffleChoiceID
                 renderer.variantSelector = selector
                 renderer.surfaceKey = "display \(key.displayID)"
                 renderer.onPlaybackFailed = makeFailureHandler(key: key)

@@ -372,6 +372,7 @@ private struct VideoSettings: View {
                     enableBox
                     statusBox
                     playbackBox
+                    RepeatLimitSettings(settings: settings, onChange: coordinator.displayRepeatPolicyDidChange)
                     Divider()
                     howToStart
                     Divider()
@@ -1863,7 +1864,7 @@ private struct MontageSettings: View {
             sourceColumn
                 .frame(width: 232)
             Divider()
-            controlColumn
+            ScrollView { controlColumn }
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -1985,6 +1986,8 @@ private struct MontageSettings: View {
                 }
                 .padding(4)
             }
+
+            RepeatLimitSettings(settings: settings, onChange: coordinator.displayRepeatPolicyDidChange)
 
             GroupBox("每台螢幕張數上限") {
                 VStack(alignment: .leading, spacing: 4) {
@@ -2865,3 +2868,32 @@ private struct AboutSettings: View {
 }
 
 // MARK: - 從網址下載
+
+
+private struct RepeatLimitSettings: View {
+    @Bindable var settings: AppSettings
+    var onChange: () -> Void
+
+    var body: some View {
+        GroupBox("重複顯示限制") {
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle("限制重複顯示", isOn: $settings.displayRepeatPolicy.isEnabled)
+                    .toggleStyle(.switch)
+                Stepper(value: $settings.displayRepeatPolicy.hours, in: DisplayRepeatPolicy.hourRange) {
+                    Text("最近 \(settings.displayRepeatPolicy.hours) 小時")
+                }
+                .disabled(!settings.displayRepeatPolicy.isEnabled)
+                Stepper(value: $settings.displayRepeatPolicy.maxDisplays, in: DisplayRepeatPolicy.countRange) {
+                    Text("同一素材最多 \(settings.displayRepeatPolicy.maxDisplays) 次")
+                }
+                .disabled(!settings.displayRepeatPolicy.isEnabled)
+                Text("圖片與隨機播放的影片共用此設定，所有螢幕合併計次。全部達上限時保留目前畫面，直到有素材可用。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(4)
+        }
+        .onChange(of: settings.displayRepeatPolicy) { _, _ in onChange() }
+    }
+}

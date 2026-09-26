@@ -161,7 +161,15 @@ final class AVPlayerSurface: DesktopPlaybackSurface {
     }
 
     func replay() {
-        player.seek(to: .zero)
+        let generation = generation
+        player.seek(to: .zero) { [weak self] finished in
+            guard finished else { return }
+            Task { @MainActor [weak self] in
+                guard let self, self.generation == generation,
+                      self.playerLayer.isReadyForDisplay else { return }
+                self.delegate?.surfaceDidShowFirstFrame(self.uuid)
+            }
+        }
     }
 
     /// 走不走 AVPlayerLooper 是建的時候決定的；`disableLooping` 有沒有立刻把佇列

@@ -152,7 +152,97 @@ final class VideoRenderer: @unchecked Sendable {
     var onPlaybackFailed: (@Sendable (URL, String) -> Void)?
 
     /// Called at each loop boundary to select the video URL for the next iteration.
-    var variantSelector: (@Sendable () -> URL)?
+    var variantSelector: (@Sendable (URL) -> URL?)?
+    private let shufflePlayback = OSAllocatedUnfairLock(initialState: false)
+    var isShufflePlayback: Bool {
+        get { shufflePlayback.withLock { $0 } }
+        set { shufflePlayback.withLock { $0 = newValue } }
+    }
+    private let displayOwner = UUID()
+    private let liveDisplay = OSAllocatedUnfairLock(initialState: false)
+    var countsDisplays: Bool {
+        get { liveDisplay.withLock { $0 } }
+        set { liveDisplay.withLock { $0 = newValue } }
+    }
+    private var lastDisplayedSource: String?
+    private var pendingPresentation: UUID?
+    private var nextSelectionUnavailable = false
+    private var holdingForRepeatLimit = false
+
+    private func admitDisplay(_ url: URL) -> Bool {
+        guard countsDisplays else { return true }
+        let source = ShuffleController.shared.sourceKey(for: url)
+        if source == lastDisplayedSource { return true }
+        return ShuffleController.shared.reserveDisplay(url, owner: displayOwner,
+            limited: isShufflePlayback && WallpaperPrefs.shared.displayRepeatPolicy.isEnabled)
+    }
+
+    /// Enqueueing can run ahead of the displayed timeline. Commit only once the
+    /// renderer is rendering and the first sample's presentation time has arrived.
+    private func enqueueDisplaySample(_ sample: CMSampleBuffer, immediate: Bool = false) {
+        renderer.enqueue(sample)
+        guard countsDisplays, pendingPresentation == nil else { return }
+        let source = ShuffleController.shared.sourceKey(for: asset.url)
+        guard source != lastDisplayedSource else { return }
+        let token = UUID()
+        pendingPresentation = token
+        observePresentation(token: token, url: asset.url,
+            pts: CMSampleBufferGetPresentationTimeStamp(sample), immediate: immediate,
+            generation: generation)
+    }
+
+    private func observePresentation(token: UUID, url: URL, pts: CMTime,
+                                     immediate: Bool, generation gen: Int) {
+        queue.asyncAfter(deadline: .now() + (isPaused || WallpaperState.shared.isDisplayAsleep ? 0.5 : 0.05)) { [weak self] in
+            guard let self, pendingPresentation == token else { return }
+            guard isRunning, gen == generation, renderer.status != .failed else {
+                pendingPresentation = nil
+                ShuffleController.shared.releaseDisplay(owner: displayOwner)
+                return
+            }
+            let reached = immediate || (pts.isNumeric && CMTimeCompare(CMTimebaseGetTime(timebase), pts) >= 0)
+            if countsDisplays, !WallpaperState.shared.isDisplayAsleep,
+               renderer.status == .rendering, reached {
+                pendingPresentation = nil
+                lastDisplayedSource = ShuffleController.shared.sourceKey(for: url)
+                ShuffleController.shared.noteDisplayed(url, isShuffle: isShufflePlayback, owner: displayOwner)
+            } else {
+                observePresentation(token: token, url: url, pts: pts, immediate: immediate, generation: gen)
+            }
+        }
+    }
+
+    /// Each live surface chooses and claims independently. Claims prevent two
+    /// queues selecting the same last available allowance before either presents.
+    func advanceShuffle(onlyIfMissingFrom library: Set<String>? = nil) {
+        queue.async { [weak self] in
+            guard let self, isRunning, countsDisplays, isShufflePlayback else { return }
+            let current = asset.url.deletingLastPathComponent().lastPathComponent
+            if let library, library.contains(current) { return }
+            let eligible = ShuffleController.shared.eligibleIDs()
+            let candidates = eligible.filter { $0 != current }.shuffled()
+            for id in candidates {
+                guard let url = VideoLibrary.shared.videoURL(for: id), admitDisplay(url) else { continue }
+                variantSelector = makeVariantSelector(choice: id, fallback: url, isShuffle: true)
+                switchVideo(to: url)
+                return
+            }
+        }
+    }
+
+    private func retryUnstartedDisplay(generation gen: Int) {
+        queue.asyncAfter(deadline: .now() + 5) { [weak self] in
+            guard let self, isRunning, gen == generation else { return }
+            let eligible = ShuffleController.shared.eligibleIDs()
+            if let id = eligible.randomElement(), let url = VideoLibrary.shared.videoURL(for: id), url != asset.url {
+                switchVideo(to: url)
+            } else if admitDisplay(asset.url) {
+                requestReset(.newAsset)
+            } else {
+                retryUnstartedDisplay(generation: gen)
+            }
+        }
+    }
 
     /// Which surface this renderer draws into, for the diagnostics log. Set by the
     /// acquire path; the fallback keeps a renderer that somehow wasn't labelled from
@@ -464,6 +554,11 @@ final class VideoRenderer: @unchecked Sendable {
             generation &+= 1
             let gen = generation
             timeline.rebase(to: timeline.track)
+            guard admitDisplay(asset.url) else {
+                onFirstFrameReady?()
+                retryUnstartedDisplay(generation: gen)
+                return
+            }
             guard let (reader, output) = makeReader(asset: asset, track: videoTrack) else {
                 // A reader that won't open is a dead surface unless somebody is told.
                 // Report and let the host retarget; do NOT leave the acquire hanging.
@@ -481,7 +576,7 @@ final class VideoRenderer: @unchecked Sendable {
             if let firstSample = output.copyNextSampleBuffer() {
                 CATransaction.begin()
                 CATransaction.setDisableActions(true)
-                renderer.enqueue(retimed(firstSample))
+                enqueueDisplaySample(retimed(firstSample))
                 CATransaction.commit()
                 CATransaction.flush()
             }
@@ -627,6 +722,7 @@ final class VideoRenderer: @unchecked Sendable {
                     queue.async { [weak self] in
                         guard let self, switchRequestID == request else { return }
                         pendingSwitchURL = nil
+                        ShuffleController.shared.releaseDisplay(owner: displayOwner)
                     }
                     return
                 }
@@ -638,6 +734,14 @@ final class VideoRenderer: @unchecked Sendable {
                         return
                     }
                     pendingSwitchURL = nil
+                    guard admitDisplay(url) else {
+                        queue.asyncAfter(deadline: .now() + 5) { [weak self] in
+                            guard let self, isRunning, switchRequestID == request else { return }
+                            switchVideo(to: url)
+                        }
+                        return
+                    }
+                    holdingForRepeatLimit = false
                     asset = newAsset
                     loggingName.withLock { $0 = newAsset.url.lastPathComponent }
                     videoTrack = boxed.value
@@ -712,6 +816,8 @@ final class VideoRenderer: @unchecked Sendable {
         cancelRamp()
         queue.sync {
             isRunning = false
+            pendingPresentation = nil
+            ShuffleController.shared.releaseDisplay(owner: displayOwner)
             // Bump the session so any flush completion, off-queue asset load or feed
             // callback still in flight returns without touching a torn-down renderer.
             generation &+= 1
@@ -977,6 +1083,7 @@ final class VideoRenderer: @unchecked Sendable {
     /// Must run on `queue`.
     private func performReset(_ request: ResetRequest) {
         flushInFlight = true
+        pendingPresentation = nil
         generation &+= 1
 
         // Freeze the clock up front so it can't advance during the async flush —
@@ -1028,6 +1135,10 @@ final class VideoRenderer: @unchecked Sendable {
     /// continuing from where the timebase was paused. Must run on `queue`.
     private func beginReading(_ request: ResetRequest, resumeTimelineTime: CMTime) {
         let gen = generation
+        guard admitDisplay(asset.url) else {
+            retryUnstartedDisplay(generation: gen)
+            return
+        }
         var timeRange: CMTimeRange?
 
         if request.restartFromZero {
@@ -1060,7 +1171,7 @@ final class VideoRenderer: @unchecked Sendable {
         if let first = output.copyNextSampleBuffer() {
             let adjusted = retimed(first)
             Self.setDisplayImmediately(adjusted)
-            renderer.enqueue(adjusted)
+            enqueueDisplaySample(adjusted, immediate: true)
         }
 
         CMTimebaseSetRate(timebase, rate: isPaused ? 0.0 : 1.0)
@@ -1099,6 +1210,8 @@ final class VideoRenderer: @unchecked Sendable {
 
     /// Give up on this asset and tell the host. Must run on `queue`.
     private func reportFailure(_ reason: String) {
+        pendingPresentation = nil
+        ShuffleController.shared.releaseDisplay(owner: displayOwner)
         note(.failed, reason)
         PlaybackDiagnostics.shared.flush()
         extensionLog("  [recover #\(debugID)] GIVING UP on \(asset.url.lastPathComponent): \(reason)")
@@ -1129,7 +1242,16 @@ final class VideoRenderer: @unchecked Sendable {
 
         loadQueue.async { [weak self] in
             guard let self else { return }
-            let nextURL = selector?()
+            let nextURL = selector?(currentURL)
+            if selector != nil && nextURL == nil {
+                queue.async { [weak self] in
+                    guard let self, isRunning, gen == generation, asset.url == currentURL else { return }
+                    nextSelectionUnavailable = true
+                    nextReader = nil
+                    nextOutput = nil
+                }
+                return
+            }
 
             guard let nextURL, nextURL != currentURL else {
                 // Same clip again: reuse the track we already have, no load at all.
@@ -1144,6 +1266,7 @@ final class VideoRenderer: @unchecked Sendable {
                         traceLog("  [Renderer] preload target moved on — skipping stale install")
                         return
                     }
+                    nextSelectionUnavailable = false
                     installNextReader(asset: asset, track: currentTrack.value, timing: currentTiming)
                 }
                 return
@@ -1155,6 +1278,7 @@ final class VideoRenderer: @unchecked Sendable {
                 queue.async { [weak self] in
                     guard let self, isRunning, gen == generation,
                           asset.url == currentURL else { return }
+                    nextSelectionUnavailable = false
                     installNextReader(asset: asset, track: currentTrack.value, timing: currentTiming)
                 }
                 return
@@ -1162,6 +1286,7 @@ final class VideoRenderer: @unchecked Sendable {
             let boxed = SendableBox(value: track)
             queue.async { [weak self] in
                 guard let self, isRunning, gen == generation else { return }
+                nextSelectionUnavailable = false
                 installNextReader(asset: newAsset, track: boxed.value, timing: .unknown)
             }
             // The declared duration follows separately; the timeline works without it
@@ -1211,6 +1336,45 @@ final class VideoRenderer: @unchecked Sendable {
     private func swapToNextReader(generation gen: Int) {
         guard isRunning, gen == generation else { return }
         stopFeeding()
+        if pendingPresentation != nil {
+            queue.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.swapToNextReader(generation: gen)
+            }
+            return
+        }
+        if countsDisplays && isShufflePlayback && WallpaperPrefs.shared.displayRepeatPolicy.isEnabled
+            && ShuffleController.shared.advancesAfterEachVideo {
+            let nextID = (nextReader?.asset as? AVURLAsset)?.url.deletingLastPathComponent().lastPathComponent
+            let eligible = Set(ShuffleController.shared.eligibleIDs())
+            let target = (nextReader?.asset as? AVURLAsset)?.url
+            let admitted = !nextSelectionUnavailable && nextID.map { eligible.contains($0) } == true
+                && (target.map { ShuffleController.shared.reserveDisplay($0, owner: displayOwner, limited: true) } ?? false)
+            if nextSelectionUnavailable || nextID == nil || !eligible.contains(nextID!) || !admitted {
+                holdingForRepeatLimit = true
+                // Keep the displayed frame; retry with the current settings/history.
+                nextReader?.cancelReading()
+                nextReader = nil
+                nextOutput = nil
+                prepareNextReader(generation: gen)
+                queue.asyncAfter(deadline: .now() + 5) { [weak self] in
+                    guard let self, isRunning, gen == generation, !isPaused else { return }
+                    swapToNextReader(generation: gen)
+                }
+                return
+            }
+        }
+        if isShufflePlayback && ShuffleController.shared.advancesAfterEachVideo {
+            lastDisplayedSource = nil
+        }
+        if holdingForRepeatLimit, let nextAsset = nextReader?.asset as? AVURLAsset {
+            holdingForRepeatLimit = false
+            if nextAsset.url != asset.url {
+                switchVideo(to: nextAsset.url)
+            } else {
+                requestReset(.newAsset)
+            }
+            return
+        }
         // Not always `.completed` here: the "ran dry while still reading" branch
         // lands here too, and that reader still holds a decode session. Dropping
         // the last reference is not the same as releasing it.
@@ -1338,7 +1502,7 @@ final class VideoRenderer: @unchecked Sendable {
                     }
                     return
                 }
-                renderer.enqueue(retimed(sample))
+                enqueueDisplaySample(retimed(sample))
                 enqueuedThisTick += 1
             }
             if feedLogBudget > 0 {

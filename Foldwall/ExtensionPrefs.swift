@@ -27,6 +27,7 @@ enum ExtensionPrefs {
         var pauseWhenOccluded = false
         var desktopOccluded = false
         var videoScaleMode: String
+        var displayRepeatPolicy: DisplayRepeatPolicy
     }
 
     /// 名稱兩側必須一致（見 extension 的 WallpaperPrefs.observeChanges）。
@@ -36,8 +37,8 @@ enum ExtensionPrefs {
         VideoLibrary.documentsURL.appending(path: "phosphene-prefs.json")
     }
 
-    static func write(videoScaleMode: VideoScaleMode) {
-        let prefs = PrefsFile(videoScaleMode: videoScaleMode.rawValue)
+    static func write(videoScaleMode: VideoScaleMode, displayRepeatPolicy: DisplayRepeatPolicy) {
+        let prefs = PrefsFile(videoScaleMode: videoScaleMode.rawValue, displayRepeatPolicy: displayRepeatPolicy)
         guard let data = try? JSONEncoder().encode(prefs) else { return }
         do {
             // extension 還沒被系統跑起來過的話 Documents 不一定存在；建了不會有壞處。

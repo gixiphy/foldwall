@@ -2868,6 +2868,28 @@
         }
       }
     },
+    "同一素材最多 %lld 次": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At most %lld displays per item"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同一素材最多 %lld 次"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同一素材最多 %lld 次"
+          }
+        }
+      }
+    },
     "同步來源失敗：%@": {
       "localizations": {
         "en": {
@@ -3150,6 +3172,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "圖層"
+          }
+        }
+      }
+    },
+    "圖片與隨機播放的影片共用此設定，所有螢幕合併計次。全部達上限時保留目前畫面，直到有素材可用。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Images and shuffled videos share this setting. Displays across screens count together. When every item reaches the limit, the current wallpaper stays until an item becomes available."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图片与随机播放的视频共用此设置，所有屏幕合并计次。全部达上限时保留当前画面，直到有素材可用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "圖片與隨機播放的影片共用此設定，所有螢幕合併計次。全部達上限時保留目前畫面，直到有素材可用。"
           }
         }
       }
@@ -5284,6 +5328,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "最多 %lld 張"
+          }
+        }
+      }
+    },
+    "最近 %lld 小時": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In the last %lld hours"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近 %lld 小时"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近 %lld 小時"
           }
         }
       }
@@ -9314,6 +9380,28 @@
         }
       }
     },
+    "重複顯示限制": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repeat display limits"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重复显示限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重複顯示限制"
+          }
+        }
+      }
+    },
     "鑰匙串那關沒過": {
       "localizations": {
         "en": {
@@ -9486,6 +9574,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "關著時磁碟用量交給雲端硬碟自己的快取管理，隨機播放一天可能多幾十 GB。開了只釋放 Foldwall 自己抓的，你手動下載的不碰；同一支再抽到要重抓。"
+          }
+        }
+      }
+    },
+    "限制重複顯示": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limit repeated displays"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "限制重复显示"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "限制重複顯示"
           }
         }
       }

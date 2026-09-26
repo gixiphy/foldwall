@@ -49,6 +49,58 @@ final class StillPipelineTests: XCTestCase {
         StillPipeline(desktop: desktop, paths: paths)
     }
 
+    func testSuccessfulDisplayExcludesImageAcrossScreensAndRefreshes() async throws {
+        let history = DisplayHistory()
+        let pipeline = StillPipeline(desktop: desktop, paths: paths, history: history)
+        let source = SourcePool([pool[0]])
+        let first = try await pipeline.refresh(displays: [displayA, displayB], skipIDs: [],
+            pool: source, effect: .none, tier: .full, cycleNonce: 1)
+        XCTAssertEqual(first.written, [displayA.id])
+        let second = try await pipeline.refresh(displays: [displayA], skipIDs: [],
+            pool: source, effect: .none, tier: .full, cycleNonce: 2)
+        XCTAssertTrue(second.written.isEmpty)
+        XCTAssertEqual(desktop.calls.count, 1)
+    }
+
+    func testFailedDesktopUpdateDoesNotConsumeImageQuota() async throws {
+        struct FailingDesktop: DesktopSetting {
+            func setDesktopImageURL(_ url: URL, for screenID: CGDirectDisplayID) async throws {
+                throw CocoaError(.fileWriteUnknown)
+            }
+        }
+        let history = DisplayHistory()
+        let pipeline = StillPipeline(desktop: FailingDesktop(), paths: paths, history: history)
+        do {
+            try await pipeline.refresh(displays: [displayA], skipIDs: [],
+                pool: SourcePool([pool[0]]), effect: .none, tier: .full, cycleNonce: 1)
+            XCTFail("Expected desktop update to fail")
+        } catch { }
+        XCTAssertTrue(history.excludedKeys(policy: DisplayRepeatPolicy()).isEmpty)
+    }
+
+    func testPruningRetainsWallpaperForScreenThatCannotRefresh() async throws {
+        let pipeline = makePipeline()
+        try await pipeline.refresh(displays: [displayA, displayB], skipIDs: [],
+            pool: SourcePool(pool), effect: .none, tier: .full, cycleNonce: 1)
+        let original = try XCTUnwrap(pipeline.latestStillURL(displayUUID: displayA.uuid))
+        for nonce in UInt64(2)...4 {
+            try await pipeline.refresh(displays: [displayB], skipIDs: [],
+                pool: SourcePool(pool), effect: .none, tier: .full, cycleNonce: nonce)
+        }
+        XCTAssertTrue(FileManager.default.fileExists(atPath: original.path))
+        XCTAssertEqual(pipeline.latestStillURL(displayUUID: displayA.uuid), original)
+    }
+
+    func testExpiredWindowAllowsImageAgain() async throws {
+        let history = DisplayHistory()
+        history.record([DisplayHistory.key(for: pool[0])], now: Date.now.addingTimeInterval(-3601))
+        let pipeline = StillPipeline(desktop: desktop, paths: paths, history: history)
+        let result = try await pipeline.refresh(displays: [displayA], skipIDs: [],
+            pool: SourcePool([pool[0]]), effect: .none, tier: .full, cycleNonce: 1,
+            repeatPolicy: DisplayRepeatPolicy(hours: 1))
+        XCTAssertEqual(result.written, [displayA.id])
+    }
+
     // MARK: - 尺寸與片數
 
     func testCanvasSizeUsesBackingScale() {

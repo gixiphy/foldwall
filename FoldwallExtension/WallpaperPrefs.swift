@@ -113,6 +113,7 @@ final class WallpaperPrefs: @unchecked Sendable {
         /// prefs file (or none at all) means `.fill`, which is what the extension did
         /// unconditionally before.
         var videoScaleMode: String?
+        var displayRepeatPolicy: DisplayRepeatPolicy?
 
         init(userPaused: Bool = false, alwaysPauseDesktop: Bool = false, pauseWhenOccluded: Bool = false, desktopOccluded: Bool = false, pausedDisplays: Set<UInt32>? = nil, screenSaverIsOurs: Bool? = nil, videoScaleMode: String? = nil) {
             self.userPaused = userPaused
@@ -180,6 +181,10 @@ final class WallpaperPrefs: @unchecked Sendable {
 
     /// How videos fill the screen (fill / scale to height / scale to width / fit /
     /// random), set in the app. Every one of them preserves the aspect ratio.
+    var displayRepeatPolicy: DisplayRepeatPolicy {
+        lock.withLock { $0.displayRepeatPolicy ?? DisplayRepeatPolicy() }
+    }
+
     var videoScaleMode: VideoScaleMode {
         lock.withLock { VideoScaleMode(rawValue: $0.videoScaleMode ?? "") ?? .fill }
     }

@@ -136,6 +136,7 @@ final class MPVSurface: DesktopPlaybackSurface {
     }
 
     func replay() {
+        renderer.expectFirstFrame()
         endReported = false
         _ = command(["seek", "0", "absolute+exact"])
         _ = mpv.setFlag(false, forProperty: "pause")

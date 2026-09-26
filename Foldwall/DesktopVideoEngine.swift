@@ -110,6 +110,7 @@ final class DesktopVideoEngine {
         var waitingSince: Date?
         /// 已經播到結尾，停在最後一格等上層排下一支。
         var ended = false
+        var recordedDisplay = false
         /// 這一支已經就地重建過幾次。**有上限**，否則壞掉的檔會一直重建。
         var rebuildAttempts = 0
         /// 視窗目前的框。只在真的改變時才寫回去——每輪 refresh 都設一次
@@ -169,6 +170,29 @@ final class DesktopVideoEngine {
 
     /// 這支播完了（螢幕 UUID、剛播完的 URL）。上層據此更新狀態。
     /// 單片循環不會發這個——那條路無縫接回開頭。
+    var onVideoDisplayed: ((URL) -> Void)?
+    var canReplayVideo: (URL) -> Bool = { _ in true }
+    var endedScreens: Set<String> { Set(playing.filter { $0.value.ended }.keys) }
+
+    /// Settings changes and displays on other screens can invalidate a preload.
+    func revalidatePreloads() {
+        for uuid in Array(pendingStarts.keys) {
+            if let pending = pendingStarts[uuid], !canReplayVideo(pending.url) { cancelPending(uuid) }
+        }
+        for uuid in Array(playing.keys) {
+            guard let entry = playing[uuid] else { continue }
+            if let next = entry.preloaded, !canReplayVideo(next) {
+                entry.surface.cancelPreload()
+                playing[uuid]?.preloaded = nil
+            }
+            if let queued = entry.queued, !canReplayVideo(queued) {
+                cancelFetch(uuid)
+                playing[uuid]?.queued = nil
+                playing[uuid]?.switchWhenReady = false
+            }
+        }
+    }
+
     var onVideoEnded: ((String, URL) -> Void)?
 
     /// **這台螢幕接下來要播哪一支**（螢幕 UUID、正在播的那支）→ 下一支。
@@ -209,6 +233,9 @@ final class DesktopVideoEngine {
 
     /// 螢幕 → 正在播的影片。排片時用來沿用，不要每輪重選。
     var playingURLs: [String: URL] { playing.mapValues(\.url) }
+    var currentOrPendingURLs: [String: URL] {
+        playingURLs.merging(pendingStarts.mapValues(\.url)) { current, _ in current }
+    }
 
     /// 使用者選的、實際在用的、以及回退的原因。還沒播過任何東西時只反映載入結果。
     private(set) var coreStatus = DesktopPlaybackCoreStatus(requested: .avPlayer, effective: .avPlayer)
@@ -232,6 +259,7 @@ final class DesktopVideoEngine {
 
     /// 上層指定「這支抓完排下一支／抓完直接切」。目標已經在抓就只更新旗標。
     func queueNext(_ uuid: String, url: URL, switchWhenReady: Bool) {
+        guard canReplayVideo(url) else { return }
         if playing[uuid] == nil {
             guard pendingStarts[uuid] != nil else { return }
             pendingStarts[uuid]?.url = url
@@ -752,6 +780,7 @@ final class DesktopVideoEngine {
         entry.surface.load(url, location: location, loop: !mode.advancesAtEnd, startAt: nil)
         playing[uuid]?.url = url
         playing[uuid]?.session = session
+        playing[uuid]?.recordedDisplay = false
         playing[uuid]?.location = location
         playing[uuid]?.preloaded = nil
         playing[uuid]?.scale = wanted
@@ -815,6 +844,7 @@ final class DesktopVideoEngine {
 
         playing[uuid]?.url = next
         playing[uuid]?.session = newSession
+        playing[uuid]?.recordedDisplay = false
         playing[uuid]?.location = Self.currentLocation(of: next)
         playing[uuid]?.preloaded = nil
         playing[uuid]?.startedAt = .now
@@ -841,6 +871,12 @@ final class DesktopVideoEngine {
     /// 或隨機又抽到它）。不重建 player，省一次解碼器初始化。
     private func replay(_ uuid: String) {
         guard let entry = playing[uuid] else { return }
+        guard canReplayVideo(entry.url) else {
+            playing[uuid]?.ended = true
+            applyRunState(uuid)
+            return
+        }
+        playing[uuid]?.recordedDisplay = false
         playing[uuid]?.ended = false
         playing[uuid]?.startedAt = .now
         playing[uuid]?.waitingSince = nil
@@ -989,6 +1025,13 @@ final class DesktopVideoEngine {
         recordFetch(.fetched, uuid: uuid, url: url,
                     detail: String(localized: "下載 \(String(format: "%.1f", seconds)) 秒"))
         onPrefetchChanged?(url, true)
+        guard canReplayVideo(url) else {
+            if pendingStarts[uuid]?.url == url { cancelPending(uuid) }
+            playing[uuid]?.queued = nil
+            playing[uuid]?.switchWhenReady = false
+            noteDownloadActivity()
+            return
+        }
 
         if let pending = pendingStarts[uuid], pending.url == url {
             pendingStarts[uuid] = nil
@@ -1105,7 +1148,9 @@ extension DesktopVideoEngine: DesktopPlaybackSurfaceDelegate {
     }
 
     func surfaceDidShowFirstFrame(_ uuid: String) {
-        guard let entry = playing[uuid] else { return }
+        guard let entry = playing[uuid], !entry.recordedDisplay else { return }
+        playing[uuid]?.recordedDisplay = true
+        onVideoDisplayed?(entry.url)
         let seconds = Date.now.timeIntervalSince(entry.startedAt)
         record(.firstFrame, entry: entry, surface: uuid,
                detail: String(localized: "出畫 \(String(format: "%.2f", seconds)) 秒"))
