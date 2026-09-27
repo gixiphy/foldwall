@@ -45,9 +45,29 @@ final class MontageComposerTests: XCTestCase {
         XCTAssertNoThrow(try compose(seed: 1, pieces: 999))
     }
 
-    func testFewerImagesThanPiecesRepeats() throws {
+    func testFewerImagesThanPiecesReducesLayoutToAvailableImages() throws {
         let single = [TestImage.solid(1, 1, 0)]
-        XCTAssertNoThrow(try compose(seed: 7, pieces: 8, images: single), "池不足要重複抽，不是報錯")
+        for seed in UInt64(1)...10 {
+            let requested = try compose(seed: seed, pieces: 8, images: single)
+            let available = try compose(seed: seed, pieces: 1, images: single)
+            XCTAssertEqual(TestImage.bytes(requested), TestImage.bytes(available),
+                           "只有一張圖時，張數與排版都只能畫一片")
+        }
+    }
+
+    func testSingleImageIsNotReusedAsBackground() throws {
+        let image = try compose(seed: 7, pieces: 1, images: [TestImage.solid(1, 0, 0)])
+        let bytes = TestImage.bytes(image)
+        // 左上角不在相紙內；缺少額外背景圖時應保留中性底色。
+        XCTAssertEqual(bytes[0], bytes[1])
+        XCTAssertEqual(bytes[1], bytes[2])
+    }
+
+    func testSpareImageStillProvidesBackground() throws {
+        let image = try compose(seed: 7, pieces: 1,
+                                images: [TestImage.solid(1, 0, 0), TestImage.solid(0, 1, 0)])
+        let bytes = TestImage.bytes(image)
+        XCTAssertNotEqual(bytes[0], bytes[1], "有多餘圖片時仍保留照片背景")
     }
 
     func testEmptyImagesThrows() {
@@ -82,18 +102,13 @@ final class MontageComposerTests: XCTestCase {
         XCTAssertEqual(Set(picked).count, 6)
     }
 
-    /// 片數多於張數時無法避免重複，但要平均分配，
-    /// 不能一張出現四次、另一張一次都沒出現。
-    func testRepeatsAreSpreadEvenlyWhenUnavoidable() {
-        let picked = selection(count: 10, images: 4, seed: 3)
-        XCTAssertEqual(picked.count, 10)
-        XCTAssertEqual(Set(picked).count, 4, "四張都要用到")
-
-        var counts: [Int: Int] = [:]
-        for index in picked { counts[index, default: 0] += 1 }
-        let values = counts.values.sorted()
-        XCTAssertLessThanOrEqual(values.last! - values.first!, 1,
-                                 "最多用幾次與最少用幾次不該差超過 1，實際：\(values)")
+    func testInsufficientImagesNeverRepeatToFillRequestedCount() {
+        for seed in UInt64(1)...30 {
+            let picked = selection(count: 10, images: 4, seed: seed)
+            XCTAssertEqual(picked.count, 4)
+            XCTAssertEqual(Set(picked), Set(0..<4), "圖片不足時減少片數，不循環補滿")
+            XCTAssertEqual(selection(count: 20, images: 1, seed: seed), [0])
+        }
     }
 
     func testSelectionIsReproducibleForTheSameSeed() {

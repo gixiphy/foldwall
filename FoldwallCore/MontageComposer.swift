@@ -88,15 +88,13 @@ public struct MontageComposer: MontageComposing {
         let bounds = CGRect(x: 0, y: 0, width: width, height: height)
 
         let count = min(max(recipe.pieceCount, Self.pieceCountRange.lowerBound),
-                        Self.pieceCountRange.upperBound)
+                        Self.pieceCountRange.upperBound, images.count)
 
-        // 多出來的那張留給背景，讓它不必跟任何一片重複。
-        // 不夠分就退回用第一張——那時整張圖本來就一定會有重複。
+        // 圖片不足就減少片數；背景只使用沒被選成相紙的圖片。
+        // 沒有多餘圖片時保留底色，不能再把第一片放大重畫一次。
         let tiles = Self.tileSelection(count: count, imageCount: images.count, rng: &rng)
-        let backdropIndex = images.count > count
-            ? Set(0..<images.count).subtracting(tiles).min() ?? 0
-            : 0
-        drawBackground(images[backdropIndex], in: ctx, bounds: bounds, rng: &rng)
+        let backdropIndex = Set(0..<images.count).subtracting(tiles).min()
+        drawBackground(backdropIndex.map { images[$0] }, in: ctx, bounds: bounds, rng: &rng)
 
         // 兩套內部配方，用 seed 選；不暴露給 UI
         let layout: Layout = recipe.seed % 2 == 0 ? .scatter : .stack
@@ -204,19 +202,12 @@ public struct MontageComposer: MontageComposing {
     /// **先洗牌再依序取，不是每片各自隨機抽。** 原本是後者，那是「有放回抽樣」：
     /// 10 張圖抽 10 片，期望只有 6.5 張不重複，平均每張蒙太奇有 3.5 片是同一張圖。
     ///
-    /// 片數多於張數時無法避免重複，但用洗牌循環可以讓重複次數盡量平均
-    /// （每張用 ⌈count/n⌉ 或 ⌊count/n⌋ 次），不會有一張出現四次、另一張都沒出現。
+    /// 片數多於張數時只回傳可用張數，絕不循環重用同一張圖。
     static func tileSelection(
         count: Int, imageCount: Int, rng: inout SeededGenerator
     ) -> [Int] {
         guard imageCount > 0, count > 0 else { return [] }
-        var picked: [Int] = []
-        picked.reserveCapacity(count)
-        // 每輪重洗一次：片數超過張數時，第二輪的順序才不會跟第一輪一樣
-        while picked.count < count {
-            picked.append(contentsOf: Array(0..<imageCount).shuffled(using: &rng))
-        }
-        return Array(picked.prefix(count))
+        return Array((0..<imageCount).shuffled(using: &rng).prefix(count))
     }
 
     // MARK: - 標註
@@ -363,16 +354,16 @@ public struct MontageComposer: MontageComposing {
         case stack     // 往中心聚攏、疏密對比
     }
 
-    /// 底：暗色 + 一張低透明度鋪滿，避免縫隙露出純黑。
-    /// 用哪一張由呼叫端決定——它會盡量挑一張沒被當成片用的。
+    /// 底：暗色；有額外圖片時再低透明度鋪滿，不重用相紙圖片。
     private func drawBackground(
-        _ backdrop: CGImage, in ctx: CGContext, bounds: CGRect,
+        _ backdrop: CGImage?, in ctx: CGContext, bounds: CGRect,
         rng: inout SeededGenerator
     ) {
         let shade = CGFloat.random(in: 0.06...0.12, using: &rng)
         ctx.setFillColor(CGColor(red: shade, green: shade, blue: shade, alpha: 1))
         ctx.fill(bounds)
 
+        guard let backdrop else { return }
         ctx.saveGState()
         ctx.setAlpha(0.22)
         ctx.draw(backdrop, in: aspectFill(backdrop, into: bounds))

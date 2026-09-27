@@ -201,10 +201,10 @@ public struct StillPipeline: Sendable {
             let count = Self.drawnPieceCount(ceiling: ceiling, seed: seed)
 
             // 多要一張給背景：背景是低透明度鋪滿的那層，用掉一張片就會重複。
-            // 池不夠時 loadImages 自然會少給，合成端會退回用第一張。
+            // 池不夠時 loadPieces 自然會少給，合成端減少片數並使用純底色。
             let loaded = await loadPieces(
                 from: pool, count: count + 1, seed: seed,
-                maxPixel: Self.decodeMaxPixel(canvas: display.canvas, pieceCount: count),
+                canvas: display.canvas,
                 includeCredits: showCredits,
                 excluding: history?.excludedKeys(policy: repeatPolicy) ?? [])
             let pieces = loaded.pieces
@@ -275,13 +275,16 @@ public struct StillPipeline: Sendable {
     ///
     /// **輪流抽而不是攤平隨機抽**：見 SourcePool。攤平的話張數多的來源會吃掉整張圖。
     private func loadPieces(
-        from pool: SourcePool, count: Int, seed: UInt64, maxPixel: Int,
+        from pool: SourcePool, count: Int, seed: UInt64, canvas: CGSize,
         includeCredits: Bool = true, excluding: Set<String> = []
     ) async -> (pieces: [MontagePiece], keys: [String]) {
         guard !pool.isEmpty else { return ([], []) }
         var rotation = SourceRotation(pool: pool, seed: seed, excluding: excluding)
         var keys: [String] = []
         var images: [MontagePiece] = []
+        var localURLs: [URL] = []
+        let requestedPieces = count - 1 // 最後一張是預留給背景
+        let maxPixel = Self.decodeMaxPixel(canvas: canvas, pieceCount: requestedPieces)
         var attempts = 0
         // 剔除從索引時挪到這裡後，撞到不合格的機率變高 → 預算跟著放寬。
         let budget = count * Self.attemptsPerPiece
@@ -302,11 +305,25 @@ public struct StillPipeline: Sendable {
             }
             if let image = loaded {
                 keys.append(DisplayHistory.key(for: url))
+                localURLs.append(local)
                 // 出處要查**原始**的 url，不是物化後的本機副本。
                 // 關掉標註時連查都不必查——省掉每片一次的表查詢。
                 images.append(MontagePiece(
                     image: image,
                     credit: includeCredits ? credits?.credit(for: url) : nil))
+            }
+        }
+        // 可讀圖片不足時，合成端會減少片數並放大相紙；按實際片數補解解析度。
+        // 只重讀已物化的入選圖片，不重抽、不再次下載；正常滿池不多做任何解碼。
+        let actualPieces = min(requestedPieces, images.count)
+        let finalMaxPixel = Self.decodeMaxPixel(canvas: canvas, pieceCount: actualPieces)
+        if finalMaxPixel > maxPixel {
+            for index in images.indices {
+                let reloaded = autoreleasepool {
+                    try? ImageLoader.load(localURLs[index], maxPixel: finalMaxPixel,
+                                         minimumShortSide: MediaIndexer.minimumShortSide)
+                }
+                if let reloaded { images[index].image = reloaded }
             }
         }
         return (images, keys)

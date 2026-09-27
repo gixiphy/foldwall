@@ -49,6 +49,31 @@ final class StillPipelineTests: XCTestCase {
         StillPipeline(desktop: desktop, paths: paths)
     }
 
+    func testSparsePoolDecodesForLargerSinglePieceLayout() async throws {
+        struct ResolutionCheckingComposer: MontageComposing {
+            func compose(pieces: [MontagePiece], canvas: CGSize,
+                         recipe: MontageRecipe, effect: PostProcess) throws -> CGImage {
+                XCTAssertEqual(pieces.count, 1)
+                // 3200×1800 的單片最大可達 2812 px，不能沿用多片用的 1600 px。
+                XCTAssertGreaterThanOrEqual(pieces[0].image.width, 2800)
+                return TestImage.solid(0, 0, 0)
+            }
+        }
+        let large = root.appending(path: "large.png")
+        try TestImage.writePNG(TestImage.solid(1, 0, 0, size: 3200), to: large)
+        let display = DisplayTarget(id: 1, uuid: "sparse", canvas: CGSize(width: 3200, height: 1800))
+        let nonce = try XCTUnwrap((UInt64(1)...1000).first {
+            StillPipeline.drawnPieceCount(ceiling: 20,
+                seed: SeededGenerator.seed(cycleNonce: $0, displayUUID: display.uuid)) >= 16
+        })
+        let pipeline = StillPipeline(composer: ResolutionCheckingComposer(),
+                                     desktop: desktop, paths: paths)
+        let result = try await pipeline.refresh(displays: [display], skipIDs: [],
+            pool: SourcePool([large, root.appending(path: "missing.png")]),
+            effect: .none, tier: .full, cycleNonce: nonce, pieceCountOverride: 20)
+        XCTAssertEqual(result.written, [display.id])
+    }
+
     func testSuccessfulDisplayExcludesImageAcrossScreensAndRefreshes() async throws {
         let history = DisplayHistory()
         let pipeline = StillPipeline(desktop: desktop, paths: paths, history: history)
