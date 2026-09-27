@@ -122,7 +122,7 @@ final class StillPipelineTests: XCTestCase {
         let pipeline = StillPipeline(desktop: desktop, paths: paths, history: history)
         let result = try await pipeline.refresh(displays: [displayA], skipIDs: [],
             pool: SourcePool([pool[0]]), effect: .none, tier: .full, cycleNonce: 1,
-            repeatPolicy: DisplayRepeatPolicy(hours: 1))
+            repeatPolicy: DisplayRepeatPolicy(amount: 1, unit: .hour))
         XCTAssertEqual(result.written, [displayA.id])
     }
 

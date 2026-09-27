@@ -6,7 +6,7 @@ final class DisplayHistoryTests: XCTestCase {
 
     func testRollingWindowExpiresEachDisplayIndependently() throws {
         let history = DisplayHistory()
-        let policy = DisplayRepeatPolicy(hours: 1, maxDisplays: 2)
+        let policy = DisplayRepeatPolicy(amount: 1, unit: .hour, maxDisplays: 2)
         history.record(["a"], now: now)
         XCTAssertFalse(history.excludedKeys(policy: policy, now: now).contains("a"))
         history.record(["a"], now: now.addingTimeInterval(60))
@@ -42,8 +42,8 @@ final class DisplayHistoryTests: XCTestCase {
     func testLargerWindowCanUseEarlierHistory() {
         let history = DisplayHistory()
         history.record(["a"], now: now.addingTimeInterval(-7200))
-        XCTAssertTrue(history.excludedKeys(policy: DisplayRepeatPolicy(hours: 1), now: now).isEmpty)
-        XCTAssertEqual(history.excludedKeys(policy: DisplayRepeatPolicy(hours: 24), now: now), ["a"])
+        XCTAssertTrue(history.excludedKeys(policy: DisplayRepeatPolicy(amount: 1, unit: .hour), now: now).isEmpty)
+        XCTAssertEqual(history.excludedKeys(policy: DisplayRepeatPolicy(amount: 1, unit: .day), now: now), ["a"])
     }
 
     func testDecodedSettingsClampInvalidLimits() throws {
@@ -53,6 +53,46 @@ final class DisplayHistoryTests: XCTestCase {
         history.record(["a"], now: now)
         XCTAssertEqual(history.excludedKeys(policy: policy, now: now.addingTimeInterval(3599)), ["a"])
         XCTAssertTrue(history.excludedKeys(policy: policy, now: now.addingTimeInterval(3600)).isEmpty)
+    }
+
+    func testWindowUnitsUseCalendarLengths() {
+        let history = DisplayHistory()
+        history.record(["a"], now: now.addingTimeInterval(-10 * 86_400))
+        XCTAssertTrue(history.excludedKeys(policy: DisplayRepeatPolicy(amount: 1, unit: .week), now: now).isEmpty)
+        XCTAssertEqual(history.excludedKeys(policy: DisplayRepeatPolicy(amount: 2, unit: .week), now: now), ["a"])
+        XCTAssertTrue(history.excludedKeys(policy: DisplayRepeatPolicy(amount: 9, unit: .day), now: now).isEmpty)
+        XCTAssertEqual(history.excludedKeys(policy: DisplayRepeatPolicy(amount: 1, unit: .month), now: now), ["a"])
+    }
+
+    func testHistoryIsKeptLongEnoughForMonthWindows() {
+        let history = DisplayHistory()
+        history.record(["a"], now: now.addingTimeInterval(-200 * 86_400))
+        history.record(["b"], now: now)  // 寫入會順便清舊紀錄
+        let policy = DisplayRepeatPolicy(amount: 12, unit: .month)
+        XCTAssertEqual(history.excludedKeys(policy: policy, now: now), ["a", "b"])
+    }
+
+    func testAmountClampsToUnitRange() {
+        var policy = DisplayRepeatPolicy(amount: 500, unit: .hour)
+        XCTAssertEqual(policy.amount, 500)
+        policy.unit = .month
+        XCTAssertEqual(policy.amount, 12)
+        policy.amount = 0
+        XCTAssertEqual(policy.amount, 1)
+    }
+
+    func testLegacyHoursSettingStillDecodes() throws {
+        let data = Data(#"{"isEnabled":true,"hours":72,"maxDisplays":2}"#.utf8)
+        let policy = try JSONDecoder().decode(DisplayRepeatPolicy.self, from: data)
+        XCTAssertEqual(policy, DisplayRepeatPolicy(amount: 72, unit: .hour, maxDisplays: 2))
+    }
+
+    func testRoundTripKeepsUnitAndWritesLegacyHours() throws {
+        let policy = DisplayRepeatPolicy(amount: 2, unit: .week, maxDisplays: 3)
+        let data = try JSONEncoder().encode(policy)
+        XCTAssertEqual(try JSONDecoder().decode(DisplayRepeatPolicy.self, from: data), policy)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(json["hours"] as? Int, 336)
     }
 
     func testConcurrentStoresDoNotLoseSuccessfulDisplays() throws {

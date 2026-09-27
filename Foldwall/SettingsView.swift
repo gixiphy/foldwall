@@ -2879,8 +2879,22 @@ private struct RepeatLimitSettings: View {
             VStack(alignment: .leading, spacing: 10) {
                 Toggle("限制重複顯示", isOn: $settings.displayRepeatPolicy.isEnabled)
                     .toggleStyle(.switch)
-                Stepper(value: $settings.displayRepeatPolicy.hours, in: DisplayRepeatPolicy.hourRange) {
-                    Text("最近 \(settings.displayRepeatPolicy.hours) 小時")
+                HStack(spacing: 6) {
+                    Text("最近")
+                    TextField("", value: $settings.displayRepeatPolicy.amount, format: .number)
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 56)
+                    Stepper("", value: $settings.displayRepeatPolicy.amount,
+                            in: settings.displayRepeatPolicy.unit.range)
+                        .labelsHidden()
+                    Picker("", selection: $settings.displayRepeatPolicy.unit) {
+                        ForEach(RepeatWindowUnit.allCases, id: \.self) { unit in
+                            Text(unit.label).tag(unit)
+                        }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
                 }
                 .disabled(!settings.displayRepeatPolicy.isEnabled)
                 Stepper(value: $settings.displayRepeatPolicy.maxDisplays, in: DisplayRepeatPolicy.countRange) {
@@ -2895,5 +2909,16 @@ private struct RepeatLimitSettings: View {
             .padding(4)
         }
         .onChange(of: settings.displayRepeatPolicy) { _, _ in onChange() }
+    }
+}
+
+private extension RepeatWindowUnit {
+    var label: LocalizedStringKey {
+        switch self {
+        case .hour: "小時"
+        case .day: "天"
+        case .week: "週"
+        case .month: "個月"
+        }
     }
 }

@@ -59,7 +59,7 @@ final class SyncSnapshotsTests: XCTestCase {
 
     func testRepeatPolicySurvivesDeviceBackup() throws {
         var settings = device()
-        settings.displayRepeatPolicy = DisplayRepeatPolicy(isEnabled: false, hours: 72, maxDisplays: 3)
+        settings.displayRepeatPolicy = DisplayRepeatPolicy(isEnabled: false, amount: 3, unit: .day, maxDisplays: 3)
         let restored = try JSONDecoder().decode(DeviceSettings.self, from: JSONEncoder().encode(settings))
         XCTAssertEqual(restored.displayRepeatPolicy, settings.displayRepeatPolicy)
         XCTAssertFalse(restored.hasSameContent(as: device()))

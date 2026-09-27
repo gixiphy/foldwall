@@ -1944,6 +1944,28 @@
         }
       }
     },
+    "個月": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "months"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "个月"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "個月"
+          }
+        }
+      }
+    },
     "借瀏覽器的登入狀態": {
       "localizations": {
         "en": {
@@ -3462,6 +3484,28 @@
         }
       }
     },
+    "天": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "days"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "天"
+          }
+        }
+      }
+    },
     "好": {
       "localizations": {
         "en": {
@@ -3634,6 +3678,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "專注：%@"
+          }
+        }
+      }
+    },
+    "小時": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hours"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "小时"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "小時"
           }
         }
       }
@@ -5332,24 +5398,24 @@
         }
       }
     },
-    "最近 %lld 小時": {
+    "最近": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "In the last %lld hours"
+            "value": "Within the last"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "最近 %lld 小时"
+            "value": "最近"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "最近 %lld 小時"
+            "value": "最近"
           }
         }
       }
@@ -8958,6 +9024,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "連續 %lld 支抓不下來，先停 %lld 分鐘再試。最後一次的原因：%@"
+          }
+        }
+      }
+    },
+    "週": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "weeks"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "周"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "週"
           }
         }
       }
