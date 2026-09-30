@@ -1,287 +1,288 @@
 # Foldwall
 
-macOS 選單列 app：把你的資料夾、照片相簿與網路來源混成**隨機蒙太奇**桌布，每台螢幕各自合成、定時換一張。也能讓指定螢幕改播影片。
+A macOS menu-bar app that mixes your folders, photo albums, and web sources into a **random montage** wallpaper. Each display is composed on its own and changes on a timer. Chosen displays can play video instead.
 
-需要 macOS 26 以上、Apple Silicon。介面有繁體中文、简体中文與英文，跟隨系統或自己指定；其他語言可以在「設定 → 語言」用你本機已登入的 AI CLI（Claude Code、Codex 等）自己翻一份，翻好的檔只留在這台 Mac。
+Requires macOS 26 or later, on Apple Silicon. The interface includes Traditional Chinese, Simplified Chinese, and English, following the system language or a language you set. Any other language can be translated on this Mac from Settings → Language, using an AI CLI you are already signed in to (Claude Code, Codex, and others). The translated file stays on this Mac.
 
-## 安裝
+## Install
 
-到 [Releases](https://github.com/gixiphy/foldwall/releases/latest) 下載 `Foldwall-<版本>-arm64.dmg`，打開後把 Foldwall 拖進「應用程式」。
+Download `Foldwall-<version>-arm64.dmg` from [Releases](https://github.com/gixiphy/foldwall/releases/latest), open it, and drag Foldwall into Applications.
 
-DMG 已經 Apple 公證，不必解 quarantine。
+The DMG is notarized by Apple. The quarantine attribute does not need to be cleared.
 
-## 怎麼用
+## How to use
 
-啟動後圖示在選單列，不進 Dock。日常要用的都在這裡，設定視窗只有調整時才需要打開。
+After launch the icon sits in the menu bar and does not appear in the Dock. Day-to-day controls are there. Open the Settings window only when you need to change something.
 
-![選單列](docs/images/menubar.png)
+![Menu bar](docs/images/menubar.png)
 
-**設定 → 來源**加來源，加好就會進同一個蒙太奇池：
+Add sources under **Settings → Sources**. Everything you add joins the same montage pool:
 
-| 來源 | 在哪裡加 | 說明 |
+| Source | Where to add it | Notes |
 | --- | --- | --- |
-| **資料夾** | 來源 → 資料夾 | 本機、SMB，以及 Box／pCloud／Dropbox／OneDrive／Google Drive 等 File Provider 掛載點都算資料夾 |
-| **照片相簿** | 來源 → 照片授權 | 走 PhotoKit，首次會跳系統授權 |
-| **網路** | 來源 → 網路 | Unsplash／Pexels／Pixabay／Wallhaven／Flickr 公開搜尋／Immich／RSS／4KWallpapers。需要 key 的存在 Keychain |
-| **片單網址** | 來源 → 網路 → ＋ | 一條網址代表一整批影片。需要你自己裝 `yt-dlp`，見下面 |
+| **Folder** | Sources → Folders | A local folder, an SMB share, or a File Provider mount (Box, pCloud, Dropbox, OneDrive, Google Drive, and the like) all count as folders |
+| **Photo album** | Sources → Photos Access | Uses PhotoKit. The system permission prompt appears the first time |
+| **Web** | Sources → Web | Unsplash, Pexels, Pixabay, Wallhaven, Flickr public search, Immich, RSS, and 4KWallpapers. Keys a source needs are stored in the Keychain |
+| **Playlist URL** | Sources → Web → + | One URL stands for a whole batch of videos. You install `yt-dlp` yourself; see below |
 
-![來源 → 資料夾](docs/images/sources-folders.png)
+![Sources → Folders](docs/images/sources-folders.png)
 
-這一頁只管來源設好了沒、讀不讀得到。每個來源要不要用，在「蒙太奇桌布」和「影片桌布」分頁**各自勾選**——同一個資料夾可以只給蒙太奇、只給影片，或兩者都給。
+This page only reports whether a source is configured and readable. Whether a source is used is checked separately on the Montage and Video tabs — the same folder can feed the montage only, video only, or both.
 
-## 蒙太奇桌布
+## Montage wallpaper
 
-每 5 分鐘換一次構圖（間隔可改）。多螢時每台各自抽圖、各自合成，同一時間兩台不會是同一張。
+The composition changes every 5 minutes (the interval is adjustable). With more than one display, each display draws and composites on its own, so two displays are never showing the same image at once.
 
-**一張蒙太奇會盡量涵蓋多個來源**，不會被張數最多的那個來源吃掉整張圖。同一張圖裡也不會出現重複的片。
-可用圖片不足時會減少片數；沒有額外圖片可當背景時改用純底色，不會重複貼圖補滿。
+**One montage tries to cover several sources.** The source with the most images does not take over the whole frame. The same image does not appear twice inside one montage.
 
-![蒙太奇桌布](docs/images/montage.png)
+When usable images run short, the piece count drops. When no extra image is available for the background, a solid color is used. A duplicate is not pasted in to fill the space.
 
-| 設定 | 說明 |
+![Montage wallpaper](docs/images/montage.png)
+
+| Setting | Notes |
 | --- | --- |
-| **切換間隔** | 預設 5 分鐘 |
-| **後製** | 無／灰階／棕褐／去飽和／**隨機**。整張合成完再套一次；隨機是每輪各抽一種 |
-| **顯示來源與作者** | 把出處印在圖片角落。Unsplash 與 Pexels 的授權要求標註作者——**關掉之後這兩個來源的圖只適合自己看** |
-| **張數上限** | 1 到 20，預設**自動** |
+| **Change interval** | Default 5 minutes |
+| **Effect** | None / Grayscale / Sepia / Desaturate / **Random**. Applied once to the finished composite. Random draws one effect per round |
+| **Show source and credit** | Prints the attribution in a corner of the image. The Unsplash and Pexels licenses require author credit — **with this off, images from those two sources are only suitable for your own viewing** |
+| **Max images** | 1 to 20. Default **Automatic** |
 
-自動的意思是上限由螢幕長邊決定（超寬螢幕多、筆電螢幕少），每輪實際幾張是在 1 到上限之間隨機抽的——有時一張大圖、有時鋪滿十幾張。降載時上限封頂 6 張。每台螢幕算到的上限列在設定裡。
+Automatic means the cap follows the display’s long edge (higher on an ultrawide, lower on a laptop). Each round draws a count at random between 1 and that cap — sometimes one large image, sometimes a dozen or more tiled. Under power saving the cap is clamped at 6. The cap computed for each display is listed in Settings.
 
-## 影片桌布
+## Video wallpaper
 
-預設關閉。打開後有兩條路，在「影片桌布 → 播放方式」選：
+Off by default. Once it is on, there are two paths, chosen under Video → Playback:
 
-![影片桌布](docs/images/video.png)
+![Video wallpaper](docs/images/video.png)
 
-| | 桌面視窗（預設） | 系統桌布 extension |
+| | Desktop window (default) | System wallpaper extension |
 | --- | --- | --- |
-| 怎麼播 | 直接播來源檔 | 要先實體拷進沙盒 |
-| 佔磁碟 | **不佔**，零拷貝 | 一輪填到 2GB 為止，單檔上限 1GB；每輪只換其中 512MB |
-| 能播的範圍 | 整個片庫 | 只有拷進去的那幾支 |
-| **鎖屏** | **不會播** | **會播** |
-| 設定步驟 | 選單勾「此螢幕改用影片」 | 在系統設定選擇螢幕與影片 |
-| 穩定性 | 穩定 | macOS 大版本更新可能失效 |
+| How it plays | Plays the source file directly | Physically copied into the sandbox first |
+| Disk use | **None** — zero copy | Fills a batch up to 2 GB, with a 1 GB limit per file; each round replaces only 512 MB of that batch |
+| What can play | The whole library | Only the files that were copied in |
+| **Lock screen** | **Does not play** | **Does play** |
+| Setup | Check “Use Video on This Display” in the menu | Pick the display and the video in System Settings |
+| Stability | Stable | A major macOS update may break it |
 
-除非你要鎖屏也播影片，否則用預設的桌面視窗就好。
+Use the default desktop window unless you also want video on the lock screen.
 
-桌面視窗那條還有一個**圖層**選項：影片放在「桌面圖示之下」（預設）或「蓋住桌面圖示」。系統 extension 那條由系統決定，沒有這個選擇。
+The desktop-window path has a **Layer** option: “Below desktop icons” (default) or “Above desktop icons”. The system-extension path is placed by the system and has no such choice.
 
-桌面視窗那條也可以選**核心**：相容播放（AVPlayer，預設）或流暢播放（mpv，要自己裝），見下面「流暢播放與 mpv」。
+The desktop-window path can also pick a **Core**: Compatible playback (AVPlayer, the default) or Smooth playback (mpv, which you install yourself). See “Smooth playback and mpv” below.
 
-系統 extension 的播放螢幕由「系統設定 → 桌布」指定，選好 Foldwall 影片即可，不必再回選單勾選。Foldwall 會自動避開已指定系統影片桌布的螢幕。
+Playback displays for the system extension are chosen in System Settings → Wallpaper. Select a Foldwall video there; there is no need to go back and check the menu. Foldwall skips any display that already has a system video wallpaper assigned.
 
-播不動的影片（來源掉線、檔案壞掉）會自動冷卻 10 分鐘、改播別的，不會停在黑畫面。
+A video that cannot play (the source is offline, or the file is damaged) cools down for 10 minutes and something else plays. Playback does not stay on a black frame.
 
-### 縮放
+### Scaling
 
-影片跟螢幕的長寬比很少剛好一樣。在「影片桌布 → 播放方式 → 縮放」選（**兩條引擎都吃**，選單列的「影片縮放」也一樣）：
+A video’s aspect ratio rarely matches the screen. Choose the mode under Video → Playback → Scaling (**both engines honor it**, and so does Video Scaling in the menu bar):
 
-| 縮放 | 行為 |
+| Scaling | Behavior |
 | --- | --- |
-| **填滿螢幕**（預設） | 等比放大到蓋滿螢幕，超出畫面的裁掉。不會有黑邊，但拍到的東西可能被切到 |
-| 填滿高度 | 以**螢幕高度**為準等比縮放：上下貼齊螢幕，左右超出的裁掉、不夠寬的留左右黑邊 |
-| 填滿寬度 | 以**螢幕寬度**為準等比縮放：左右貼齊螢幕，上下超出的裁掉、不夠高的留上下黑邊 |
-| 符合螢幕大小 | 等比縮到整支影片都看得見。長寬比跟螢幕不一樣就會留黑邊 |
-| 隨機 | 每支影片各自抽一種（填滿螢幕／符合螢幕大小）。同一支在同一台螢幕上抽到的固定不變，不會播到一半自己跳 |
+| **Fill Screen** (default) | Scales up proportionally until the screen is covered, and crops the overflow. No bars, though part of the frame may be cut off |
+| Fill Height | Scales proportionally to the **screen height**: the top and bottom meet the screen. Anything wider is cropped; anything narrower leaves bars on the left and right |
+| Fill Width | Scales proportionally to the **screen width**: the left and right meet the screen. Anything taller is cropped; anything shorter leaves bars above and below |
+| Fit to Screen | Scales proportionally until the whole video is visible. Leaves bars when the aspect ratio differs from the screen |
+| Random | Each video draws its own mode (Fill Screen or Fit to Screen). The same video on the same display always draws the same mode, and does not switch mid-playback |
 
-**每一種都保持影片原本的長寬比。** 系統設定的桌布有一個「擴充至填滿螢幕」是把畫面拉扁去湊螢幕的，這裡刻意不提供——桌布把每支影片都變形不是想要的結果。
+**Every mode keeps the video’s original aspect ratio.** System Settings has a wallpaper option, “Stretch to Fill Screen”, that squashes the picture to fit the screen. It is deliberately omitted here. Distorting every video is not the intended result.
 
-改了立刻生效，正在播的那支不會重播。
+A change takes effect immediately. The video that is already playing is not restarted.
 
-### 播完之後
+### When one ends
 
-**預設播完接下一支。** 在「影片桌布 → 播放方式 → 播完之後」選（選單列的「影片播放方式」也一樣）：
+**The default is to move on to the next video.** Choose the mode under Video → Playback → When one ends (Video Playback in the menu bar is the same control):
 
-| 模式 | 行為 |
+| Mode | Behavior |
 | --- | --- |
-| 單片循環 | 一支放到底再接回開頭，永遠是同一支。接回開頭是無縫的 |
-| **全部循環**（預設） | 播完接下一支，走到底回到第一支 |
-| 隨機播放 | 播完隨機挑下一支。下一支不會是剛播完的那支 |
+| Loop One | Plays one video through, then loops back to its start — always the same video. The loop back to the start is seamless |
+| **Loop All** (default) | Moves to the next video when one ends, and wraps back to the first at the end of the list |
+| Shuffle | Picks the next video at random when one ends. The next one is never the one that just finished |
 
-想立刻換就按選單列的**下一片影片**（⇧⌘N）。多螢時三種模式都會避開別台正在播的那支。
+To change immediately, use **Next Video** in the menu bar (⇧⌘N). With more than one display, all three modes avoid the video another display is already playing.
 
-這三個是**桌面視窗**那條路的設定。系統 extension 的輪替歸「系統設定 → 桌布」管：選 **Shuffle All** 才會輪播，頻率在它的 *Change Video* 選單裡挑，其中 **After Each Video** 就是「播完接下一支」（換片是無縫的）。選了固定某一支就等於單片循環。「下一片影片」在那條路也有效——但只有選 Shuffle All 時才有東西可跳。
+These three modes apply to the **desktop window** path. Rotation for the system extension is controlled by System Settings → Wallpaper: choose **Shuffle All** to rotate at all, and pick the frequency in its *Change Video* menu. **After Each Video** there means “move on when one ends”, and the change is seamless. Picking one fixed video is the same as Loop One. **Next Video** works on that path too. There is something to skip to only when Shuffle All is selected.
 
-### 重複顯示限制
+### Repeat display limits
 
-「蒙太奇桌布」和「影片桌布」設定頁都有 **重複顯示限制**，兩處修改的是同一份設定。
-預設開啟：同一素材在最近 **1 天內最多顯示 1 次**。時間窗是「數值＋單位」，單位可選小時（1–720）、天（1–365）、週（1–52）、月（1–12，依日曆月計）；次數 1–100，或關閉限制。
-圖片與隨機播放的影片都會遵守（包括系統 extension 的 Shuffle All）；指定單片循環與全部循環維持原本行為。
-只在素材實際顯示後計次，預載及載入失敗不計；紀錄保存在本機，重開 App 仍有效。
-全部素材都達到上限時保留目前桌布，有素材解禁後再繼續。圖片會在下一次排程更新時重試。
+Both the Montage and Video settings pages have **Repeat display limits**. The two pages edit the same setting.
+On by default: the same item is shown at most **once in the last 1 day**. The window is a number plus a unit. Units are hours (1–720), days (1–365), weeks (1–52), and months (1–12, counted as calendar months). The count is 1–100, or the limit can be turned off.
+Images and shuffled videos both obey it, including Shuffle All on the system extension. Loop One and Loop All keep their original behavior.
+A count is recorded only after the item is actually shown. Preload and a failed load do not count. The record is stored on this Mac and still applies after the app is relaunched.
+When every item has reached the cap, the current wallpaper stays until something becomes available again. Images are tried again at the next scheduled update.
 
-### 換一批片源
+### Replacing the selection
 
-「下一片影片」是在**當下這份片單**裡往前一支。要把片單本身換掉，按「影片桌布 → 播放方式 → **強制更換片源**」：
+**Next Video** advances within the **current list**. To replace the list itself, press Video → Playback → **Force New Selection**:
 
-| 引擎 | 按下去會 |
+| Engine | What the button does |
 | --- | --- |
-| 桌面視窗 | 重掃來源資料夾再整批重抽。剛丟進資料夾的新片、剛掛回來的網路磁碟，會在這時候出現 |
-| 系統 extension | 立刻拷一批新的進去，不等螢幕睡著 |
+| Desktop window | Rescans the source folders and redraws the whole batch. A video just dropped into a folder, or a network volume just mounted again, shows up at this point |
+| System wallpaper extension | Copies a new batch in immediately, without waiting for the display to sleep |
 
-系統 extension 那條平時只在螢幕睡著時換批，而且最少隔 30 分鐘——一批可能是好幾百 MB，放在你剛回到電腦前那一刻拷會卡。等不及就按這個。
+The system-extension path otherwise replaces its batch only while the display is asleep, and at least 30 minutes apart — a batch can be several hundred megabytes, and copying it the moment you sit back down would stall. Press the button when you would rather not wait.
 
-兩邊都不會順便去打網路來源的 API 補貨，那有額度上限。
+Neither path calls web-source APIs to restock. Those APIs have a quota.
 
-## 流暢播放與 mpv
+## Smooth playback and mpv
 
-桌面視窗引擎裡的播放器有兩個可選：**相容播放（AVPlayer）**是預設、系統內建、不必裝任何東西；**流暢播放（mpv）**用你自己裝的 mpv。有些片（實測一支 H.264 29.97 fps 的原片）在 AVPlayer 會持續微頓、在 mpv 順，換過去就好；反過來也一樣。在「影片桌布 → 播放方式 → 核心」切，只動影片視窗，不會重跑蒙太奇，正在播的那支會從同一秒接著播。
+The desktop-window engine has two players. **Compatible playback (AVPlayer)** is the default: it is built into the system and nothing else has to be installed. **Smooth playback (mpv)** uses an mpv you installed yourself. Some files (one measured case was an H.264 original at 29.97 fps) keep micro-stuttering in AVPlayer and play smoothly in mpv; the reverse happens too. Switch under Video → Playback → Core. Only the video window is affected: the montage is not recomposed, and the video that is playing continues from the same second.
 
-這個功能靠**你自己安裝的 mpv**：
+This depends on **an mpv you install yourself**:
 
 ```bash
 brew install mpv
 ```
 
-裝好之後重新啟動 Foldwall。跟 yt-dlp 同一條界線：Foldwall 不附帶、不下載 libmpv，也不替你跑 brew——mpv 與它連的 FFmpeg 是 GPL 建置，Foldwall（MIT）只在你裝了之後於執行期載入它，原始碼裡只放 mpv 的 client API 標頭（ISC，`ThirdParty/mpv`）。
+Restart Foldwall after installing. The boundary is the same as for yt-dlp: Foldwall does not bundle libmpv, does not download it, and does not run brew for you. mpv and the FFmpeg it links against are GPL builds. Foldwall (MIT) loads that build at run time only after you have installed it. The source tree contains only mpv’s client API headers (ISC, `ThirdParty/mpv`).
 
-沒裝、或載不起來，就自動改用相容播放，設定頁會寫出原因和對應的那一行指令：沒找到就 `brew install mpv`；`brew upgrade ffmpeg` 之類換掉相依、mpv 還沒跟著重建的，是 `brew reinstall mpv`；太舊或 API 版本不合是 `brew upgrade mpv`。這幾種都不是影片的錯，不會把影片送進冷卻名單。`brew upgrade mpv` 之後正在播的不受影響，新版下次啟動才生效，設定頁會提示重新啟動。
+If mpv is missing or cannot be loaded, playback falls back to compatible mode, and the settings page states the reason together with the matching command. Not found: `brew install mpv`. A dependency was replaced (for example by `brew upgrade ffmpeg`) and mpv has not been rebuilt against it: `brew reinstall mpv`. Too old, or the API version does not match: `brew upgrade mpv`. None of these is the video’s fault, so the video is not put on the cooldown list. After `brew upgrade mpv`, the video that is playing is left as it is; the new build takes effect on the next launch, and the settings page says to restart.
 
-桌布視窗被全螢幕視窗完全蓋住時，AVPlayer 會被系統停下；mpv 沒有這個免費的省電，所以 Foldwall 自己在被完全遮住時把它暫停、露出來再繼續。兩個核心在可見與被遮住時的 CPU／GPU 量測在 `docs/mpv-integration-plan.md` 裡。
+When a fullscreen window completely covers the wallpaper window, the system stops AVPlayer. mpv does not get that pause, or the power saving that comes with it, so Foldwall pauses mpv while it is fully covered and resumes it once the window is visible again. CPU and GPU measurements for both cores, visible and covered, are in `docs/mpv-integration-plan.md`.
 
-## 片單網址與 yt-dlp
+## Playlist URLs and yt-dlp
 
-片單網址**存的是網址，不是影片**。加進來只會去問「這個片單裡有哪些影片」，等輪替真的抽到某一支，才去抓那一支。所以磁碟用量跟**你真的播過幾支**成正比，幾百支的片單也不會一次塞爆。
+A playlist URL **stores the URL, not the videos**. Adding one only asks which videos the playlist contains. A video is fetched when the rotation actually draws it. Disk use therefore scales with **how many you have actually played**. A playlist of several hundred does not fill the disk in one go.
 
-![片單網址](docs/images/playlist.png)
+![Playlist URL](docs/images/playlist.png)
 
-這個功能靠**你自己安裝的 yt-dlp**：
+This depends on **a yt-dlp you install yourself**:
 
 ```bash
 brew install yt-dlp
 ```
 
-也建議一起裝 `ffmpeg`（`brew install ffmpeg`）：現在的 YouTube 幾乎只提供分離的視訊／音訊軌，沒有它一支也抓不下來。
+Install `ffmpeg` as well (`brew install ffmpeg`). YouTube now serves separate video and audio tracks almost exclusively, and without ffmpeg not a single video can be fetched.
 
-Foldwall 不實作任何串流解析或簽章繞過——那是規避技術保護措施。它只負責找到工具、組出參數、把結果收進影片來源；要對哪個站用由你決定。沒裝就是這個功能用不了，其他來源不受影響。
+Foldwall implements no stream parsing and no signature bypass — that would be circumvention of a technical protection measure. It finds the tool, assembles the arguments, and takes the result in as a video source. Which sites you point it at is your decision. Without yt-dlp this feature is unavailable; every other source still works.
 
-### 畫質
+### Quality
 
-「來源 → 網路 → 選一條片單」裡可以設**畫質上限**（720p 到不設上限，預設 1080p），所有片單共用。同一個解析度底下一律挑位元率最高的那條流——這件事需要明講，因為 yt-dlp 預設的排序會先比編碼再比位元率，而站方位元率壓得最狠的那條編碼常常排在最前面，於是「最偏好的編碼」剛好是「畫質最差的流」。實測同一支 1080p60：預設拿到 557 kbps，改過之後拿到 1206 kbps。
+With a playlist selected under Sources → Web, set a **quality limit** (from 720p up to no limit; the default is 1080p). All playlists share it. Within a given resolution, the highest-bitrate stream is always the one taken. That is deliberate: yt-dlp’s default sort compares codec before bitrate, and the codec a site compresses hardest often ranks first, so the “preferred codec” is the worst-quality stream. Measured on the same 1080p60 video: the default returned 557 kbps; after the change, 1206 kbps.
 
-**只抓視訊軌，不抓音訊**：桌布本來就靜音播放，音訊抓下來只是佔空間。
+**Only the video track is fetched.** Wallpaper playback is muted, so an audio track would only take space.
 
-改了只影響之後才抓的影片，已經在快取裡的不會重抓——要換掉就去「快取位置」清掉。
+A change affects videos fetched after it. Anything already in the cache is left as it is — clear it under Settings → Cache to replace it.
 
-### 借瀏覽器的登入狀態
+### Borrowing a browser sign-in
 
-![借瀏覽器的登入狀態](docs/images/playlist-cookies.png)
+![Borrowing a browser sign-in](docs/images/playlist-cookies.png)
 
-會員限定、年齡限制、私人的片單，沒有登入狀態就是解不出來；YouTube 擋自動化時（`Sign in to confirm you're not a bot`）也要靠它才過得去。同一個地方可以選「借哪個瀏覽器的登入狀態」，旁邊有「測試授權」會真的跑一次告訴你成不成，不成的話缺哪一道權限。
+Members-only, age-restricted, and private playlists cannot be resolved without a signed-in session. The same session is what gets past YouTube when it blocks automation (`Sign in to confirm you're not a bot`). In the same place you choose which browser’s sign-in to borrow. **Test Access** beside it runs a real check and reports whether it worked, and which permission is missing when it did not.
 
-- **Safari** 的 cookie 在系統保護的位置，要去「隱私權與安全性 → 完全取用磁碟」把 **Foldwall** 打開（要授權的是 Foldwall 不是 yt-dlp：子行程的授權判定歸屬於把它叫起來的那個 app）。
-- **Chrome／Brave／Edge 等**的 cookie 是加密的，第一次讀會跳鑰匙串詢問，選「總是允許」。
-- **Firefox** 兩樣都不用，不想開權限的話用它最省事。
+- **Safari** keeps its cookies in a system-protected location. Turn **Foldwall** on under Privacy & Security → Full Disk Access. The app that needs permission is Foldwall, not yt-dlp: a child process is judged by the app that launched it.
+- **Chrome, Brave, Edge, and the like** encrypt their cookies. The first read raises a Keychain prompt; choose “Always Allow”.
+- **Firefox** needs neither. It is the least setup if you would rather not grant a permission.
 
-Foldwall 自己不讀、不存、也不傳送任何 cookie——只是把「去哪個瀏覽器拿」交給 yt-dlp，讀取跟使用都在它的行程裡，全程在這台電腦上；設定裡存下來的只有瀏覽器的名字。要留意的是拿已登入的帳號大量抓片，該站有可能把那個帳號判成自動化行為，在意的話用備用帳號。
+Foldwall itself never reads, stores, or transmits a cookie. It only tells yt-dlp which browser to use. Reading and using the cookies both happen inside that process, entirely on this Mac. The only thing saved in settings is the browser’s name. Downloading heavily with a signed-in account can lead a site to treat that account as automated. Use a spare account if that matters to you.
 
-## 狀態規則
+## State rules
 
-「設定 → 狀態規則」讓桌布跟著系統狀態變：靠電池時別打網路、工作模式時暫停影片，諸如此類。
+Settings → Rules lets the wallpaper follow system state: skip the network while on battery, pause video in a work Focus, and similar cases.
 
-![狀態規則](docs/images/rules.png)
+![State rules](docs/images/rules.png)
 
-一條規則是「條件 → 效果」。條件有兩種：**靠電池時**（沒接電源）、**專注模式啟用時**（任何一種，或指定某一個）。效果可以複選：
+A rule is “condition → effect”. There are two conditions: **On battery** (not connected to power), and **while a Focus is on** (any Focus, or one you name). Effects can be combined:
 
-| 效果 | 做什麼 |
+| Effect | What it does |
 | --- | --- |
-| 暫停影片桌布 | 影片螢幕改回蒙太奇，也不再輪替影片 |
-| 停用網路來源 | 不打 API、不下載。已經快取的圖照用 |
-| 停用資料夾來源 | SMB／雲端硬碟在電池上很耗 |
-| 停用照片相簿 | 相簿的圖這一輪不進池 |
-| 完全暫停輪換 | 保留現在這張，什麼都不換 |
+| Pause video wallpaper | Video displays return to the montage, and videos stop rotating |
+| Disable web sources | No API calls and no downloads. Images already cached are still used |
+| Disable folder sources | SMB shares and cloud drives are expensive on battery |
+| Disable photo albums | Album images stay out of the pool for this round |
+| Pause rotation entirely | Keep the current image and change nothing |
 
-規則是扁平的清單，**多條同時成立就把效果聯集起來**——任一條說要停就停。刻意不做優先序或互斥，那需要一整套衝突解決 UI，而聯集的語意既夠用又好預測。
+Rules are a flat list. **When several match at once, their effects are unioned** — if any matching rule says to stop, it stops. Priority ordering and mutual exclusion are deliberately left out. Either would need a conflict-resolution UI, and the meaning of a union is enough and predictable.
 
-專注模式那組有個前提：macOS 沒有公開 API 查得到「現在是哪個專注模式」，Foldwall 讀的是 `~/Library/DoNotDisturb/DB/`。格式若隨系統更新改變，專注模式的規則會**靜默失效**，其他功能不受影響。
+The Focus conditions have a premise: macOS has no public API for “which Focus is active right now”. Foldwall reads `~/Library/DoNotDisturb/DB/`. If that format changes with a system update, Focus rules **fail silently**. Everything else keeps working.
 
-## 快取與螢幕保護程式
+## Cache and the screen saver
 
-抓下來的圖與影片分成兩份，都在「設定 → 快取位置」看得到、清得掉。
+Downloaded images and videos are kept in two places. Both are listed under Settings → Cache, and both can be cleared there.
 
-![快取位置](docs/images/cache.png)
+![Cache](docs/images/cache.png)
 
-| | 路徑 | 裝什麼 |
+| | Path | What is stored |
 | --- | --- | --- |
-| **照片** | `~/Pictures/Foldwall` | 網路來源下載的原圖、照片相簿匯出，以及合成前從網路磁碟拷回來的副本 |
-| **影片** | `~/Library/Caches/Foldwall/remoteVideos` | 網路來源抓的影片、片單下載的影片，以及這一輪已拷進 extension 的那幾支。2 GB 上限，超過從最舊的開始汰 |
+| **Photos** | `~/Pictures/Foldwall` | Originals downloaded from web sources, exports from photo albums, and copies pulled from a network volume before compositing |
+| **Videos** | `~/Library/Caches/Foldwall/remoteVideos` | Videos fetched from web sources, videos downloaded from playlists, and the files copied into the extension for the current round. Capped at 2 GB; past that, the oldest are evicted first |
 
-實際的檔案都躺在 `~/Library/Caches` 底下——照片那一列是彙整入口，下面會說。所以兩份都是**磁碟空間不足時 macOS 會自己刪**的。刪掉 Foldwall 會重新下載，只是螢保那邊會暫時沒圖可播。目前掛在桌面上的那張桌布放在 Application Support，不會被清掉。
+The files themselves live under `~/Library/Caches`. The Photos row is an aggregate entry over those files, described below, so both places are locations **macOS may delete on its own when disk space is low**. Foldwall downloads them again afterward. Until then the screen saver has nothing to play. The wallpaper currently on the desktop lives in Application Support and is left in place.
 
-系統自己也會留東西：每換一次蒙太奇，macOS 的圖片桌布會替那張圖存一份整螢幕大小的 BMP（5120×1440 一張約 22 MB），系統不一定會回收。這些在系統的 container 裡，macOS 不讓 app 讀、也不跳授權框，所以要到「隱私權與安全性 → 完全取用磁碟」打開 **Foldwall**（開完重新打開 Foldwall），它才會每輪把舊的清掉，每塊螢幕留最近兩代。沒開的話「設定 → 快取位置」與選單列會提示。
+The system keeps files of its own. Every time the montage changes, the macOS picture wallpaper stores a full-screen BMP of that image (about 22 MB at 5120×1440), and the system does not reliably reclaim them. Those files sit in a system container. macOS does not let an app read them, and it shows no permission prompt, so Foldwall has to be turned on under Privacy & Security → Full Disk Access (then relaunch Foldwall). After that, each round clears the old files and keeps the last two generations per display. Until it is granted, Settings → Cache and the menu bar say so.
 
-想讓**系統的螢幕保護程式**播 Foldwall 抓下來的圖：系統設定 → 螢幕保護程式 → 選「照片」類的樣式 → 選項 → 來源，指到 `~/Pictures/Foldwall`。那是一個彙整資料夾，用**硬連結**把散在幾個快取目錄裡的圖收在一起——不佔額外空間，快取更新時自動同步。Foldwall 沒辦法把自己註冊進那個選單，所以要手動指一次。
+To have the **system screen saver** play images Foldwall has fetched: System Settings → Screen Saver → pick a Photos-style saver → Options → Source, and point it at `~/Pictures/Foldwall`. That folder is an aggregate. It gathers images scattered across several cache directories with **hard links** — no extra disk space, and it stays in sync as the caches update. Foldwall cannot register itself in that menu, so the folder has to be chosen once by hand.
 
-## 備份設定
+## Backing up settings
 
-「設定 → 備份」可以把設定寫到 iCloud Drive。也可以開自動同步（預設關）。
+Settings → Backup can write settings to iCloud Drive. Automatic sync can be turned on; it is off by default.
 
-![備份](docs/images/backup.png)
+![Backup](docs/images/backup.png)
 
-設定分成**兩層**，因為多台 Mac 上「來源」與「桌布怎麼播」該不該一致，答案不一樣：
+Settings are split into **two layers**, because “should the sources match?” and “should playback match?” have different answers across Macs:
 
-| 層 | 檔案 | 誰讀 | 裝什麼 |
+| Layer | File | Who reads it | What it holds |
 | --- | --- | --- | --- |
-| **來源目錄** | `Foldwall/sources.json` | 每台共讀共寫 | 資料夾路徑、網路來源的關鍵字、片單網址 |
-| **裝置設定** | `Foldwall/devices/<機器名>.json` | 只有同一台會自動讀回 | 這台開哪些來源，以及桌布怎麼播 |
+| **Source catalog** | `Foldwall/sources.json` | Every Mac reads and writes it | Folder paths, web-source keywords, playlist URLs |
+| **Device settings** | `Foldwall/devices/<machine name>.json` | Only the same Mac reads it back automatically | Which sources this Mac has enabled, and how the wallpaper plays |
 
-分界線是**「有什麼」與「用什麼」**。在筆電加的資料夾，桌機也會出現；在筆電**關掉**的 Pexels，桌機照樣開著。目錄裡新出現的來源在每台都是預設開著的——跟你自己按「新增」當下的直覺一致。
+The split is **what exists** versus **what is used**. A folder added on the laptop also appears on the desktop. Pexels turned off on the laptop stays on for the desktop. A source that newly appears in the catalog arrives enabled on every Mac — the same result as pressing Add yourself.
 
-依設備的有：每個來源的開關、資料夾用途、選中的相簿、切換間隔、後製、張數上限、狀態規則、影片引擎、圖層／播放／縮放／畫質、登入時啟動，還有「此螢幕改用影片」的勾。
+Kept per device: each source’s on/off switch, folder role, selected albums, change interval, effect, max images, state rules, video engine, layer / playback / scaling / quality, Launch at Login, and the “Use Video on This Display” checks.
 
-**換掉一台 Mac 時**，到「設定 → 備份 → 各台的桌布設定」把舊機那份匯入。從別台匯入會跳過「此螢幕改用影片」與「借瀏覽器 cookie」：前者存的是顯示器 UUID、每台都不同，後者的授權在新機器上本來就要重來。
+**When you replace a Mac**, import the old machine’s file under Settings → Backup → Wallpaper settings per Mac. Importing from another Mac skips “Use Video on This Display” and borrowing browser cookies. The first stores display UUIDs, which differ on every machine. The second needs its permissions granted again on the new Mac anyway.
 
-備份**不含 API key**——那份是明文 JSON，躺在 iCloud Drive 裡會被 Spotlight 索引。換機器時到「來源 → 網路」重輸一次。
+The backup **does not include API keys**. The file is plaintext JSON, and on iCloud Drive it would be indexed by Spotlight. Enter keys again under Sources → Web when you change machines.
 
-資料夾存的是**路徑**不是書籤（書籤綁機器），另一台沒掛那顆磁碟的路徑會被跳過——但**不會**從共用目錄裡消失，碟掛回來就恢復。照片相簿連名稱一起存，因為相簿的內部 id 每台機器都不同。
+Folders are stored as **paths**, not bookmarks (a bookmark is bound to one machine). A path whose disk is not mounted on the other Mac is skipped — and it **stays** in the shared catalog, returning when the disk is mounted again. Photo albums are stored with their names, because an album’s internal id differs on every machine.
 
-> **從 0.6.x 升上來**：舊的 `settings.json` 會在第一次同步時自動拆成上面兩份，原檔留著不動。**所有機器都要更新到 0.7.0** ——沒更新的那台還在讀寫 `settings.json`，兩邊看不到彼此的改動。
+> **Upgrading from 0.6.x**: the old `settings.json` is split into the two files above on the first sync, and the original file is left in place. **Every machine has to be updated to 0.7.0.** A machine that has not been updated is still reading and writing `settings.json`, and the two sides do not see each other’s changes.
 
-## 介面語言
+## Interface language
 
-介面內建繁體中文、简体中文與英文：跟隨系統，或在「設定 → 語言」直接指定。其他語言不由我這邊維護——沒有人能校對——而是交給**你本機已登入的 AI CLI** 翻一份。
+The interface includes Traditional Chinese, Simplified Chinese, and English: follow the system, or pick one directly under Settings → Language. Other languages are not maintained here — there is no one to proofread them — and are handed to **an AI CLI already signed in on this Mac**.
 
-![語言](docs/images/language.png)
+![Language](docs/images/language.png)
 
-翻譯來源是內建的**英文**（模型英譯外語的品質普遍比中譯外語好，繁中原文一起附上當第二參考），約 400 條字串，分批送出，**批量依引擎的速度與回覆完整度自動調整**（快的引擎一批上百條，慢的十來條），同時跑四批，通常幾分鐘跑完。
+The translation source is the built-in **English** (models generally translate into another language better from English than from Chinese; the Traditional Chinese original is attached as a second reference). About 400 strings are sent in batches. **Batch size adjusts automatically to the engine’s speed and how complete its replies are** (a fast engine gets a hundred or so per batch, a slow one a dozen or so). Four batches run at once, and a run usually finishes in a few minutes.
 
-| 項 | 說明 |
+| Item | Notes |
 | --- | --- |
-| **支援的 CLI** | Claude Code、Codex CLI、Antigravity、Grok Build、OpenCode、Pi、Cursor CLI、Hermes 是實測過的；另外還認得 GitHub Copilot CLI、Goose、Amp、Factory Droid、Qwen Code、Kimi Code 等十幾家，標「實驗性」。掃描順序是自訂路徑 → `PATH` → 常見安裝位置；沒偵測到的可以在「找不到你的 CLI？」填執行檔完整路徑。 |
-| **只列出能用的** | 清單裡只有**已安裝、而且真的跑得起來**的 CLI（`--version` 五秒內結束）；半裝好的（npm 裝了但 runtime 不在）另外用一行交代，不混進來。查得到登入狀態的引擎沒登入時會標出來，連同該去終端機跑的登入指令，也不會被拿去翻譯——省得白等一次逾時。 |
-| **不用選模型** | 一律用該 CLI **自己的預設模型**。模型名稱的壽命比 app 的發版週期短得多，讓你在設定頁填一個會過期的字串，只會製造「昨天還好的引擎今天壞了」；想換模型就在那個 CLI 自己的設定裡換。 |
-| **不經手 API key** | Foldwall 呼叫的是你自己登入的 CLI，計費在你自己的訂閱上。這個 app 裡沒有任何金鑰欄位。 |
-| **四個選項＋自翻的** | 「介面語言」可以選跟隨系統、繁體中文、简体中文、English，以及任何你自己翻好的語言。 |
-| **要重新啟動** | 選好語言之後要重開 Foldwall 才會換。已經畫出來的介面不會因為換了字串表就重繪，與其做半套熱切換不如講清楚。 |
-| **檔只在這台** | 翻好的字串存在 `~/Library/Application Support/Foldwall/UITranslations/`，**不進 iCloud 備份**。選回內建語言不會刪檔，隨時切得回去。 |
-| **翻不好的退回英文** | 機器翻譯沒有人校對。格式符號（`%@`、`%lld`）數量或型別對不上的字串會被丟掉、顯示英文，不會變成亂碼或 key 本身。 |
-| **升版之後** | 新版多出來的字串會顯示「補翻 N 條新字串」，只送缺的那幾條，已翻的不重跑。 |
+| **CLIs that work** | Claude Code, Codex CLI, Antigravity, Grok Build, OpenCode, Pi, Cursor CLI, and Hermes have been tested. GitHub Copilot CLI, Goose, Amp, Factory Droid, Qwen Code, Kimi Code, and a dozen others are also recognized and marked “Experimental”. The scan order is a custom path, then `PATH`, then common install locations. One that is not detected can be added under “Can’t find your CLI?” with the executable’s full path. |
+| **Only ones that actually run** | The list contains CLIs that are **installed and really start** (`--version` exits within five seconds). A half-install (the npm package is present, the runtime is not) is mentioned on its own line and kept out of the list. An engine whose sign-in status can be checked is marked when it is signed out, together with the login command to run in Terminal, and is not used for translation — so a run does not sit until it times out. |
+| **No model picker** | The CLI’s **own default model** is always used. Model names have a much shorter life than this app’s release cycle. A string you type in Settings that later expires only produces “the engine that worked yesterday is broken today”. Change the model in that CLI’s own settings. |
+| **No API keys pass through** | Foldwall calls the CLI you signed in yourself. Billing stays on your subscription. This app has no key field. |
+| **Four choices, plus your own** | Interface language can be Follow System, Traditional Chinese, Simplified Chinese, English, or any language you have translated yourself. |
+| **Relaunch required** | Foldwall has to be relaunched after the language is chosen. An interface that is already drawn does not redraw just because the string table changed. Stating that is better than a half-finished hot swap. |
+| **The file stays on this Mac** | Translated strings are stored in `~/Library/Application Support/Foldwall/UITranslations/` and **are not part of the iCloud backup**. Switching back to a built-in language does not delete the file, and you can switch back to it at any time. |
+| **A bad translation falls back to English** | Machine translation has no proofreader. A string whose format specifiers (`%@`, `%lld`) do not match in count or type is dropped and shown in English. It does not become garbage, and it does not show the key itself. |
+| **After an upgrade** | Strings added in a new version show “Translate N New Strings”. Only the missing ones are sent. Strings already translated are not run again. |
 
-每翻完一批就寫一次檔，所以中途按取消或斷在一半，已經翻好的都留著。模型漏回的字串會退回佇列再送一次，整批失敗會把批量砍半重送，而不是直接放棄。
+Each finished batch is written immediately, so cancelling midway, or a run that drops halfway, keeps everything already translated. A string the model omitted returns to the queue and is sent again. A whole batch that fails is resent at half the size, rather than abandoned.
 
-## 會撞到的限制
+## Limitations you will hit
 
-| 項 | 說明 |
+| Item | Notes |
 | --- | --- |
-| **TCC 授權** | 首次存取桌面／文件／下載、網路磁碟區、`~/Library/CloudStorage/*` 會跳系統授權框。重灌會重跳。嫌煩可自行給 Full Disk Access。 |
-| **多 Space** | 靜態桌布只寫每螢**當前 Space**，其他 Space 停留舊圖。影片桌布沒有這個問題。 |
-| **來源要先掛載** | 沒有雲端硬碟的 OAuth 登入，這類來源必須是 Finder 已掛載的路徑。斷線就標離線、換下一張，**不會黑屏**。 |
-| **第一次掃大型來源要等** | 資料夾索引在背景跑，不擋出圖——網路與相簿來源幾秒就有第一張。索引會存到磁碟，**之後開啟不必重掃**，池從第一秒就是滿的。 |
-| **網路來源有速率上限** | 免費 API 額度有限（例如 Unsplash 每小時 50 次）。Foldwall 會快取抓下來的圖當池用，不會每 5 分鐘打一次 API。 |
-| **專注模式規則可能失效** | macOS 沒有可靠的方式查得到「目前是哪個專注模式」。查不到就當沒開、規則靜默失效，桌布不受影響。 |
-| **影片快取會自動汰舊** | 網路來源與片單抓下來的影片共用一份 2 GB 上限，超過從最舊的開始刪。 |
-| **Gatekeeper** | 0.6.0 起的 DMG 已經 Apple 公證，直接打開安裝即可。更舊的版本要先 `xattr -dr com.apple.quarantine /Applications/Foldwall.app`。 |
+| **TCC permission** | The first access to Desktop, Documents, or Downloads, to a network volume, or to `~/Library/CloudStorage/*` raises a system permission prompt. Reinstalling raises them again. Full Disk Access can be granted by hand if the prompts are a nuisance. |
+| **Multiple Spaces** | A still wallpaper is written only to the **current Space** of each display. Other Spaces keep the previous image. Video wallpaper does not have this limit. |
+| **Sources have to be mounted first** | There is no OAuth sign-in for cloud drives. A source of that kind has to be a path Finder has already mounted. A dropped connection is marked offline and the next image is used. **The screen does not go black.** |
+| **The first scan of a large source takes a while** | Folder indexing runs in the background and does not block the first image — web and album sources produce one within seconds. The index is saved to disk, so **later launches do not rescan**, and the pool is full from the first second. |
+| **Web sources are rate-limited** | Free API quotas are limited (Unsplash, for example, allows 50 requests per hour). Foldwall uses the images it has already cached as the pool, and does not call the API every 5 minutes. |
+| **Focus rules may stop working** | macOS has no reliable way to ask which Focus is currently active. When it cannot be read, Focus is treated as off, the rules fail silently, and the wallpaper is unaffected. |
+| **The video cache is evicted on its own** | Videos fetched from web sources and from playlists share one 2 GB cap. Past that, the oldest are deleted first. |
+| **Gatekeeper** | DMGs from 0.6.0 onward are notarized by Apple, so they can be opened and installed directly. Older builds need `xattr -dr com.apple.quarantine /Applications/Foldwall.app` first. |
 
-鎖屏：macOS 14 起鎖屏預設顯示桌布，所以靜態蒙太奇會**免費出現在鎖屏**。
+Lock screen: since macOS 14 the lock screen shows the wallpaper by default, so the still montage **appears on the lock screen with no extra setup**.
 
-## 刻意不做的
+## Left out on purpose
 
-- **YouTube 內建支援**。三條路全不通：Data API 是 Google API；官方 IFrame 嵌入要求播放器可見、不被遮蔽、顯示廣告，桌布定義上就違反；抽 `googlevideo` 串流網址是規避技術保護措施。**串流不比下載寬鬆。** 你要對哪個站用自己的 yt-dlp 是你的決定，那條界線在你手上，不在這個 app 裡。
-- **OAuth 來源**（SmugMug、Flickr 私人相簿）。Flickr 只支援公開搜尋。
-- **App Sandbox 與 Mac App Store**。
+- **No built-in YouTube support.** All three routes are closed. The Data API is a Google API. The official IFrame embed requires a player that is visible, unobscured, and showing ads, which a wallpaper violates by definition. Extracting `googlevideo` stream URLs is circumvention of a technical protection measure. **Streaming is held to the same line as downloading.** Pointing your own yt-dlp at a site is your decision. That line stays in your hands, outside this app.
+- **No OAuth sources** (SmugMug, private Flickr albums). Flickr is supported as public search only.
+- **No App Sandbox, and no Mac App Store.**
 
-## 授權
+## License
 
-MIT，見 [LICENSE](LICENSE)。
+MIT. See [LICENSE](LICENSE).
 
-影片桌布 extension（`FoldwallExtension/`）fork 自 [Phosphene](https://github.com/kageroumado/phosphene)（MIT，作者 kageroumado），授權原文保留在 [ThirdParty/Phosphene-LICENSE](ThirdParty/Phosphene-LICENSE)。
+The video wallpaper extension (`FoldwallExtension/`) is forked from [Phosphene](https://github.com/kageroumado/phosphene) (MIT, by kageroumado). The original license text is kept at [ThirdParty/Phosphene-LICENSE](ThirdParty/Phosphene-LICENSE).
