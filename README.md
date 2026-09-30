@@ -2,6 +2,8 @@
 
 A macOS menu-bar app that mixes your folders, photo albums, and web sources into a **random montage** wallpaper. Each display is composed on its own and changes on a timer. Chosen displays can play video instead.
 
+**Random montage · per-display composition · optional video wallpaper**
+
 Requires macOS 26 or later, on Apple Silicon. The interface includes Traditional Chinese, Simplified Chinese, and English, following the system language or a language you set. Any other language can be translated on this Mac from Settings → Language, using an AI CLI you are already signed in to (Claude Code, Codex, and others). The translated file stays on this Mac.
 
 ## Install
