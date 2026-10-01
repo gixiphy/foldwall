@@ -91,6 +91,21 @@ A video’s aspect ratio rarely matches the screen. Choose the mode under Video 
 
 A change takes effect immediately. The video that is already playing is not restarted.
 
+### Ambient glow
+
+For scaling modes that leave bars, turn on Video → Ambient Glow. It extends the colors at the video’s edges outward into the bars, fading and blurring them, and shifts gently as the video plays (inspired by [x-ambient](https://github.com/mmnga/x-ambient)). **Off by default.** Desktop window engine only; works with both the AVPlayer and mpv cores.
+
+| Control | Default | What it does |
+| --- | --- | --- |
+| Intensity | 60% | Brightness of the glow relative to the video |
+| Softness | Medium | Blur radius |
+| Spread | Medium | How far the glow travels from the video’s edge before fading out |
+| Follow video colors | On | When off, each video takes its colors once and keeps them. The system’s Reduce Motion setting does the same |
+
+- It only runs when there really are bars: nothing happens when the applied scaling is Fill Screen or the video matches the screen’s aspect ratio. Fill Height, Fill Width and Random follow whatever each video actually resolves to.
+- The video keeps its own frame rate; the glow updates at most 12 times per second, computed on a 64-pixel image. It stops updating while paused or fully covered by a full-screen window, and skips frames that barely change. Measured worst case (1080p, colors changing constantly): about 3% of one CPU core, no extra memory.
+- Changes apply immediately and playback continues. The settings are part of the device settings, so they are backed up and synced.
+
 ### When one ends
 
 **The default is to move on to the next video.** Choose the mode under Video → Playback → When one ends (Video Playback in the menu bar is the same control):

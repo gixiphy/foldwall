@@ -441,6 +441,28 @@
         }
       }
     },
+    "中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Medium"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中"
+          }
+        }
+      }
+    },
     "以螢幕**寬度**為準等比縮放：影片的左右剛好貼齊螢幕，上下超出的裁掉、不夠高的留上下黑邊。長寬比不變。": {
       "localizations": {
         "en": {
@@ -481,6 +503,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "以螢幕**高度**為準等比縮放：影片的上下剛好貼齊螢幕，左右超出的裁掉、不夠寬的留左右黑邊。長寬比不變。"
+          }
+        }
+      }
+    },
+    "低": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "低"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "低"
           }
         }
       }
@@ -2109,6 +2153,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "雲端硬碟（已下載到本機）"
+          }
+        }
+      }
+    },
+    "高": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "High"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "高"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "高"
           }
         }
       }

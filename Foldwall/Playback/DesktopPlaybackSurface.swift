@@ -68,6 +68,9 @@ protocol DesktopPlaybackSurface: AnyObject {
     /// 單片循環中還能不能不拆重建就換片。AVPlayerLooper 那條路不行（見 DesktopVideoEngine）。
     var canSwitchWhileLooping: Bool { get }
 
+    /// 環境光設定。即時套用，不重建、不重播。
+    func setAmbientGlow(_ settings: AmbientGlowSettings)
+
     /// 診斷報告裡這台的補充行（解碼器、掉幀計數之類）。取不到就少寫，不要編。
     func diagnosticLines() -> [String]
 
@@ -95,5 +98,13 @@ protocol DesktopPlaybackSurfaceDelegate: AnyObject {
 
 /// 點擊穿透：桌布不該吃掉使用者的滑鼠事件。
 final class PassThroughView: NSView {
+    /// 尺寸變了（換解析度、搬到別台螢幕）。環境光要跟著重算影片佔哪一塊。
+    var onResize: ((NSSize) -> Void)?
+
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        onResize?(newSize)
+    }
 }

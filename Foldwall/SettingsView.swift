@@ -372,6 +372,8 @@ private struct VideoSettings: View {
                     enableBox
                     statusBox
                     playbackBox
+                    AmbientGlowSettingsBox(settings: settings, onChange: coordinator.ambientGlowDidChange)
+                        .disabled(!settings.videoWallpaperEnabled)
                     RepeatLimitSettings(settings: settings, onChange: coordinator.displayRepeatPolicyDidChange)
                     Divider()
                     howToStart
@@ -2920,5 +2922,80 @@ private extension RepeatWindowUnit {
         case .week: "週"
         case .month: "個月"
         }
+    }
+}
+
+/// 影片環境光：把影片邊緣的顏色延伸到黑邊。調整即時套用，影片繼續播。
+private struct AmbientGlowSettingsBox: View {
+    @Bindable var settings: AppSettings
+    var onChange: () -> Void
+
+    private var glow: AmbientGlowSettings { settings.ambientGlow }
+    private var supported: Bool { settings.videoEngine == .desktopWindow }
+
+    var body: some View {
+        GroupBox("環境光") {
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle("啟用環境光", isOn: $settings.ambientGlow.isEnabled)
+                    .toggleStyle(.switch)
+                    .disabled(!supported)
+
+                Group {
+                    HStack(spacing: 10) {
+                        Text("強度")
+                        Slider(value: $settings.ambientGlow.intensity,
+                               in: AmbientGlowSettings.intensityRange)
+                        Text(glow.intensity, format: .percent.precision(.fractionLength(0)))
+                            .monospacedDigit()
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                    levelRow("柔和程度", selection: $settings.ambientGlow.softness)
+                    levelRow("擴散範圍", selection: $settings.ambientGlow.spread)
+                    Toggle("跟隨影片色彩", isOn: $settings.ambientGlow.followsVideo)
+                    HStack {
+                        Spacer()
+                        Button("重設") { settings.ambientGlow = glow.resetToDefaults() }
+                            .disabled(glow.resetToDefaults() == glow)
+                    }
+                }
+                .disabled(!supported || !glow.isEnabled)
+
+                Text(note)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(4)
+        }
+        .onChange(of: settings.ambientGlow) { _, _ in onChange() }
+    }
+
+    private func levelRow(_ label: LocalizedStringKey,
+                          selection: Binding<AmbientGlowLevel>) -> some View {
+        HStack(spacing: 10) {
+            Text(label)
+            Spacer(minLength: 8)
+            Picker("", selection: selection) {
+                ForEach(AmbientGlowLevel.allCases, id: \.self) { level in
+                    Text(level.displayName).tag(level)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+        }
+    }
+
+    private var note: String {
+        if !supported {
+            return String(localized: "環境光只在「桌面視窗」引擎提供；系統桌布 extension 不支援。")
+        }
+        if glow.isEnabled, settings.videoScaleMode == .fill {
+            return String(localized: "目前縮放是「填滿螢幕」，影片沒有留白，環境光不會出現。改用「符合螢幕大小」等會留白的縮放才看得到。")
+        }
+        return String(localized: """
+            把影片邊緣的顏色延伸到留白處，隨播放柔和變化（每秒最多更新 12 次）。\
+            只在影片有留白時運算；關掉「跟隨影片色彩」或開啟系統的「減少動態效果」時，每支影片固定一種配色。
+            """)
     }
 }

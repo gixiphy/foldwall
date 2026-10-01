@@ -36,7 +36,14 @@ final class AVPlayerSurface: DesktopPlaybackSurface {
     var view: NSView { container }
 
     private let container: PassThroughView
+    /// 放 playerLayer 的那層，疊在環境光上面。不設底色：「符合螢幕大小」留下的
+    /// 黑邊是透明的，底下的環境光（沒開就是 container 的黑底）才露得出來。
+    private let videoView: PassThroughView
     private let playerLayer = AVPlayerLayer()
+    private let glow: AmbientGlowController
+    /// 環境光取幀用。**一個 output 只能掛在一個 item 上**，所以每個 item 各一個；
+    /// 掛在哪個 item 用 ObjectIdentifier 記，拆的時候才找得到。
+    private var videoOutputs: [ObjectIdentifier: (item: AVPlayerItem, output: AVPlayerItemVideoOutput)] = [:]
     private let player = AVQueuePlayer()
     /// 單片循環才有，而且必須被持有，否則迴圈會停。
     private var looper: AVPlayerLooper?
@@ -59,12 +66,24 @@ final class AVPlayerSurface: DesktopPlaybackSurface {
         container = PassThroughView(frame: frame)
         container.wantsLayer = true
         container.layer?.backgroundColor = NSColor.black.cgColor
-        playerLayer.frame = container.bounds
+        glow = AmbientGlowController(frame: container.bounds)
+        container.addSubview(glow.view)
+        videoView = PassThroughView(frame: container.bounds)
+        videoView.autoresizingMask = [.width, .height]
+        videoView.wantsLayer = true
+        playerLayer.frame = videoView.bounds
         playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-        container.layer?.addSublayer(playerLayer)
+        videoView.layer?.addSublayer(playerLayer)
+        container.addSubview(videoView)
         player.isMuted = true            // 桌布不該出聲
         player.automaticallyWaitsToMinimizeStalling = true
         playerLayer.player = player
+
+        glow.sampler = { [weak self] in self?.sampleFrame() }
+        glow.onActiveChanged = { [weak self] active in
+            if !active { self?.detachVideoOutputs() }
+        }
+        container.onResize = { [weak self] _ in self?.glow.boundsDidChange() }
     }
 
     var canSwitchWhileLooping: Bool { false }
@@ -87,6 +106,8 @@ final class AVPlayerSurface: DesktopPlaybackSurface {
         player.pause()
         player.removeAllItems()
         preloaded = nil
+        detachVideoOutputs()
+        glow.videoDidChange()
 
         let item = makeItem(url, location: location)
         current = item
@@ -158,6 +179,8 @@ final class AVPlayerSurface: DesktopPlaybackSurface {
         attachObservers(item: next.item, generation: generation)
         // 佇列又空了：在排進新的一支之前，播完要停在最後一格而不是變黑。
         player.actionAtItemEnd = .pause
+        pruneVideoOutputs()
+        glow.videoDidChange()
     }
 
     func replay() {
@@ -176,11 +199,23 @@ final class AVPlayerSurface: DesktopPlaybackSurface {
     /// 清乾淨沒有保證，在同一個 player 上接著建第二個 looper 是在賭。整批重建。
     func setLoop(_ loop: Bool) -> Bool { false }
 
-    func play() { player.play() }
-    func pause() { player.pause() }
+    func play() {
+        player.play()
+        glow.setPlaying(true)
+    }
+
+    func pause() {
+        player.pause()
+        glow.setPlaying(false)
+    }
 
     func setScale(_ applied: VideoScaleMode) {
         playerLayer.videoGravity = applied.videoGravity
+        glow.setScale(applied)
+    }
+
+    func setAmbientGlow(_ settings: AmbientGlowSettings) {
+        glow.update(settings: settings)
     }
 
     var currentSeconds: Double? {
@@ -204,6 +239,7 @@ final class AVPlayerSurface: DesktopPlaybackSurface {
         if let reason = player.reasonForWaitingToPlay?.rawValue {
             lines.append("- " + String(localized: "等待原因：\(reason)"))
         }
+        lines.append(glow.diagnosticLine())
         return lines
     }
 
@@ -213,11 +249,67 @@ final class AVPlayerSurface: DesktopPlaybackSurface {
         looper?.disableLooping()
         looper = nil
         player.pause()
+        glow.teardown()
+        detachVideoOutputs()
         player.removeAllItems()
         playerLayer.player = nil
         current = nil
         preloaded = nil
         delegate = nil
+    }
+
+    // MARK: - 環境光取幀
+
+    /// 正在顯示的那個 item 的最新一格，縮成小圖。output 第一次用到才掛：
+    /// 單片循環的 item 是 AVPlayerLooper 複製出來的，預載的那支換上來之前也用不到，
+    /// 等它真的變成 currentItem 再掛最省事，也不會漏掉任何一種接法。
+    private func sampleFrame() -> AmbientFrame? {
+        guard let item = player.currentItem else { return nil }
+        let output = videoOutput(for: item)
+        let time = output.itemTime(forHostTime: CACurrentMediaTime())
+        guard output.hasNewPixelBuffer(forItemTime: time),
+              let buffer = output.copyPixelBuffer(forItemTime: time, itemTimeForDisplay: nil) else {
+            return nil
+        }
+        CVPixelBufferLockBaseAddress(buffer, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(buffer, .readOnly) }
+        guard CVPixelBufferGetPixelFormatType(buffer) == kCVPixelFormatType_32BGRA,
+              let base = CVPixelBufferGetBaseAddress(buffer) else { return nil }
+        return AmbientFrame(pixels: base, width: CVPixelBufferGetWidth(buffer),
+                            height: CVPixelBufferGetHeight(buffer),
+                            bytesPerRow: CVPixelBufferGetBytesPerRow(buffer), order: .bgra)
+    }
+
+    private func videoOutput(for item: AVPlayerItem) -> AVPlayerItemVideoOutput {
+        if let existing = videoOutputs[ObjectIdentifier(item)] { return existing.output }
+        // 請 AVFoundation 直接縮成 64×64 BGRA 交出來。比例變形沒關係，環境光只看正規化座標。
+        //
+        // 試過要解碼器原生的 4:2:0 自己取樣：省掉 copyPixelBuffer 當下的轉色縮圖，
+        // 但 output 會另外囤一池原尺寸緩衝，每台螢幕多 35 MB，總 CPU 沒有明顯比較低。
+        let output = AVPlayerItemVideoOutput(pixelBufferAttributes: [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+            kCVPixelBufferWidthKey as String: 64,
+            kCVPixelBufferHeightKey as String: 64,
+        ])
+        item.add(output)
+        // 已經不在佇列裡的順手拆掉，不要讓舊 item 被字典握著。
+        pruneVideoOutputs()
+        videoOutputs[ObjectIdentifier(item)] = (item, output)
+        return output
+    }
+
+    /// 拆掉已經不在 player 佇列裡的 item 身上的 output。
+    private func pruneVideoOutputs() {
+        let live = Set(player.items().map(ObjectIdentifier.init))
+        for (key, entry) in videoOutputs where !live.contains(key) {
+            entry.item.remove(entry.output)
+            videoOutputs.removeValue(forKey: key)
+        }
+    }
+
+    private func detachVideoOutputs() {
+        for entry in videoOutputs.values { entry.item.remove(entry.output) }
+        videoOutputs.removeAll()
     }
 
     // MARK: - 觀察
@@ -237,11 +329,17 @@ final class AVPlayerSurface: DesktopPlaybackSurface {
         // `presentationSize` 是**已經套過旋轉**的顯示尺寸（直拍手機影片的 naturalSize
         // 是橫的，自己讀那個會把長寬比弄反），而且 player 本來就要算它——
         // 比為了一個長寬比再開一次 asset 讀檔頭便宜得多。第一格解出來之前是 .zero。
-        aspectObserver = item.observe(\.presentationSize, options: [.initial, .new]) { [weak self] _, change in
-            guard let size = change.newValue, size.width > 0, size.height > 0 else { return }
+        //
+        // **看 player 正在播的那個 item，不是傳進來的這個**：單片循環時 AVPlayerLooper
+        // 播的是它從樣板複製出來的 item，樣板本身從不進佇列，它的 presentationSize
+        // 永遠是 .zero——掛在樣板上的話，單片循環永遠不知道影片長寬比。
+        aspectObserver = player.observe(\.currentItem?.presentationSize,
+                                        options: [.initial, .new]) { [weak self] _, change in
+            guard let size = change.newValue ?? nil, size.width > 0, size.height > 0 else { return }
             let aspect = Double(size.width / size.height)
             Task { @MainActor [weak self] in
                 guard let self, self.generation == generation else { return }
+                glow.setVideoAspect(aspect)
                 delegate?.surface(uuid, didLearnAspect: aspect)
             }
         }

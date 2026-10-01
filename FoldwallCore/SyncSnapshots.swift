@@ -218,6 +218,8 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
     public var releaseFetchedVideos: Bool
     public var videoDownloadQuality: VideoDownloadQuality
     public var videoCookieSource: VideoCookieSource
+    /// 桌面視窗的影片環境光。純偏好、跟硬體無關，可以跨機搬。
+    public var ambientGlow: AmbientGlowSettings
     /// 標記「這台改用影片」的螢幕，存 display UUID。
     ///
     /// **只有同一台還原時才該套用。** 內建螢幕的 UUID 每台機器都不同，
@@ -251,6 +253,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         releaseFetchedVideos: Bool = false,
         videoDownloadQuality: VideoDownloadQuality = .default,
         videoCookieSource: VideoCookieSource = .none,
+        ambientGlow: AmbientGlowSettings = .default,
         videoScreens: [String] = [],
         launchAtLogin: Bool
     ) {
@@ -277,6 +280,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         self.releaseFetchedVideos = releaseFetchedVideos
         self.videoDownloadQuality = videoDownloadQuality
         self.videoCookieSource = videoCookieSource
+        self.ambientGlow = ambientGlow
         self.videoScreens = videoScreens
         self.launchAtLogin = launchAtLogin
     }
@@ -289,7 +293,7 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
         case intervalMinutes, effect, montagePieceCount, showCredits
         case videoWallpaperEnabled, videoEngine, desktopVideoLayer, desktopPlaybackCore
         case videoPlaybackMode, videoScaleMode, releaseFetchedVideos, videoDownloadQuality, videoCookieSource
-        case displayRepeatPolicy
+        case displayRepeatPolicy, ambientGlow
         case videoScreens, launchAtLogin
     }
 
@@ -326,6 +330,8 @@ public struct DeviceSettings: VersionedSnapshot, Equatable {
             VideoDownloadQuality.self, forKey: .videoDownloadQuality) ?? .default
         videoCookieSource = try c.decodeIfPresent(
             VideoCookieSource.self, forKey: .videoCookieSource) ?? .none
+        // 0.14.0 才有：舊檔沒有就是關著。
+        ambientGlow = try c.decodeIfPresent(AmbientGlowSettings.self, forKey: .ambientGlow) ?? .default
         videoScreens = try c.decodeIfPresent([String].self, forKey: .videoScreens) ?? []
         launchAtLogin = try c.decode(Bool.self, forKey: .launchAtLogin)
     }

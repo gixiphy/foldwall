@@ -129,6 +129,14 @@ NS_SWIFT_SENDABLE
 - (instancetype)initWithFrame:(NSRect)frame;
 @end
 
+/// 環境光用的一張縮圖：RGBA、**第一列是畫面最下面**（OpenGL 讀回來的原樣）。
+NS_SWIFT_SENDABLE
+@interface MPVFrameSample : NSObject
+@property (readonly) NSData *pixels;
+@property (readonly) int width;
+@property (readonly) int height;
+@end
+
 /// 一台螢幕的渲染執行緒：收 mpv 的 update callback、在自己的佇列上
 /// `mpv_render_context_render`、flush、report_swap。
 NS_SWIFT_SENDABLE
@@ -149,6 +157,14 @@ NS_SWIFT_SENDABLE
 
 /// 框改了之後把最後一格再畫一次，不必等 mpv 送新格。
 - (void)redraw;
+
+/// 環境光取樣開關。開著時渲染執行緒每畫一格之後，最多每秒 12 次把畫面縮成
+/// 64×64 讀回（PBO 非同步，讀的是上一次排的那份，不等 GPU）。關掉後下一格把
+/// 那些 GL 物件收掉。
+@property (atomic) BOOL samplingEnabled;
+
+/// 拿走最新的一張縮圖；上次拿過之後沒有新的就是 nil。任何執行緒都可以叫。
+- (nullable MPVFrameSample *)takeSample;
 
 /// 拿掉 callback、在渲染佇列上 free render context。同步；之後 core 才可以 destroy。
 - (void)shutdown;

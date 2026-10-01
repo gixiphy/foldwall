@@ -1,7 +1,7 @@
 import AppKit
 import FoldwallCore
 
-// engine-harness <screen uuid> <video A> <video B> [--stress | --measure <core> <seconds> [occluded] [extra=k=v,...]]
+// engine-harness <screen uuid> <video A> <video B> [--stress | --measure <core> <seconds> [occluded] [fit] [glow] [extra=k=v,...] | --glow <core>]
 //
 // 用正式 app 裡的 DesktopVideoEngine 在桌面層真的播。三種腳本：
 // - 預設（40 秒）：mpv 播、預載接上、mpv↔AVPlayer 各換一次且從同一秒接續、暫停恢復、模式切換、收乾淨。
@@ -9,7 +9,10 @@ import FoldwallCore
 //   記憶體沒有階梯成長。這是 P1 驗收清單的自動化版本（睡眠喚醒用暫停恢復代替，真的睡眠要人做）。
 // - --measure：固定片段、固定核心，暖機 10 秒後量 N 秒的 CPU／GPU／記憶體。加 occluded 會拿一個
 //   不透明視窗把整個螢幕蓋住，量「被完全遮住」時的成本。加 extra=aid=no 可以 A/B mpv 選項。
-//   每次一行 TSV，外面用 shell 迴圈跑三次取平均。
+//   每次一行 TSV，外面用 shell 迴圈跑三次取平均。加 fit 用「符合螢幕大小」，再加 glow 開環境光——
+//   fit 對 fit+glow 就是環境光本身的成本。
+// - --glow：「符合螢幕大小」＋環境光，20 秒內換片、暫停、改強度、關跟隨、關掉再開，
+//   每秒印一行環境光狀態；更新次數要在播放時增加、暫停與固定配色時不動。
 
 @MainActor
 final class Harness: NSObject, NSApplicationDelegate {
@@ -59,14 +62,17 @@ final class Harness: NSObject, NSApplicationDelegate {
         switch mode.first {
         case "--stress": runStress()
         case "--measure": runMeasure()
+        case "--glow": runGlow()
         default: runScript()
         }
     }
 
+    var scale: VideoScaleMode = .fill
+
     func apply(core: DesktopPlaybackCore, mode: VideoPlaybackMode = .repeatAll, url: URL? = nil) {
         let url = url ?? engine.playingURLs[uuid] ?? videos[0]
         engine.apply(plan: [uuid: url], layer: .belowIcons, screens: screens,
-                     mode: mode, scale: .fill, core: core)
+                     mode: mode, scale: scale, core: core)
         engine.setPaused(false)
     }
 
@@ -172,6 +178,12 @@ final class Harness: NSObject, NSApplicationDelegate {
             }
             MPVSurface.extraOptions = options
         }
+        if mode.contains("fit") { scale = .fit }
+        if mode.contains("glow") {
+            // 桌布被蓋住時環境光本來就不算；要量它的成本就得讓它照算。
+            AmbientGlowController.harnessIgnoresOcclusion = true
+            engine.ambientGlow = AmbientGlowSettings(isEnabled: true)
+        }
         apply(core: core, mode: .repeatOne)   // 單片循環：整段量測都是同一支
         if occluded, let screen = NSScreen.screens.first(where: { screenUUID($0) == uuid }) {
             let window = NSWindow(contentRect: screen.frame, styleMask: [.borderless],
@@ -202,8 +214,59 @@ final class Harness: NSObject, NSApplicationDelegate {
                 let occl = engine.diagnosticsReport().contains("視窗目前被完全遮住")
                 print(String(format: "MEASURE\tcore=%@\toccluded=%d\tseen_occluded=%d\tcpu_pct=%.1f\tgpu_pct=%.1f\trss_mb=%d\tseconds=%.0f",
                              effective, occluded ? 1 : 0, occl ? 1 : 0, cpu, gpu, residentMB(), wall))
+                if mode.contains("glow") { log(glowLine()) }
                 finish(0)
             }
+        }
+    }
+
+    // MARK: - 環境光
+
+    var glowCore: DesktopPlaybackCore = .avPlayer
+
+    func runGlow() {
+        glowCore = mode.count > 1 && mode[1] == "mpv" ? .mpv : .avPlayer
+        scale = .fit
+        // 桌布多半被視窗蓋著：照樣取樣，並把幾個時間點的光存成 PNG 供目視。
+        AmbientGlowController.harnessIgnoresOcclusion = true
+        AmbientGlowController.harnessOnRender = { [weak self] image in
+            guard let self, [4, 7, 12, 14].contains(tick) else { return }
+            let url = URL(filePath: NSTemporaryDirectory()).appending(path: "glow-t\(tick).png")
+            guard !FileManager.default.fileExists(atPath: url.path),
+                  let destination = CGImageDestinationCreateWithURL(url as CFURL, "public.png" as CFString, 1, nil)
+            else { return }
+            CGImageDestinationAddImage(destination, image, nil)
+            CGImageDestinationFinalize(destination)
+            log("SAVED \(url.path)")
+        }
+        engine.ambientGlow = AmbientGlowSettings(isEnabled: true)
+        apply(core: glowCore)
+        every(1) { [weak self] in self?.glowStep() }
+    }
+
+    func glowLine() -> String {
+        engine.diagnosticsReport().split(separator: "\n").first { $0.contains("環境光") }.map(String.init) ?? "-"
+    }
+
+    func glowStep() {
+        tick += 1
+        log("t=\(tick) playing=\(engine.playingURLs[uuid]?.lastPathComponent ?? "-") \(glowLine())")
+        var glow = engine.ambientGlow
+        switch tick {
+        case 5: log("NEXT VIDEO"); apply(core: glowCore, url: videos.first { $0 != engine.playingURLs[uuid] })
+        case 8: log("PAUSE"); engine.setPaused(true)
+        case 10: log("RESUME"); engine.setPaused(false)
+        case 12: log("INTENSITY 0.2, softness high"); glow.intensity = 0.2; glow.softness = .high; engine.ambientGlow = glow
+        case 13: log("FOLLOW OFF"); glow.followsVideo = false; engine.ambientGlow = glow
+        case 15: log("FOLLOW ON"); glow.followsVideo = true; engine.ambientGlow = glow
+        case 16: log("SCALE FILL"); scale = .fill; apply(core: glowCore)
+        case 17: log("SCALE FIT"); scale = .fit; apply(core: glowCore)
+        case 18: log("GLOW OFF"); glow.isEnabled = false; engine.ambientGlow = glow
+        case 19: log("GLOW ON"); glow.isEnabled = true; engine.ambientGlow = glow
+        case 22:
+            print(engine.diagnosticsReport())
+            finish(0)
+        default: break
         }
     }
 

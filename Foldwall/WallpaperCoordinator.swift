@@ -168,6 +168,7 @@ final class WallpaperCoordinator {
 
     func start() {
         observeSystem()
+        desktopVideo.ambientGlow = settings.ambientGlow
         // 桌面視窗播不動就冷卻那支、立刻改播別的。桌布沒人看著，
         // 少了這條就是停在黑畫面直到有人發現。
         desktopVideo.onPlaybackFailed = { [weak self] url, reason in
@@ -520,6 +521,12 @@ final class WallpaperCoordinator {
         pushExtensionPrefs()
         guard settings.videoWallpaperEnabled, !settings.videoEngine.needsDeployment else { return }
         applyDesktopVideoNow("改影片縮放")
+    }
+
+    /// 改了環境光。**直接套到正在播的那幾台**，不重建、不重播：
+    /// 使用者拖強度滑桿時畫面要立刻跟著變，影片不能因此跳回開頭。
+    func ambientGlowDidChange() {
+        desktopVideo.ambientGlow = settings.ambientGlow
     }
 
     /// 釋放開關。開了就把已經不在播的、自己抓的那些還回去；關了什麼都不做。
@@ -1490,6 +1497,7 @@ final class WallpaperCoordinator {
             releaseFetchedVideos: settings.releaseFetchedVideos,
             videoDownloadQuality: settings.videoDownloadQuality,
             videoCookieSource: settings.videoCookieSource,
+            ambientGlow: settings.ambientGlow,
             videoScreens: settings.videoScreens.sorted(),
             launchAtLogin: settings.launchAtLogin
         )
@@ -1588,6 +1596,8 @@ final class WallpaperCoordinator {
         settings.videoPlaybackMode = device.videoPlaybackMode
         settings.videoScaleMode = device.videoScaleMode
         settings.displayRepeatPolicy = device.displayRepeatPolicy
+        settings.ambientGlow = device.ambientGlow
+        ambientGlowDidChange()
         pushExtensionPrefs()
         desktopVideo.revalidatePreloads()
         settings.releaseFetchedVideos = device.releaseFetchedVideos

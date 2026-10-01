@@ -21,8 +21,12 @@ final class MPVSurface: DesktopPlaybackSurface {
     let core: DesktopPlaybackCore = .mpv
     let uuid: String
     weak var delegate: (any DesktopPlaybackSurfaceDelegate)?
-    var view: NSView { glView }
+    var view: NSView { container }
 
+    /// 底下是環境光、上面是 mpv 的 OpenGL view。GL view 不透明、黑邊是 mpv 自己畫的，
+    /// 所以環境光作用時把它縮成只佔影片那一塊（見 AmbientGlowController）。
+    private let container: PassThroughView
+    private let glow: AmbientGlowController
     private let glView: MPVOpenGLView
     private let mpv: MPVCore
     private let renderer: MPVRenderer
@@ -46,7 +50,14 @@ final class MPVSurface: DesktopPlaybackSurface {
     init(uuid: String, frame: NSRect, library: MPVLibraryHandle, loop: Bool) throws {
         self.uuid = uuid
         self.loop = loop
-        glView = MPVOpenGLView(frame: frame)
+        container = PassThroughView(frame: frame)
+        container.wantsLayer = true
+        container.layer?.backgroundColor = NSColor.black.cgColor
+        glow = AmbientGlowController(frame: container.bounds)
+        container.addSubview(glow.view)
+        glView = MPVOpenGLView(frame: container.bounds)
+        glView.autoresizingMask = [.width, .height]
+        container.addSubview(glView)
         let options = Dictionary(uniqueKeysWithValues: MPVRuntime.playbackOptions(loop: loop))
             .merging(Self.extraOptions) { _, extra in extra }
         mpv = try MPVCore(library: library, options: options)
@@ -73,6 +84,33 @@ final class MPVSurface: DesktopPlaybackSurface {
         _ = mpv.observeProperty("paused-for-cache", format: .flag)
         _ = mpv.observeProperty("eof-reached", format: .flag)
         _ = mpv.observeProperty("hwdec-current", format: .string)
+
+        // 取樣在渲染執行緒上做（縮圖＋PBO 讀回），這裡只拿走最新那張。
+        let renderer = renderer
+        glow.sampler = {
+            guard let sample = renderer.takeSample() else { return nil }
+            return sample.pixels.withUnsafeBytes { bytes in
+                guard let base = bytes.baseAddress else { return nil }
+                return AmbientFrame(pixels: base, width: Int(sample.width), height: Int(sample.height),
+                                    bytesPerRow: Int(sample.width) * 4, order: .rgba, bottomUp: true)
+            }
+        }
+        glow.onActiveChanged = { active in renderer.samplingEnabled = active }
+        glow.onVideoFrameChanged = { [weak self] frame in self?.placeVideo(in: frame) }
+        container.onResize = { [weak self] _ in self?.glow.boundsDidChange() }
+    }
+
+    /// 環境光作用時 GL view 只佔影片那一塊；不作用就鋪滿，跟以前一樣。
+    private func placeVideo(in frame: CGRect?) {
+        guard !isTornDown else { return }
+        if let frame {
+            glView.autoresizingMask = []
+            glView.frame = frame
+        } else {
+            glView.autoresizingMask = [.width, .height]
+            glView.frame = container.bounds
+        }
+        renderer.redraw()
     }
 
     var canSwitchWhileLooping: Bool { true }
@@ -100,6 +138,7 @@ final class MPVSurface: DesktopPlaybackSurface {
         preloaded = nil
         // `replace` 會把整份 playlist 換掉，之前預載的一併清掉。
         currentEntry = command(["loadfile", Self.argument(for: url), "replace"]) ?? 0
+        glow.videoDidChange()
         _ = mpv.setFlag(false, forProperty: "pause")   // keep-open 可能把它停在上一支的最後一格
     }
 
@@ -133,6 +172,7 @@ final class MPVSurface: DesktopPlaybackSurface {
         preloaded = nil
         endReported = false
         lastFailure = nil
+        glow.videoDidChange()
     }
 
     func replay() {
@@ -153,11 +193,24 @@ final class MPVSurface: DesktopPlaybackSurface {
         return true
     }
 
-    func play() { _ = mpv.setFlag(false, forProperty: "pause") }
-    func pause() { _ = mpv.setFlag(true, forProperty: "pause") }
+    func play() {
+        _ = mpv.setFlag(false, forProperty: "pause")
+        glow.setPlaying(true)
+    }
+
+    func pause() {
+        _ = mpv.setFlag(true, forProperty: "pause")
+        glow.setPlaying(false)
+    }
 
     func setScale(_ applied: VideoScaleMode) {
         _ = mpv.setString(MPVRuntime.panscan(for: applied), forProperty: "panscan")
+        glow.setScale(applied)
+    }
+
+    func setAmbientGlow(_ settings: AmbientGlowSettings) {
+        guard !isTornDown else { return }
+        glow.update(settings: settings)
     }
 
     var currentSeconds: Double? {
@@ -188,6 +241,7 @@ final class MPVSurface: DesktopPlaybackSurface {
         // 這是 render 呼叫數，**不是螢幕實際出畫數**；寫進去只為了看它有沒有在動。
         let rendered = renderer.renderedFrames
         lines.append("- " + String(localized: "render 呼叫數：\(rendered)"))
+        lines.append(glow.diagnosticLine())
         return lines
     }
 
@@ -195,6 +249,7 @@ final class MPVSurface: DesktopPlaybackSurface {
         guard !isTornDown else { return }
         isTornDown = true
         delegate = nil
+        glow.teardown()
         mpv.setEventHandler(nil)
         // render context 要先於 core 釋放（render.h）。兩個都會等，別在主執行緒做：
         // renderer.shutdown 等最後一次渲染跑完，core.destroy 等 core 收乾淨。
@@ -296,7 +351,9 @@ final class MPVSurface: DesktopPlaybackSurface {
             // dw／dh 是**旋轉前**的顯示尺寸；旋轉是 VO 畫的時候才套上，所以自己換。
             let rotate = (params["rotate"] as? NSNumber)?.intValue ?? 0
             let swapped = rotate % 180 != 0
-            delegate?.surface(uuid, didLearnAspect: swapped ? height / width : width / height)
+            let aspect = swapped ? height / width : width / height
+            glow.setVideoAspect(aspect)
+            delegate?.surface(uuid, didLearnAspect: aspect)
 
         default:
             break

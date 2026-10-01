@@ -3088,6 +3088,28 @@
         }
       }
     },
+    "啟用環境光": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable ambient glow"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用环境光"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "啟用環境光"
+          }
+        }
+      }
+    },
     "回應格式不符": {
       "localizations": {
         "en": {
@@ -3172,6 +3194,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "固定 1 張"
+          }
+        }
+      }
+    },
+    "固定配色": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fixed colors"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "固定配色"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "固定配色"
           }
         }
       }
@@ -4232,6 +4276,28 @@
         }
       }
     },
+    "強度": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intensity"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "强度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "強度"
+          }
+        }
+      }
+    },
     "影片": {
       "localizations": {
         "en": {
@@ -4848,6 +4914,28 @@
         }
       }
     },
+    "把影片邊緣的顏色延伸到留白處，隨播放柔和變化（每秒最多更新 12 次）。只在影片有留白時運算；關掉「跟隨影片色彩」或開啟系統的「減少動態效果」時，每支影片固定一種配色。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Extends the colors at the video’s edges into the empty bars and shifts gently as it plays (updated up to 12 times per second). It only runs when the video leaves bars; with “Follow video colors” off or the system’s “Reduce motion” on, each video keeps one set of colors."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把视频边缘的颜色延伸到留白处，随播放柔和变化（每秒最多更新 12 次）。只在视频有留白时运算；关闭“跟随视频色彩”或开启系统的“减弱动态效果”时，每个视频固定一种配色。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把影片邊緣的顏色延伸到留白處，隨播放柔和變化（每秒最多更新 12 次）。只在影片有留白時運算；關掉「跟隨影片色彩」或開啟系統的「減少動態效果」時，每支影片固定一種配色。"
+          }
+        }
+      }
+    },
     "拷貝中…": {
       "localizations": {
         "en": {
@@ -5130,6 +5218,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "播放方式"
+          }
+        }
+      }
+    },
+    "擴散範圍": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spread"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩散范围"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "擴散範圍"
           }
         }
       }
@@ -5812,6 +5922,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "本機、SMB，以及 Box／pCloud／Dropbox／OneDrive／Google Drive 等雲端硬碟的掛載點——裝了桌面版就是一般資料夾，不需要 OAuth。"
+          }
+        }
+      }
+    },
+    "柔和程度": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Softness"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "柔和程度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "柔和程度"
           }
         }
       }
@@ -6938,6 +7070,116 @@
         }
       }
     },
+    "環境光": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ambient Glow"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "环境光"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "環境光"
+          }
+        }
+      }
+    },
+    "環境光只在「桌面視窗」引擎提供；系統桌布 extension 不支援。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ambient glow is only available with the Desktop window engine; the system wallpaper extension doesn’t support it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "环境光只在“桌面窗口”引擎提供；系统墙纸 extension 不支持。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "環境光只在「桌面視窗」引擎提供；系統桌布 extension 不支援。"
+          }
+        }
+      }
+    },
+    "環境光：作用中（%@，已更新 %lld 次）": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ambient glow: active (%@, updated %lld times)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "环境光：作用中（%@，已更新 %lld 次）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "環境光：作用中（%@，已更新 %lld 次）"
+          }
+        }
+      }
+    },
+    "環境光：開，目前沒有留白": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ambient glow: on, no bars right now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "环境光：开，目前没有留白"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "環境光：開，目前沒有留白"
+          }
+        }
+      }
+    },
+    "環境光：關": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ambient glow: off"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "环境光：关"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "環境光：關"
+          }
+        }
+      }
+    },
     "產生時間：%@": {
       "localizations": {
         "en": {
@@ -7286,6 +7528,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "目前生效：%@"
+          }
+        }
+      }
+    },
+    "目前縮放是「填滿螢幕」，影片沒有留白，環境光不會出現。改用「符合螢幕大小」等會留白的縮放才看得到。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scaling is set to “Fill Screen”, so the video leaves no bars and the glow won’t appear. Choose a scaling that leaves bars, such as “Fit to Screen”, to see it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前缩放是“填满屏幕”，视频没有留白，环境光不会出现。改用“符合屏幕大小”等会留白的缩放才看得到。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前縮放是「填滿螢幕」，影片沒有留白，環境光不會出現。改用「符合螢幕大小」等會留白的縮放才看得到。"
           }
         }
       }
@@ -8654,6 +8918,50 @@
         }
       }
     },
+    "跟隨影片色彩": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow video colors"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随视频色彩"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟隨影片色彩"
+          }
+        }
+      }
+    },
+    "跟隨畫面": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "following the video"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟随画面"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跟隨畫面"
+          }
+        }
+      }
+    },
     "跟隨系統": {
       "localizations": {
         "en": {
@@ -9486,6 +9794,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "重複顯示限制"
+          }
+        }
+      }
+    },
+    "重設": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重設"
           }
         }
       }

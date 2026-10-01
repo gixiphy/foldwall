@@ -162,6 +162,14 @@ final class DesktopVideoEngine {
     /// 睡不著）。AVPlayer 自己會宣告，這條只給 mpv；暫停、遮住、全部停掉就收回。
     private var activity: (any NSObjectProtocol)?
 
+    /// 影片環境光。改了直接套到每一台正在播的，不重建、不重播；新建的 surface 一建好就套。
+    var ambientGlow: AmbientGlowSettings = .default {
+        didSet {
+            guard ambientGlow != oldValue else { return }
+            for entry in playing.values { entry.surface.setAmbientGlow(ambientGlow) }
+        }
+    }
+
     /// 播放事件。兩條引擎記同一種格式（見 PlaybackEvent），診斷報告才拼得起來。
     private(set) var events = PlaybackEventLog()
 
@@ -714,6 +722,7 @@ final class DesktopVideoEngine {
         let session = sessionCounter
         let surface = makeSurface(uuid: uuid, screen: screen, loop: !mode.advancesAtEnd)
         surface.delegate = self
+        surface.setAmbientGlow(ambientGlow)
 
         let wanted = Self.resolve(scale, uuid: uuid, url: url)
         // 第一格解出來之前不知道影片多寬多高，先用 fill 頂著（＝舊行為，不留黑邊），

@@ -6,6 +6,8 @@
 #import "MPVBridge.h"
 
 #import <OpenGL/OpenGL.h>
+#import <OpenGL/gl3.h>   // 只用型別與常數；函式一律經 MPVGLProcAddress 取
+#import <QuartzCore/QuartzCore.h>
 #import <dlfcn.h>
 #import <stdatomic.h>
 
@@ -494,6 +496,12 @@ static void MPVWakeup(void *context) {
     [self updateDrawable];
 }
 
+// 環境光開著時這個 view 只佔影片那一塊，位置會跟著影片比例動。
+- (void)setFrameOrigin:(NSPoint)newOrigin {
+    [super setFrameOrigin:newOrigin];
+    [self updateDrawable];
+}
+
 - (void)viewDidChangeBackingProperties {
     [super viewDidChangeBackingProperties];
     [self updateDrawable];
@@ -534,6 +542,78 @@ static void *MPVGLProcAddress(void *context, const char *name) {
     return opengl ? dlsym(opengl, name) : NULL;
 }
 
+// MARK: - 環境光取樣
+
+@implementation MPVFrameSample
+- (instancetype)initWithPixels:(NSData *)pixels width:(int)width height:(int)height {
+    self = [super init];
+    if (!self) return nil;
+    _pixels = pixels;
+    _width = width;
+    _height = height;
+    return self;
+}
+@end
+
+/// 取樣用到的 GL 函式。app 沒 link OpenGL，跟 mpv 一樣從 framework dlsym。
+typedef struct {
+    void (*GenFramebuffers)(GLsizei, GLuint *);
+    void (*DeleteFramebuffers)(GLsizei, const GLuint *);
+    void (*BindFramebuffer)(GLenum, GLuint);
+    void (*FramebufferTexture2D)(GLenum, GLenum, GLenum, GLuint, GLint);
+    GLenum (*CheckFramebufferStatus)(GLenum);
+    void (*GenTextures)(GLsizei, GLuint *);
+    void (*DeleteTextures)(GLsizei, const GLuint *);
+    void (*BindTexture)(GLenum, GLuint);
+    void (*TexImage2D)(GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const void *);
+    void (*TexParameteri)(GLenum, GLenum, GLint);
+    void (*BlitFramebuffer)(GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLint, GLbitfield, GLenum);
+    void (*ReadBuffer)(GLenum);
+    void (*ReadPixels)(GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, void *);
+    void (*GenBuffers)(GLsizei, GLuint *);
+    void (*DeleteBuffers)(GLsizei, const GLuint *);
+    void (*BindBuffer)(GLenum, GLuint);
+    void (*BufferData)(GLenum, GLsizeiptr, const void *, GLenum);
+    void *(*MapBuffer)(GLenum, GLenum);
+    GLboolean (*UnmapBuffer)(GLenum);
+} MPVSampleGL;
+
+static BOOL MPVLoadSampleGL(MPVSampleGL *gl) {
+#define GLLOAD(field) \
+    do { \
+        *(void **)&gl->field = MPVGLProcAddress(NULL, "gl" #field); \
+        if (!gl->field) return NO; \
+    } while (0)
+    GLLOAD(GenFramebuffers);
+    GLLOAD(DeleteFramebuffers);
+    GLLOAD(BindFramebuffer);
+    GLLOAD(FramebufferTexture2D);
+    GLLOAD(CheckFramebufferStatus);
+    GLLOAD(GenTextures);
+    GLLOAD(DeleteTextures);
+    GLLOAD(BindTexture);
+    GLLOAD(TexImage2D);
+    GLLOAD(TexParameteri);
+    GLLOAD(BlitFramebuffer);
+    GLLOAD(ReadBuffer);
+    GLLOAD(ReadPixels);
+    GLLOAD(GenBuffers);
+    GLLOAD(DeleteBuffers);
+    GLLOAD(BindBuffer);
+    GLLOAD(BufferData);
+    GLLOAD(MapBuffer);
+    GLLOAD(UnmapBuffer);
+#undef GLLOAD
+    return YES;
+}
+
+/// 縮圖邊長。環境光只看邊緣色，長寬比不重要（座標是正規化的）。
+static const int MPVSampleSize = 64;
+/// 縮小的中間層數上限：每層最多縮 4 倍，線性取樣才不會跳過太多像素。
+enum { MPVSampleMaxStages = 6 };
+/// 環境光更新上限：每秒 12 次。原片照自己的幀率走。
+static const double MPVSampleInterval = 1.0 / 12.0;
+
 @interface MPVRenderer () {
     MPVCore *_core;
     MPVOpenGLView *_view;   // 只為了握住 context 的壽命；渲染執行緒只讀它的原子欄位
@@ -545,6 +625,22 @@ static void *MPVGLProcAddress(void *context, const char *name) {
     atomic_uint_fast64_t _renderedFrames;
     void (^_firstFrameHandler)(void);
     NSLock *_handlerLock;
+
+    // 環境光取樣。以下 GL 物件只在渲染佇列上碰。
+    MPVSampleGL _gl;
+    BOOL _glLoaded;
+    BOOL _glUnavailable;
+    int _stageCount;
+    int _stageWidth[MPVSampleMaxStages];
+    int _stageHeight[MPVSampleMaxStages];
+    GLuint _stageFBO[MPVSampleMaxStages];
+    GLuint _stageTexture[MPVSampleMaxStages];
+    int _sourceWidth;
+    int _sourceHeight;
+    GLuint _pbo[2];
+    uint64_t _sampleCount;
+    double _lastSampleTime;
+    MPVFrameSample *_latestSample;   // _handlerLock 保護
 }
 - (void)scheduleRender;
 @end
@@ -651,6 +747,11 @@ static void MPVRenderUpdate(void *context) {
         { 0, NULL },
     };
     int rc = fn->render_context_render(_render, params);
+    if (rc >= 0 && self.samplingEnabled) {
+        [self captureSampleFromWidth:width height:height];
+    } else if (!self.samplingEnabled && _stageCount > 0) {
+        [self releaseSampleResources];
+    }
     CGLFlushDrawable(_cgl);
     fn->render_context_report_swap(_render);
     CGLUnlockContext(_cgl);
@@ -666,6 +767,144 @@ static void MPVRenderUpdate(void *context) {
     }
 }
 
+// MARK: 環境光取樣（渲染佇列上、GL context current）
+
+- (nullable MPVFrameSample *)takeSample {
+    [_handlerLock lock];
+    MPVFrameSample *sample = _latestSample;
+    _latestSample = nil;
+    [_handlerLock unlock];
+    return sample;
+}
+
+/// 依來源尺寸排好縮小鏈：每層縮 4 倍，最後一層是 64×64。
+- (BOOL)prepareStagesForWidth:(int)width height:(int)height {
+    if (_stageCount > 0 && width == _sourceWidth && height == _sourceHeight) return YES;
+    [self releaseStages];
+    int w = width, h = height;
+    int count = 0;
+    while (count < MPVSampleMaxStages - 1 && (w > MPVSampleSize * 4 || h > MPVSampleSize * 4)) {
+        w = w > MPVSampleSize * 4 ? w / 4 : w;
+        h = h > MPVSampleSize * 4 ? h / 4 : h;
+        _stageWidth[count] = w;
+        _stageHeight[count] = h;
+        count++;
+    }
+    _stageWidth[count] = MPVSampleSize;
+    _stageHeight[count] = MPVSampleSize;
+    count++;
+
+    _gl.GenFramebuffers(count, _stageFBO);
+    _gl.GenTextures(count, _stageTexture);
+    BOOL complete = YES;
+    for (int i = 0; i < count; i++) {
+        _gl.BindTexture(GL_TEXTURE_2D, _stageTexture[i]);
+        _gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        _gl.TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        _gl.TexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, _stageWidth[i], _stageHeight[i], 0,
+                       GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        _gl.BindFramebuffer(GL_FRAMEBUFFER, _stageFBO[i]);
+        _gl.FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _stageTexture[i], 0);
+        if (_gl.CheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) complete = NO;
+    }
+    _gl.BindTexture(GL_TEXTURE_2D, 0);
+    _gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
+    _stageCount = count;
+    _sourceWidth = width;
+    _sourceHeight = height;
+
+    if (!_pbo[0]) {
+        _gl.GenBuffers(2, _pbo);
+        for (int i = 0; i < 2; i++) {
+            _gl.BindBuffer(GL_PIXEL_PACK_BUFFER, _pbo[i]);
+            _gl.BufferData(GL_PIXEL_PACK_BUFFER, MPVSampleSize * MPVSampleSize * 4, NULL, GL_STREAM_READ);
+        }
+        _gl.BindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    }
+    _sampleCount = 0;
+    if (!complete) [self releaseSampleResources];
+    return complete;
+}
+
+- (void)captureSampleFromWidth:(int)width height:(int)height {
+    if (_glUnavailable) return;
+    double now = CACurrentMediaTime();
+    if (now - _lastSampleTime < MPVSampleInterval) return;
+    _lastSampleTime = now;
+    if (!_glLoaded) {
+        _glLoaded = YES;
+        if (!MPVLoadSampleGL(&_gl)) {
+            _glUnavailable = YES;   // 拿不到就不做環境光，影片照播
+            return;
+        }
+    }
+    if (![self prepareStagesForWidth:width height:height]) return;
+
+    // 預設 framebuffer（剛畫好的 back buffer）一層層縮到 64×64。
+    _gl.BindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    _gl.ReadBuffer(GL_BACK);
+    int srcW = width, srcH = height;
+    for (int i = 0; i < _stageCount; i++) {
+        _gl.BindFramebuffer(GL_DRAW_FRAMEBUFFER, _stageFBO[i]);
+        _gl.BlitFramebuffer(0, 0, srcW, srcH, 0, 0, _stageWidth[i], _stageHeight[i],
+                            GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        _gl.BindFramebuffer(GL_READ_FRAMEBUFFER, _stageFBO[i]);
+        _gl.ReadBuffer(GL_COLOR_ATTACHMENT0);
+        srcW = _stageWidth[i];
+        srcH = _stageHeight[i];
+    }
+
+    // 這一次排進 PBO（非同步），讀回的是上一次排的那份——那份早就畫完了，不等 GPU。
+    GLuint write = _pbo[_sampleCount % 2];
+    GLuint read = _pbo[(_sampleCount + 1) % 2];
+    _gl.BindBuffer(GL_PIXEL_PACK_BUFFER, write);
+    _gl.ReadPixels(0, 0, MPVSampleSize, MPVSampleSize, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    if (_sampleCount > 0) {
+        _gl.BindBuffer(GL_PIXEL_PACK_BUFFER, read);
+        void *mapped = _gl.MapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+        if (mapped) {
+            NSData *pixels = [NSData dataWithBytes:mapped length:MPVSampleSize * MPVSampleSize * 4];
+            _gl.UnmapBuffer(GL_PIXEL_PACK_BUFFER);
+            MPVFrameSample *sample = [[MPVFrameSample alloc] initWithPixels:pixels
+                                                                      width:MPVSampleSize
+                                                                     height:MPVSampleSize];
+            [_handlerLock lock];
+            _latestSample = sample;
+            [_handlerLock unlock];
+        }
+    }
+    _sampleCount++;
+
+    // 還原成 mpv 期待的預設狀態（render_gl.h「OpenGL state」）。
+    _gl.BindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    _gl.BindFramebuffer(GL_FRAMEBUFFER, 0);
+    _gl.ReadBuffer(GL_BACK);
+}
+
+- (void)releaseStages {
+    if (_stageCount == 0) return;
+    _gl.DeleteFramebuffers(_stageCount, _stageFBO);
+    _gl.DeleteTextures(_stageCount, _stageTexture);
+    memset(_stageFBO, 0, sizeof(_stageFBO));
+    memset(_stageTexture, 0, sizeof(_stageTexture));
+    _stageCount = 0;
+    _sourceWidth = 0;
+    _sourceHeight = 0;
+}
+
+- (void)releaseSampleResources {
+    if (!_glLoaded || _glUnavailable) return;
+    [self releaseStages];
+    if (_pbo[0]) {
+        _gl.DeleteBuffers(2, _pbo);
+        _pbo[0] = _pbo[1] = 0;
+    }
+    _sampleCount = 0;
+    [_handlerLock lock];
+    _latestSample = nil;
+    [_handlerLock unlock];
+}
+
 - (void)shutdown {
     mpv_render_context *render = _render;
     if (!render) return;
@@ -679,6 +918,7 @@ static void MPVRenderUpdate(void *context) {
     dispatch_sync(_queue, ^{
         CGLLockContext(cgl);
         CGLSetCurrentContext(cgl);
+        [self releaseSampleResources];
         fn->render_context_free(render);
         CGLSetCurrentContext(NULL);
         CGLUnlockContext(cgl);

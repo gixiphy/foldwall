@@ -25,6 +25,7 @@ xcrun swiftc -swift-version 6 -F "$products" \
   "$repo/Foldwall/DesktopVideoEngine.swift" \
   "$repo/Foldwall/Playback/DesktopPlaybackSurface.swift" \
   "$repo/Foldwall/Playback/AVPlayerSurface.swift" \
+  "$repo/Foldwall/Playback/AmbientGlowController.swift" \
   "$repo/Foldwall/Playback/MPVLibrary.swift" \
   "$repo/Foldwall/Playback/MPVSurface.swift" \
   "$repo/Foldwall/Log.swift" \

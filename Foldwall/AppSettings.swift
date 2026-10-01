@@ -28,6 +28,7 @@ final class AppSettings {
         static let desktopPlaybackCore = "desktopPlaybackCore"
         static let videoPlaybackMode = "videoPlaybackMode"
         static let videoScaleMode = "videoScaleMode"
+        static let ambientGlow = "videoAmbientGlow"
         static let releaseFetchedVideos = "releaseFetchedVideos"
         static let montagePieceCount = "montagePieceCount"
         static let showCredits = "showCredits"
@@ -140,6 +141,14 @@ final class AppSettings {
     /// 缺 key 走這個預設，升上來的人畫面不會變。
     var videoScaleMode: VideoScaleMode {
         didSet { defaults.set(videoScaleMode.rawValue, forKey: Key.videoScaleMode) }
+    }
+
+    /// 桌面視窗的影片環境光：把影片邊緣的顏色延伸到黑邊。**預設關**（見 AmbientGlowSettings）。
+    var ambientGlow: AmbientGlowSettings {
+        didSet {
+            guard let data = try? JSONEncoder().encode(ambientGlow) else { return }
+            defaults.set(data, forKey: Key.ambientGlow)
+        }
     }
 
     /// 播完後釋放 Foldwall 自己觸發下載的雲端影片。**預設關**：磁碟用量交給
@@ -282,6 +291,8 @@ final class AppSettings {
             .flatMap(VideoPlaybackMode.init(rawValue:))) ?? .repeatAll
         self.videoScaleMode = (defaults.string(forKey: Key.videoScaleMode)
             .flatMap(VideoScaleMode.init(rawValue:))) ?? .fill
+        self.ambientGlow = defaults.data(forKey: Key.ambientGlow)
+            .flatMap { try? JSONDecoder().decode(AmbientGlowSettings.self, from: $0) } ?? .default
         self.releaseFetchedVideos = defaults.bool(forKey: Key.releaseFetchedVideos)   // 缺 key = false
         self.videoDownloadQuality = (defaults.string(forKey: Key.videoDownloadQuality)
             .flatMap(VideoDownloadQuality.init(rawValue:))) ?? .default
