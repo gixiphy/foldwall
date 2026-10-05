@@ -13,8 +13,9 @@ DerivedData/
 *.xcworkspace/xcuserdata/
 
 # 防呆：萬一有人沒 source .xcodebuild-env 就在 repo 內 build，產物也不會進 iCloud——
-# 實體放在 iCloud 不同步的 *.nosync，原名是指過去的 symlink（結尾帶斜線的規則對 symlink 無效，另列）。
-# clone 之後要重建：mkdir X.nosync && ln -s X.nosync X
+# 實體放在 ~/Library/Caches/DevBuild/（iCloud 不同步；2026-10-05 確認 iCloud 已不理會 *.nosync，會加回 FinderInfo 讓 codesign 失敗），
+# 原名是指過去的 symlink（結尾帶斜線的規則對 symlink 無效，另列）。
+# clone 之後要重建：mkdir -p ~/Library/Caches/DevBuild/foldwall_X && ln -s ~/Library/Caches/DevBuild/foldwall_X X
 *.nosync
 /build
 /DerivedData
