@@ -31,10 +31,11 @@ struct FolderIndexIncrementalTests {
 
     private let root = URL(filePath: "/r", directoryHint: .isDirectory)
 
-    private func sample() -> FakeFileSystem {
+    private func sample(rootDevice: UInt64 = 1) -> FakeFileSystem {
         let fs = FakeFileSystem()
-        fs.mkdir("/r")
-        fs.mkdir("/r/a")
+        fs.mkdir("/", device: 1)
+        fs.mkdir("/r", device: rootDevice)
+        fs.mkdir("/r/a", device: rootDevice)
         fs.addFile("/r/1.jpg", dirModified: 100)
         fs.addFile("/r/a/2.mov", dirModified: 100)
         return fs
@@ -166,6 +167,27 @@ struct FolderIndexIncrementalTests {
         #expect(!after.isComplete, "局部掃描不能停掉每 5 分鐘重試、也不能誤觸影片同步")
         #expect(after.images.contains("/nas/remote.jpg"))
         #expect(after.images.contains("/r/a/3.jpg"))
+    }
+
+    @Test("Clearing a regular folder root completes and drops the pool so video sync can run")
+    func clearingRegularRootCompletesAndEmptiesPool() async {
+        // 舊行為：根變空＋上一輪有內容 → vacated → isComplete 永遠 false，
+        // WallpaperCoordinator 的 guard isComplete 會擋住所有來源的影片同步。
+        let fs = sample(rootDevice: 1), clock = TestClock()
+        let index = await primed(fs, clock: clock)
+        #expect(await index.current(roots: [root]).isComplete)
+        #expect(await index.current(roots: [root]).videos == ["/r/a/2.mov"])
+
+        fs.remove("/r/a", dirModified: 200)
+        fs.remove("/r/1.jpg", dirModified: 200)
+        clock.advance(FolderIndex.rescanInterval + 1)
+        _ = await index.current(roots: [root])
+        await index.waitForScan()
+
+        let snapshot = await index.current(roots: [root])
+        #expect(snapshot.isComplete, "刻意清空一般資料夾後必須可標完整")
+        #expect(snapshot.images.isEmpty)
+        #expect(snapshot.videos.isEmpty, "已刪的片不得永遠留在池裡")
     }
 
     @Test("Upgrading from a v1 file keeps an offline root's files")
