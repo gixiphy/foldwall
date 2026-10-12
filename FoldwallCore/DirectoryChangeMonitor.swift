@@ -82,7 +82,12 @@ public final class DirectoryChangeMonitor: @unchecked Sendable {
             FSEventStreamInvalidate(stream)
             FSEventStreamRelease(stream)
         }
-        // 等正在跑的回呼跑完再放掉 sink
+        // 等正在跑的回呼跑完再放掉 sink。
+        //
+        // **前提：最後一個強參照必須在別條 queue 上釋放（目前只有
+        // WallpaperCoordinator 在主執行緒持有）。** 若 deinit 本身跑在
+        // `queue` 上，這裡的 `queue.sync {}` 會跟自己死鎖。不要把 monitor
+        // 存進會在 FSEvents 回呼裡被清掉的地方。
         queue.sync {}
         sink?.release()
     }
