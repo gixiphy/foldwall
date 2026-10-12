@@ -114,6 +114,41 @@ struct TreeScannerTests {
         #expect(Set(fs.listCalls) == ["/r", "/r/a", "/r/a/deep"])
     }
 
+    @Test("Scoped scan: timeout keeps the subtree and marks the root unreadable")
+    func scopedTimeoutKeepsSubtree() async {
+        let fs = sample()
+        let first = await fullScan(fs)
+        fs.fail("/r/a", errno: ETIMEDOUT)
+        let second = await fs.scanner().scan(
+            previous: first.tree, roots: ["/r"], scope: ["/r/a"], relistAll: false)
+        #expect(second.unreadableRoots == ["/r"])
+        #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
+        #expect(second.tree.flattened().images.contains("/r/a/deep/3.heic"))
+    }
+
+    @Test("Scoped scan: I/O error keeps the subtree and marks the root unreadable")
+    func scopedIOErrorKeepsSubtree() async {
+        let fs = sample()
+        let first = await fullScan(fs)
+        fs.fail("/r/a", errno: EIO)
+        let second = await fs.scanner().scan(
+            previous: first.tree, roots: ["/r"], scope: ["/r/a"], relistAll: false)
+        #expect(second.unreadableRoots == ["/r"])
+        #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
+    }
+
+    @Test("Scoped scan: ENOENT while the root is gone keeps the subtree")
+    func scopedENOENTWhileRootGoneKeepsSubtree() async {
+        let fs = sample()
+        let first = await fullScan(fs)
+        fs.fail("/r/a", errno: ENOENT)
+        fs.fail("/r", errno: ENOENT)   // 再 stat 根也讀不到 → 卸載，不是刪子目錄
+        let second = await fs.scanner().scan(
+            previous: first.tree, roots: ["/r"], scope: ["/r/a"], relistAll: false)
+        #expect(second.unreadableRoots == ["/r"])
+        #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
+    }
+
     @Test("Scope limits checking to the reported subtree")
     func scopeLimitsWork() async {
         let fs = sample()
