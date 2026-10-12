@@ -46,14 +46,15 @@ public struct DirectoryTree: Sendable, Equatable {
 
     /// 鍵是目錄的絕對路徑，不帶結尾斜線（見 `key(for:)`）。
     public var directories: [String: IndexedDirectory]
-    /// 每個根的 `st_dev`。卸載後空掛載點仍可 stat／list，但裝置號會變——用來跟「真的清空」分開。
-    /// 舊落地檔沒有這個欄位時是空的；缺值不得當成裝置變了。
-    public var rootDevices: [String: UInt64]
+    /// 每個根上一輪是否為掛載點（根的 `st_dev` ≠ 父目錄的 `st_dev`）。
+    /// 只有「上次是、這次不是」才當成卸載後的空掛載點；重新掛載裝置號會變但仍是掛載點。
+    /// 舊落地檔沒有這個欄位時是空的；缺值不得當成掛載點降級。
+    public var rootIsMountPoint: [String: Bool]
 
     public init(directories: [String: IndexedDirectory] = [:],
-                rootDevices: [String: UInt64] = [:]) {
+                rootIsMountPoint: [String: Bool] = [:]) {
         self.directories = directories
-        self.rootDevices = rootDevices
+        self.rootIsMountPoint = rootIsMountPoint
     }
 
     public var isEmpty: Bool { directories.isEmpty }
@@ -95,8 +96,8 @@ public struct DirectoryTree: Sendable, Equatable {
         for key in other.subtree(of: path) {
             directories[key] = other.directories[key]
         }
-        if let device = other.rootDevices[path] {
-            rootDevices[path] = device
+        if let flag = other.rootIsMountPoint[path] {
+            rootIsMountPoint[path] = flag
         }
     }
 
@@ -104,7 +105,7 @@ public struct DirectoryTree: Sendable, Equatable {
     public mutating func removeAll(outside roots: [String]) {
         let matcher = RootMatcher(roots.map { URL(filePath: $0, directoryHint: .isDirectory) })
         directories = directories.filter { matcher.root(ofPath: $0.key) != nil }
-        rootDevices = rootDevices.filter { matcher.root(ofPath: $0.key) != nil }
+        rootIsMountPoint = rootIsMountPoint.filter { matcher.root(ofPath: $0.key) != nil }
     }
 
     /// 攤平成 `FolderIndex.Snapshot` 用的路徑清單，排序過——同一 seed 的蒙太奇要可重現。

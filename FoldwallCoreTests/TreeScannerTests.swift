@@ -6,11 +6,13 @@ import Testing
 struct TreeScannerTests {
 
     /// /r/1.jpg、/r/a/2.MOV、/r/a/notes.json、/r/a/deep/3.heic
-    private func sample() -> FakeFileSystem {
+    /// - `rootDevice` 與父目錄 `/`（裝置 1）不同時＝掛載點。
+    private func sample(rootDevice: UInt64 = 1) -> FakeFileSystem {
         let fs = FakeFileSystem()
-        fs.mkdir("/r")
-        fs.mkdir("/r/a")
-        fs.mkdir("/r/a/deep")
+        fs.mkdir("/", device: 1)
+        fs.mkdir("/r", device: rootDevice)
+        fs.mkdir("/r/a", device: rootDevice)
+        fs.mkdir("/r/a/deep", device: rootDevice)
         fs.addFile("/r/1.jpg", dirModified: 100)
         fs.addFile("/r/a/2.MOV", dirModified: 100)
         fs.addFile("/r/a/notes.json", dirModified: 100)
@@ -69,11 +71,11 @@ struct TreeScannerTests {
 
     @Test("Root still present: a real subdirectory deletion drops the subtree and stays complete")
     func realSubdirectoryDeletionDropsSubtreeAndStaysComplete() async {
-        // 專門鎖住這個語意：根還在、st_dev 沒變、只是子目錄沒了 → 必須當成刪除，
+        // 專門鎖住這個語意：根還在、仍是／仍不是掛載點、只是子目錄沒了 → 必須當成刪除，
         // 不能被「空掛載點」那條規則誤傷（否則使用者刪資料夾永遠清不掉池裡的片）。
         let fs = sample()
         let first = await fullScan(fs)
-        #expect(first.tree.rootDevices["/r"] == 1)
+        #expect(first.tree.rootIsMountPoint["/r"] == false)
         fs.remove("/r/a", dirModified: 200)
         let second = await fs.scanner().scan(
             previous: first.tree, roots: ["/r"], scope: nil, relistAll: false)
@@ -82,7 +84,7 @@ struct TreeScannerTests {
         #expect(second.tree.flattened().images == ["/r/1.jpg"])
         #expect(second.tree.directories["/r/a"] == nil)
         #expect(second.tree.directories["/r/a/deep"] == nil)
-        #expect(second.tree.rootDevices["/r"] == 1)
+        #expect(second.tree.rootIsMountPoint["/r"] == false)
     }
 
     @Test("A transient error keeps the old subtree and marks the root unreadable")
@@ -109,69 +111,94 @@ struct TreeScannerTests {
     @Test("A first scan of an empty root is complete, not unreadable")
     func firstScanOfEmptyRootIsComplete() async {
         let fs = FakeFileSystem()
-        fs.mkdir("/empty")
+        fs.mkdir("/", device: 1)
+        fs.mkdir("/empty", device: 1)
         let scan = await fs.scanner().scan(
             previous: DirectoryTree(), roots: ["/empty"], scope: nil, relistAll: false)
         #expect(scan.unreadableRoots.isEmpty)
         #expect(scan.tree.directories["/empty"] != nil)
-        #expect(scan.tree.rootDevices["/empty"] == 1)
+        #expect(scan.tree.rootIsMountPoint["/empty"] == false)
         #expect(scan.tree.flattened().images.isEmpty)
         #expect(scan.tree.flattened().videos.isEmpty)
     }
 
-    @Test("Missing rootDevices from an old index does not false-vacate")
-    func missingRootDevicesDoesNotFalseVacate() async {
-        let fs = sample()
+    @Test("Missing rootIsMountPoint from an old index does not false-vacate")
+    func missingRootIsMountPointDoesNotFalseVacate() async {
+        let fs = sample(rootDevice: 2)
         let first = await fullScan(fs)
-        // 升級後的樹：有內容、還沒記 st_dev。缺欄位不得當成「裝置變了」。
+        // 升級後的樹：有內容、還沒記掛載點旗標。缺欄位不得當成「掛載點變了」。
         var previous = first.tree
-        previous.rootDevices = [:]
+        previous.rootIsMountPoint = [:]
         let second = await fs.scanner().scan(
             previous: previous, roots: ["/r"], scope: nil, relistAll: false)
         #expect(second.unreadableRoots.isEmpty)
         #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
-        #expect(second.tree.rootDevices["/r"] == 1, "第一輪補上裝置號")
+        #expect(second.tree.rootIsMountPoint["/r"] == true, "第一輪補上掛載點旗標")
     }
 
-    @Test("Scoped scan: emptied root vacates through child ENOENT")
-    func scopedEmptiedRootKeepsSubtree() async {
-        let fs = sample()
+    @Test("Scoped scan: mount demotion vacates through child ENOENT")
+    func scopedMountDemotionKeepsSubtree() async {
+        let fs = sample(rootDevice: 2)
         let first = await fullScan(fs)
-        fs.remove("/r/a", dirModified: 200)
-        fs.remove("/r/1.jpg", dirModified: 200)
+        #expect(first.tree.rootIsMountPoint["/r"] == true)
+        // 卸載：掛載點目錄還在，但 st_dev 回到宿主（不再是掛載點）；子目錄 ENOENT。
+        fs.setDevice("/r", 1)
+        fs.fail("/r/a", errno: ENOENT)
         // 局部掃描只點名 /r/a：根走 passThrough，子目錄 ENOENT 時要回頭看出空掛載點。
         let second = await fs.scanner().scan(
             previous: first.tree, roots: ["/r"], scope: ["/r/a"], relistAll: false)
         #expect(second.unreadableRoots == ["/r"])
         #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
+        #expect(second.tree.rootIsMountPoint["/r"] == true, "沿用上一輪旗標")
     }
 
-    @Test("Root device change is treated as unreadable, not deletion")
-    func rootDeviceChangeKeepsSubtree() async {
-        let fs = sample()
+    @Test("Mount demotion is treated as unreadable, not deletion")
+    func mountDemotionKeepsSubtree() async {
+        let fs = sample(rootDevice: 2)
         let first = await fullScan(fs)
-        #expect(first.tree.rootDevices["/r"] == 1)
-        // 卸載後掛載點還在，但 st_dev 換成宿主／另一顆碟——內容看似被「刪光」其實碟沒了。
-        fs.setDevice("/r", 99)
-        let second = await fs.scanner().scan(
-            previous: first.tree, roots: ["/r"], scope: nil, relistAll: true)
-        #expect(second.unreadableRoots == ["/r"])
-        #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
-        #expect(second.tree.rootDevices["/r"] == 1, "沿用上一輪的裝置號，下一輪才能繼續辨認")
-    }
-
-    @Test("An emptied root that previously had content is unreadable")
-    func emptiedRootWithPriorContentKeepsSubtree() async {
-        let fs = sample()
-        let first = await fullScan(fs)
-        // 裝置沒變，但根變成空目錄（自訂掛載點卸載後常見）——不能當成使用者清空。
+        #expect(first.tree.rootIsMountPoint["/r"] == true)
+        // 卸載後留下空目錄：st_dev 等於父目錄 → 不再是掛載點。
+        fs.setDevice("/r", 1)
         fs.remove("/r/a", dirModified: 200)
         fs.remove("/r/1.jpg", dirModified: 200)
         let second = await fs.scanner().scan(
             previous: first.tree, roots: ["/r"], scope: nil, relistAll: true)
         #expect(second.unreadableRoots == ["/r"])
         #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
-        #expect(second.tree.flattened().images.contains("/r/1.jpg"))
+        #expect(second.tree.rootIsMountPoint["/r"] == true, "沿用上一輪旗標，下一輪才能繼續辨認")
+    }
+
+    @Test("Remount with a new st_dev that is still a mount point rescans and completes")
+    func remountStillMountPointRescansAndCompletes() async {
+        let fs = sample(rootDevice: 2)
+        let first = await fullScan(fs)
+        #expect(first.tree.rootIsMountPoint["/r"] == true)
+        // 正常重新掛載：裝置號變了，但仍是掛載點（≠ 父目錄）。
+        fs.setDevice("/r", 7)
+        fs.setDevice("/r/a", 7)
+        fs.setDevice("/r/a/deep", 7)
+        fs.addFile("/r/new.jpg", dirModified: 300)
+        let second = await fs.scanner().scan(
+            previous: first.tree, roots: ["/r"], scope: nil, relistAll: true)
+        #expect(second.unreadableRoots.isEmpty, "重新掛載後可標完整")
+        #expect(second.tree.rootIsMountPoint["/r"] == true)
+        #expect(second.tree.flattened().images.contains("/r/new.jpg"))
+        #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
+    }
+
+    @Test("An emptied regular folder is complete deletion, not an unreadable mount")
+    func emptiedRegularFolderIsCompleteDeletion() async {
+        let fs = sample(rootDevice: 1) // 與父目錄同裝置＝一般資料夾
+        let first = await fullScan(fs)
+        #expect(first.tree.rootIsMountPoint["/r"] == false)
+        fs.remove("/r/a", dirModified: 200)
+        fs.remove("/r/1.jpg", dirModified: 200)
+        let second = await fs.scanner().scan(
+            previous: first.tree, roots: ["/r"], scope: nil, relistAll: true)
+        #expect(second.unreadableRoots.isEmpty, "清單可標完整，影片同步不會被擋住")
+        #expect(second.tree.flattened().images.isEmpty)
+        #expect(second.tree.flattened().videos.isEmpty)
+        #expect(second.tree.rootIsMountPoint["/r"] == false)
     }
 
     @Test("ENOENT on a child after the root vanished mid-scan keeps the subtree")

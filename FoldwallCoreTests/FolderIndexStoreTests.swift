@@ -100,7 +100,7 @@ final class FolderIndexStoreTests: XCTestCase {
                 IndexedFile(name: "clip.mov", kind: .video, size: -1, modified: 0),
             ], subdirectories: ["a"]),
             "/r/a": IndexedDirectory(modified: DirectoryTree.unknownModified, files: [], subdirectories: []),
-        ], rootDevices: ["/r": 42])
+        ], rootIsMountPoint: ["/r": true])
         let fullScanAt = Date(timeIntervalSince1970: 1_000)
         let store = FolderIndexStore(url: url)
         store.save(PersistedFolderIndex(roots: ["/r"], scannedAt: .now, images: ["/r/照片.jpg"],
@@ -109,14 +109,14 @@ final class FolderIndexStoreTests: XCTestCase {
         let loaded = try XCTUnwrap(store.load())
         XCTAssertEqual(loaded.version, 2)
         XCTAssertEqual(loaded.tree, tree)
-        XCTAssertEqual(loaded.rootDevices, ["/r": 42])
+        XCTAssertEqual(loaded.rootIsMountPoint, ["/r": true])
         XCTAssertEqual(loaded.fullScanAt, fullScanAt)
     }
 
-    func testMissingRootDevicesKeyStillLoads() throws {
+    func testMissingRootIsMountPointKeyStillLoads() throws {
         let url = URL.temporaryDirectory.appending(path: "index-\(UUID().uuidString).plist")
         defer { try? FileManager.default.removeItem(at: url) }
-        // 早期 v2：有 directories、沒有 rootDevices
+        // 早期 v2：有 directories、沒有 rootIsMountPoint（也可能還有已廢棄的 rootDevices）
         struct EarlyV2: Codable {
             var version = 2
             var roots: [String]
@@ -125,6 +125,7 @@ final class FolderIndexStoreTests: XCTestCase {
             var videos: [String]
             var isComplete: Bool
             var directories: [PersistedDirectory]
+            var rootDevices: [String: UInt64]?
         }
         let directories = [
             PersistedDirectory(path: "/r", directory: IndexedDirectory(
@@ -135,11 +136,11 @@ final class FolderIndexStoreTests: XCTestCase {
         encoder.outputFormat = .binary
         let plist = try encoder.encode(EarlyV2(
             roots: ["/r"], scannedAt: .now, images: ["/r/a.jpg"], videos: [],
-            isComplete: true, directories: directories))
+            isComplete: true, directories: directories, rootDevices: ["/r": 42]))
         try ((plist as NSData).compressed(using: .zlib) as Data).write(to: url)
 
         let loaded = try XCTUnwrap(FolderIndexStore(url: url).load())
-        XCTAssertEqual(loaded.rootDevices, [:], "缺鍵當空字典，下一輪掃描再補")
+        XCTAssertEqual(loaded.rootIsMountPoint, [:], "缺鍵當空字典，下一輪掃描再補")
         XCTAssertEqual(loaded.tree?.flattened().images, ["/r/a.jpg"])
     }
 

@@ -89,13 +89,13 @@ public struct TreeScanner: DirectoryTreeScanning {
     }
 
     enum Outcome: Sendable {
-        case kept(Job, IndexedDirectory, rootDevice: UInt64?)
-        case listed(Job, IndexedDirectory, childModified: [String: TimeInterval], rootDevice: UInt64?)
+        case kept(Job, IndexedDirectory, rootIsMountPoint: Bool?)
+        case listed(Job, IndexedDirectory, childModified: [String: TimeInterval], rootIsMountPoint: Bool?)
         /// ENOENT／ENOTDIR：真的不在了。
         case gone(Job)
         /// 其他錯誤：這一刻讀不到，不等於被刪（只還原子樹那一截）。
         case failed(Job)
-        /// 根看起來像卸載後的空掛載點（裝置變了或變空）：整棵根沿用上一輪。
+        /// 根看起來像卸載後的空掛載點（先前是掛載點、這次不是了）：整棵根沿用上一輪。
         case vacated(Job)
     }
 
@@ -142,18 +142,18 @@ public struct TreeScanner: DirectoryTreeScanning {
             while let outcome = await group.next() {
                 inFlight -= 1
                 switch outcome {
-                case .kept(let job, let record, let rootDevice):
+                case .kept(let job, let record, let rootIsMountPoint):
                     if !job.passThrough { checked += 1 }
                     tree.directories[job.path] = record
-                    if let rootDevice { tree.rootDevices[job.root] = rootDevice }
+                    if let rootIsMountPoint { tree.rootIsMountPoint[job.root] = rootIsMountPoint }
                     for name in record.subdirectories {
                         plan(DirectoryTree.join(job.path, name), root: job.root, knownModified: nil)
                     }
-                case .listed(let job, let record, let childModified, let rootDevice):
+                case .listed(let job, let record, let childModified, let rootIsMountPoint):
                     checked += 1
                     listed += 1
                     tree.directories[job.path] = record
-                    if let rootDevice { tree.rootDevices[job.root] = rootDevice }
+                    if let rootIsMountPoint { tree.rootIsMountPoint[job.root] = rootIsMountPoint }
                     for name in record.subdirectories {
                         plan(DirectoryTree.join(job.path, name), root: job.root,
                              knownModified: childModified[name])
@@ -161,7 +161,7 @@ public struct TreeScanner: DirectoryTreeScanning {
                 case .gone(let job) where job.path != job.root:
                     break   // 被刪了：整棵子樹都不帶過去
                 case .vacated(let job):
-                    // 空掛載點／換裝置：整棵根沿用上一輪，不准宣稱完整。
+                    // 空掛載點：整棵根沿用上一輪，不准宣稱完整。
                     unreadable.insert(job.root)
                     tree.copySubtree(of: job.root, from: previous)
                 case .gone(let job), .failed(let job):
@@ -184,14 +184,20 @@ public struct TreeScanner: DirectoryTreeScanning {
 
     private func run(_ job: Job, previous: DirectoryTree) -> Outcome {
         if job.passThrough, let record = job.previous {
-            let device = job.path == job.root ? previous.rootDevices[job.root] : nil
-            return .kept(job, record, rootDevice: device)
+            let flag = job.path == job.root ? previous.rootIsMountPoint[job.root] : nil
+            return .kept(job, record, rootIsMountPoint: flag)
         }
 
-        var rootDevice: UInt64?
+        var mountFlag: Bool?
         if job.path == job.root {
-            do { rootDevice = try deviceReader(job.path) } catch { return outcome(for: error, job, previous: previous) }
-            if let previousDevice = previous.rootDevices[job.root], previousDevice != rootDevice {
+            mountFlag = mountPointFlag(of: job.path)
+            if mountFlag == nil {
+                // 根自己的裝置號都讀不到 → 跟 stamp／list 一樣走錯誤路徑。
+                do { _ = try deviceReader(job.path) } catch {
+                    return outcome(for: error, job, previous: previous)
+                }
+            }
+            if previous.rootIsMountPoint[job.root] == true, mountFlag == false {
                 return .vacated(job)
             }
         }
@@ -203,7 +209,7 @@ public struct TreeScanner: DirectoryTreeScanning {
             do { modified = try stamper(job.path) } catch { return outcome(for: error, job, previous: previous) }
         }
         if !job.forceList, let previousRecord = job.previous, previousRecord.modified == modified {
-            return .kept(job, previousRecord, rootDevice: rootDevice)
+            return .kept(job, previousRecord, rootIsMountPoint: mountFlag)
         }
 
         let entries: [DirectoryEntry]
@@ -229,21 +235,15 @@ public struct TreeScanner: DirectoryTreeScanning {
             }
         }
 
-        // 卸載後常留下空目錄：還能 list，只是什麼都沒有。上一輪有內容就當成讀不到。
-        // （裝置沒變時也要擋——有些自訂掛載點卸掉後 st_dev 仍是宿主的。）
-        if job.path == job.root, files.isEmpty, subdirectories.isEmpty, previous.hasContent(under: job.root) {
-            return .vacated(job)
-        }
-
         let settled = now().timeIntervalSince1970 - modified > Self.settleWindow
         let record = IndexedDirectory(
             modified: settled ? modified : DirectoryTree.unknownModified,
             files: files, subdirectories: subdirectories)
-        return .listed(job, record, childModified: childModified, rootDevice: rootDevice)
+        return .listed(job, record, childModified: childModified, rootIsMountPoint: mountFlag)
     }
 
     /// ENOENT／ENOTDIR 通常＝真的刪了；但掃到一半整卷卸載時，根目錄驗過後每個子目錄
-    /// 也會回 ENOENT——那時要再看根：根也讀不到、裝置變了、或變成空掛載點，就沿用上一輪。
+    /// 也會回 ENOENT——那時要再看根：根也讀不到、或掛載點降級成普通目錄，就沿用上一輪。
     private func outcome(for error: DirectoryReadError, _ job: Job, previous: DirectoryTree) -> Outcome {
         switch error {
         case .unreadable(let code):
@@ -254,22 +254,35 @@ public struct TreeScanner: DirectoryTreeScanning {
         }
     }
 
-    /// 根還碰得到，但不像上一輪那顆有內容的碟：裝置變了，或變空而上一輪有東西。
+    /// 掛載點降級（上次是、這次不是），或根現在根本讀不到（掃到一半整卷沒了）。
     private func rootLooksVacated(_ root: String, previous: DirectoryTree) -> Bool {
-        if let previousDevice = previous.rootDevices[root] {
-            do {
-                if try deviceReader(root) != previousDevice { return true }
-            } catch {
-                return true
-            }
-        }
-        guard previous.hasContent(under: root) else { return false }
-        do {
-            let entries = try reader(root)
-            return !entries.contains { !$0.isHidden && !$0.name.hasPrefix(".") }
-        } catch {
+        switch mountPointFlag(of: root) {
+        case false? where previous.rootIsMountPoint[root] == true:
+            return true
+        case true?, false?:
+            return false
+        case nil:
+            // 根／父目錄讀不到：不是「子目錄被刪」，沿用上一輪。
             return true
         }
+    }
+
+    /// `st_dev(根) != st_dev(父目錄)` → 掛載點。讀不到時回 nil（缺旗標／暫時錯誤，不得誤判降級）。
+    private func mountPointFlag(of path: String) -> Bool? {
+        guard let parent = Self.parentDirectory(of: path) else { return false }
+        do {
+            let rootDevice = try deviceReader(path)
+            let parentDevice = try deviceReader(parent)
+            return rootDevice != parentDevice
+        } catch {
+            return nil
+        }
+    }
+
+    static func parentDirectory(of path: String) -> String? {
+        if path == "/" { return nil }
+        let parent = (path as NSString).deletingLastPathComponent
+        return parent.isEmpty ? "/" : parent
     }
 
     /// 比照 `.skipsPackageDescendants`：`.photoslibrary`、`.app` 這類套件不往裡走。
