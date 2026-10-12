@@ -356,13 +356,14 @@ public actor FolderIndex {
             (snapshot.images, snapshot.videos) = tree.flattened()
         }
         // 局部掃描只碰範圍內的根：範圍外（例如逾時的 SMB）是原封沿用，不能據此宣稱完整。
-        // isComplete 在有 scope 時只能維持或降低；完整→不完整也要落地（見下）。
+        // isComplete 在有 scope 時只能維持或降低。
         if scope == nil {
             snapshot.isComplete = unreadable.isEmpty
         } else if !unreadable.isEmpty {
             snapshot.isComplete = false
         }
         let becameComplete = scope == nil && !wasComplete && snapshot.isComplete
+        let completenessChanged = snapshot.isComplete != wasComplete
 
         Self.log.info("""
             索引\(full ? "全量" : (scope == nil ? "增量" : "局部"), privacy: .public)掃描：\
@@ -374,7 +375,8 @@ public actor FolderIndex {
                 "\(unreadable.count) 個根目錄讀不到，沿用上一輪清單、不標記完整")
         }
 
-        if contentChanged || becameComplete || full { persist() }
+        // 完整↔不完整也要落地：內容沒變時以前會跳過，冷啟動會 hydrate 成過期的完整旗標。
+        if contentChanged || becameComplete || full || completenessChanged { persist() }
         // FSEvents 的局部掃描不回呼：使用者存一張圖、桌布就重合成，看起來像桌布亂跳。
         // 新檔案照樣進了池，下一輪排程自然抽得到。池原本是空的、或清單剛變完整
         // （影片同步在等這個）時例外。

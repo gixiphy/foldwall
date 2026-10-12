@@ -118,6 +118,26 @@ struct FolderIndexIncrementalTests {
         #expect(fs.listCalls.isEmpty)
     }
 
+    @Test("Becoming incomplete persists even when the file list is unchanged")
+    func incompletenessIsPersistedWithoutContentChange() async {
+        let fs = sample(), clock = TestClock(), store = MemoryStore()
+        let index = await primed(fs, clock: clock, store: store)
+        try? await Task.sleep(for: .milliseconds(200))
+        #expect(store.value?.isComplete == true)
+
+        // 子目錄逾時：檔案清單沿用上一輪，只有 isComplete 變 false——也要寫進磁碟，
+        // 否則冷啟動會 hydrate 成完整，影片同步可能誤刪。
+        fs.fail("/r/a", errno: ETIMEDOUT)
+        clock.advance(FolderIndex.rescanInterval + 1)
+        _ = await index.current(roots: [root])
+        await index.waitForScan()
+        try? await Task.sleep(for: .milliseconds(200))
+        let snapshot = await index.current(roots: [root])
+        #expect(!snapshot.isComplete)
+        #expect(snapshot.videos == ["/r/a/2.mov"])
+        #expect(store.value?.isComplete == false, "記憶體已不完整時磁碟也要跟上")
+    }
+
     @Test("A scoped scan does not flip an incomplete index back to complete")
     func scopedScanDoesNotClearIncompleteness() async {
         let fs = sample(), clock = TestClock()
