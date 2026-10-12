@@ -118,6 +118,36 @@ struct FolderIndexIncrementalTests {
         #expect(fs.listCalls.isEmpty)
     }
 
+    @Test("A scoped scan does not flip an incomplete index back to complete")
+    func scopedScanDoesNotClearIncompleteness() async {
+        let fs = sample(), clock = TestClock()
+        let nas = URL(filePath: "/nas", directoryHint: .isDirectory)
+        fs.mkdir("/nas")
+        fs.addFile("/nas/remote.jpg", dirModified: 100)
+        let index = FolderIndex(scanner: fs.scanner(), now: { clock.now }, store: nil)
+        _ = await index.current(roots: [root, nas])
+        await index.waitForScan()
+        #expect(await index.current(roots: [root, nas]).isComplete)
+
+        // SMB 逾時 → 清單不完整
+        fs.fail("/nas", errno: ETIMEDOUT)
+        clock.advance(FolderIndex.rescanInterval + 1)
+        _ = await index.current(roots: [root, nas])
+        await index.waitForScan()
+        let before = await index.current(roots: [root, nas])
+        #expect(!before.isComplete)
+        #expect(before.images.contains("/nas/remote.jpg"))
+
+        // 本機根的 FSEvents 局部掃描：SMB 那棵原封沿用，不准把 isComplete 翻回 true
+        fs.addFile("/r/a/3.jpg", dirModified: 200)
+        await index.directoriesChanged(["/r/a"])
+        await index.waitForScan()
+        let after = await index.current(roots: [root, nas])
+        #expect(!after.isComplete, "局部掃描不能停掉每 5 分鐘重試、也不能誤觸影片同步")
+        #expect(after.images.contains("/nas/remote.jpg"))
+        #expect(after.images.contains("/r/a/3.jpg"))
+    }
+
     @Test("Upgrading from a v1 file keeps an offline root's files")
     func version1IndexKeepsOfflineRootFiles() async {
         let fs = sample(), clock = TestClock()

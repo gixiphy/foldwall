@@ -350,12 +350,19 @@ public actor FolderIndex {
         // 什麼都沒變（最常見：15 分鐘到期、整棵 stat 過一遍）就不必攤平、排序、落地 90 萬項。
         let contentChanged = full || scan.listedDirectories > 0 || next != tree
         let wasEmpty = snapshot.images.isEmpty && snapshot.videos.isEmpty
-        let becameComplete = !snapshot.isComplete && unreadable.isEmpty
+        let wasComplete = snapshot.isComplete
         tree = next
         if contentChanged {
             (snapshot.images, snapshot.videos) = tree.flattened()
         }
-        snapshot.isComplete = unreadable.isEmpty
+        // 局部掃描只碰範圍內的根：範圍外（例如逾時的 SMB）是原封沿用，不能據此宣稱完整。
+        // isComplete 在有 scope 時只能維持或降低；完整→不完整也要落地（見下）。
+        if scope == nil {
+            snapshot.isComplete = unreadable.isEmpty
+        } else if !unreadable.isEmpty {
+            snapshot.isComplete = false
+        }
+        let becameComplete = scope == nil && !wasComplete && snapshot.isComplete
 
         Self.log.info("""
             索引\(full ? "全量" : (scope == nil ? "增量" : "局部"), privacy: .public)掃描：\
