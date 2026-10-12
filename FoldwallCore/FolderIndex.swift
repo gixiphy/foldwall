@@ -8,6 +8,10 @@
 //  這裡的策略跟 RemoteSourcePool／PhotosPool 一致：**快取就是池**，
 //  重掃只在「根目錄變了」或「距上次夠久」時於背景啟動，呼叫端永遠不等。
 //
+//  重掃是**增量**的（見 TreeScanner）：索引記得每個目錄的 mtime，到期時只 stat 每個目錄，
+//  有變的才重列。本機磁碟另有 FSEvents（見 DirectoryChangeMonitor）點名哪幾個目錄動了，
+//  只驗那幾棵子樹。一天一次不信 mtime、全部重列，兜住 mtime 語意怪異的伺服器。
+//
 //  快取還會落地到磁碟（見 FolderIndexStore），否則 App 一關就沒了，
 //  每次冷啟動都要付一次全量重掃的錢。
 
@@ -53,13 +57,23 @@ public actor FolderIndex {
     /// 幾十萬檔本機資料夾），而 refresh 的觸發點有二十幾個。
     public static let incompleteRetryInterval: TimeInterval = 5 * 60
 
-    private let indexer: any MediaIndexing
+    /// 多久做一次不信 mtime 的全量校正。mtime 漏報的情況（同秒變動、怪異的 NAS）
+    /// 最晚在這個間隔內補回來。
+    public static let fullRescanInterval: TimeInterval = 24 * 60 * 60
+
+    private let scanner: any DirectoryTreeScanning
     private let now: @Sendable () -> Date
     private let onScanCompleted: (@Sendable () -> Void)?
     /// nil＝不落地（測試與純記憶體用法）。
     private let store: (any FolderIndexPersisting)?
 
     private var snapshot = Snapshot()
+    /// 索引的真實來源。`snapshot.images`／`videos` 是它攤平出來的，只在內容變了才重算。
+    private var tree = DirectoryTree()
+    private var lastFullScan: Date?
+    /// 掃描進行中又收到的 FSEvents 範圍：這輪掃完立刻補一輪，不能丟。
+    private var pendingScope: Set<String>?
+    private var scanStartedAt: Date?
     private var scannedRoots: [URL] = []
     /// 呼叫端已經確認這一刻讀不到的根（NAS 沒掛、磁碟拔掉、雲端登出）。
     /// 這些根**不送進索引器**，但仍留在 `scannedRoots` 裡——見 `applyOfflineChange`。
@@ -70,15 +84,21 @@ public actor FolderIndex {
     /// 放在 init 裡的話，解一份 90 萬路徑的 plist 會卡住建立它的那條執行緒（MainActor）。
     private var didHydrate = false
 
-    /// - Parameter onScanCompleted: 背景掃描落地時回呼，讓上層立刻補一輪合成，
-    ///   而不是乾等到下一個間隔。
+    /// - Parameters:
+    ///   - indexer: 只會全量掃描的舊介面（既有測試用）。給了它而沒給 `scanner` 時，每輪都是全量。
+    ///   - scanner: 正式路徑用 `TreeScanner()`。兩個都沒給也是它。
+    ///   - onScanCompleted: 背景掃描落地時回呼，讓上層立刻補一輪合成，
+    ///     而不是乾等到下一個間隔。FSEvents 觸發的小掃描不回呼（見 commit）。
     public init(
-        indexer: any MediaIndexing = MediaIndexer(),
+        indexer: (any MediaIndexing)? = nil,
+        scanner: (any DirectoryTreeScanning)? = nil,
         now: @escaping @Sendable () -> Date = { .now },
         store: (any FolderIndexPersisting)? = nil,
         onScanCompleted: (@Sendable () -> Void)? = nil
     ) {
-        self.indexer = indexer
+        self.scanner = scanner
+            ?? indexer.map { LegacyIndexerScanner(indexer: $0) }
+            ?? TreeScanner()
         self.now = now
         self.store = store
         self.onScanCompleted = onScanCompleted
@@ -111,12 +131,25 @@ public actor FolderIndex {
     }
 
     /// 使用者按「下一張」或改了來源時強制重掃，同樣不阻塞。
+    /// 增量的：每個目錄 stat 一次，有變的才重列（以前是全量，SMB 上要四分鐘）。
     public func invalidate(roots: [URL], offline: [URL] = []) {
         hydrate()
         applyRootChange(roots)
         applyOfflineChange(offline)
         lastScan = nil
         startScan(roots: roots)
+    }
+
+    /// 本機磁碟的 FSEvents 說這些目錄有動靜（見 DirectoryChangeMonitor）。
+    /// 只驗這幾棵子樹，其他根一個都不碰。
+    public func directoriesChanged(_ paths: [String]) {
+        hydrate()
+        guard !paths.isEmpty else { return }
+        guard scanTask == nil else {
+            pendingScope = (pendingScope ?? []).union(paths)
+            return
+        }
+        startScan(roots: scannedRoots, scope: paths)
     }
 
     /// 測試用：等背景掃描跑完。正式流程不該呼叫這個。
@@ -143,6 +176,11 @@ public actor FolderIndex {
         snapshot.isComplete = persisted.isComplete
         scannedRoots = persisted.roots.map { URL(filePath: $0, directoryHint: .isDirectory) }
         lastScan = persisted.scannedAt
+        lastFullScan = persisted.fullScanAt
+        // v1 檔沒有樹：從平面清單重建一棵沒有 mtime 的，下一輪會整棵重列（等於一次全量），
+        // 但離線根的檔案從第一秒就在樹裡，不會因為「沒掃到」而被丟掉。
+        tree = persisted.tree
+            ?? DirectoryTree(images: persisted.images, videos: persisted.videos, roots: persisted.roots)
     }
 
     /// 編碼與寫檔丟到 actor 外面做：一份 90 萬路徑的清單編起來不便宜，
@@ -162,13 +200,17 @@ public actor FolderIndex {
         let images = snapshot.images
         let videos = snapshot.videos
         let isComplete = snapshot.isComplete
+        let tree = tree
+        let fullScanAt = lastFullScan
         Task.detached(priority: .utility) {
             let payload = PersistedFolderIndex(
                 roots: roots.map { $0.path(percentEncoded: false) },
                 scannedAt: scannedAt,
                 images: images,
                 videos: videos,
-                isComplete: isComplete
+                isComplete: isComplete,
+                tree: tree,
+                fullScanAt: fullScanAt
             )
             store.save(payload)
         }
@@ -190,6 +232,7 @@ public actor FolderIndex {
         let matcher = RootMatcher(roots)
         snapshot.images = snapshot.images.filter { matcher.root(ofPath: $0) != nil }
         snapshot.videos = snapshot.videos.filter { matcher.root(ofPath: $0) != nil }
+        tree.removeAll(outside: roots.map(Self.normalized))
 
         // 只移除的話，篩過的清單仍然是完整的——影片同步可以立刻把該刪的刪掉。
         // 只要新增了根目錄，清單就不完整，同步得等重掃。
@@ -222,8 +265,7 @@ public actor FolderIndex {
     /// 還要自己剝掉結尾斜線：`path(percentEncoded:)` 會**保留**它
     /// （跟已棄用的 `.path` 不同），所以 `/a/` 與 `/a` 會比成兩個不同的根目錄。
     private static func normalized(_ url: URL) -> String {
-        let path = url.standardizedFileURL.path(percentEncoded: false)
-        return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
+        DirectoryTree.key(for: url)
     }
 
     private static func pathList(_ urls: [URL]) -> [String] {
@@ -239,11 +281,12 @@ public actor FolderIndex {
         Set(pathList(lhs)) != Set(pathList(rhs))
     }
 
-    private func startScan(roots: [URL]) {
+    /// - Parameter scope: nil＝整棵樹增量驗一次（到期或使用者要求）；非 nil＝只驗 FSEvents 點名的子樹。
+    private func startScan(roots: [URL], scope: [String]? = nil) {
         guard scanTask == nil else { return }   // 上一輪還在走就別疊上去
 
         // 離線的根連問都不要問。呼叫端解析書籤時已經確認過列不出第一層，
-        // 再叫索引器走一趟，只是對著沒掛載的網路磁碟再等一次逾時。
+        // 再叫掃描器走一趟，只是對著沒掛載的網路磁碟再等一次逾時。
         let offlinePaths = Set(Self.pathList(offlineRoots))
         let live = roots.filter { !offlinePaths.contains(Self.normalized($0)) }
 
@@ -256,6 +299,7 @@ public actor FolderIndex {
                 snapshot.images = []
                 snapshot.videos = []
                 snapshot.isComplete = true
+                tree = DirectoryTree()
             }
             snapshot.isScanning = false
             lastScan = now()
@@ -263,17 +307,26 @@ public actor FolderIndex {
             return
         }
 
+        let fullDue = lastFullScan.map { now().timeIntervalSince($0) > Self.fullRescanInterval } ?? true
+        let full = scope == nil && fullDue
+        let previous = tree
+        let liveKeys = live.map(Self.normalized)
         snapshot.isScanning = true
-        scanTask = Task { [indexer] in
-            let scan = await indexer.scan(roots: live)
-            await self.commit(scan, roots: roots)
+        scanStartedAt = now()
+        scanTask = Task { [scanner] in
+            let scan = await scanner.scan(previous: previous, roots: liveKeys,
+                                          scope: scope, relistAll: full)
+            await self.commit(scan, roots: roots, scope: scope, full: full)
         }
     }
 
-    private func commit(_ scan: MediaScan, roots: [URL]) {
+    private func commit(_ scan: TreeScan, roots: [URL], scope: [String]?, full: Bool) {
         scanTask = nil
         snapshot.isScanning = false
-        lastScan = now()
+        let finished = now()
+        lastScan = finished
+        if full { lastFullScan = finished }
+        let elapsed = scanStartedAt.map { finished.timeIntervalSince($0) } ?? 0
 
         // 掃到一半使用者又改了來源 → 這批結果不算數，直接重來。
         // 同樣比集合：順序變了不代表來源變了（見 changed(_:from:)）。
@@ -282,37 +335,47 @@ public actor FolderIndex {
             return
         }
 
-        // 一趟分流，不走兩遍 filter+map——這串在大型來源上是 90 萬項，而且佔著 actor。
-        var images: [String] = []
-        var videos: [String] = []
-        images.reserveCapacity(scan.items.count)
-        for item in scan.items {
-            let path = item.url.path(percentEncoded: false)
-            if item.kind == .image { images.append(path) }
-            else if item.kind == .video { videos.append(path) }
-        }
-
-        // 有根目錄打不開（NAS 沒掛、磁碟拔掉）：**留著上一輪掃到的東西**，
-        // 並且不准宣稱清單完整。
+        // 有根目錄打不開（NAS 沒掛、磁碟拔掉）或這輪根本沒送去掃（已知離線）：
+        // **留著上一輪的子樹**，並且不准宣稱清單完整。
         //
         // 少了這段，把 NAS 拔掉再開 App 就會：掃描回空清單 → isComplete = true
         // → 影片差異同步認定所有影片都被移除 → 把 extension container 裡的全刪掉。
-        // 檔案還好端端在 NAS 上，只是這一刻讀不到而已。
-        // 掃到才發現讀不到的，加上一開始就跳過的離線根——對這份清單的意義一樣：
-        // 那個根這一輪沒被走過。
-        let unreadable = scan.unreadableRoots + offlineRoots
+        // TreeScanner 對讀不到的根已經沿用了；這裡補的是已知離線、沒送進去的那些。
+        var next = scan.tree
+        let unreadable = scan.unreadableRoots + Self.pathList(offlineRoots)
+        for root in unreadable where next.directories[root] == nil {
+            next.copySubtree(of: root, from: tree)
+        }
+
+        // 什麼都沒變（最常見：15 分鐘到期、整棵 stat 過一遍）就不必攤平、排序、落地 90 萬項。
+        let contentChanged = full || scan.listedDirectories > 0 || next != tree
+        let wasEmpty = snapshot.images.isEmpty && snapshot.videos.isEmpty
+        let becameComplete = !snapshot.isComplete && unreadable.isEmpty
+        tree = next
+        if contentChanged {
+            (snapshot.images, snapshot.videos) = tree.flattened()
+        }
+        snapshot.isComplete = unreadable.isEmpty
+
+        Self.log.info("""
+            索引\(full ? "全量" : (scope == nil ? "增量" : "局部"), privacy: .public)掃描：\
+            驗 \(scan.checkedDirectories) 個目錄、重列 \(scan.listedDirectories) 個，\
+            \(elapsed, format: .fixed(precision: 2)) 秒
+            """)
         if !unreadable.isEmpty {
-            let matcher = RootMatcher(unreadable)
-            images += snapshot.images.filter { matcher.root(ofPath: $0) != nil }
-            videos += snapshot.videos.filter { matcher.root(ofPath: $0) != nil }
             Self.log.notice(
                 "\(unreadable.count) 個根目錄讀不到，沿用上一輪清單、不標記完整")
         }
 
-        snapshot.images = images
-        snapshot.videos = videos
-        snapshot.isComplete = unreadable.isEmpty
-        persist()
-        onScanCompleted?()
+        if contentChanged || becameComplete || full { persist() }
+        // FSEvents 的局部掃描不回呼：使用者存一張圖、桌布就重合成，看起來像桌布亂跳。
+        // 新檔案照樣進了池，下一輪排程自然抽得到。池原本是空的、或清單剛變完整
+        // （影片同步在等這個）時例外。
+        if scope == nil || wasEmpty || becameComplete { onScanCompleted?() }
+
+        if let pending = pendingScope {
+            pendingScope = nil
+            startScan(roots: scannedRoots, scope: Array(pending))
+        }
     }
 }

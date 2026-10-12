@@ -253,3 +253,32 @@ struct ScanScope: Sendable {
 
     func names(_ path: String) -> Bool { paths.contains(path) }
 }
+
+/// 把只會全量掃描的 `MediaIndexing` 接到樹狀介面上。
+///
+/// 只給既有測試與舊呼叫端用：它沒有 mtime，所以每一輪都等於全量。
+struct LegacyIndexerScanner: DirectoryTreeScanning {
+    let indexer: any MediaIndexing
+
+    func scan(previous: DirectoryTree, roots: [String], scope: [String]?,
+              relistAll: Bool) async -> TreeScan {
+        let result = await indexer.scan(
+            roots: roots.map { URL(filePath: $0, directoryHint: .isDirectory) })
+        let unreadable = result.unreadableRoots.map(DirectoryTree.key(for:))
+        var images: [String] = []
+        var videos: [String] = []
+        for item in result.items {
+            let path = item.url.path(percentEncoded: false)
+            switch item.kind {
+            case .image: images.append(path)
+            case .video: videos.append(path)
+            }
+        }
+        var tree = DirectoryTree(images: images, videos: videos,
+                                 roots: roots.filter { !unreadable.contains($0) })
+        for root in unreadable { tree.copySubtree(of: root, from: previous) }
+        return TreeScan(tree: tree, unreadableRoots: unreadable.sorted(),
+                        listedDirectories: tree.directories.count,
+                        checkedDirectories: tree.directories.count)
+    }
+}
