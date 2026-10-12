@@ -5,6 +5,9 @@
 //  走 SMB 是每檔一次網路往返：實測 90 萬檔的相簿，純列舉 3589 項/秒（4.2 分鐘），
 //  逐檔讀 header 只有 9.1 張/秒（27 小時）。門檻改由 StillPipeline 在抽中時驗，
 //  一輪只付 6–12 張的成本。
+//
+//  走訪本身交給 TreeScanner（getattrlistbulk＋目錄層級平行）。這個型別留著，
+//  是給只需要「全量掃一次、拿平面清單」的呼叫端與既有測試。
 
 import Foundation
 
@@ -41,91 +44,30 @@ public struct MediaIndexer: MediaIndexing {
     public init() {}
 
     public func scan(roots: [URL]) async -> MediaScan {
-        await withTaskGroup(of: (URL, [IndexedItem]?).self) { group in
-            for root in roots {
-                group.addTask { (root, Self.scanRoot(root)) }
-            }
-            var all: [IndexedItem] = []
-            var unreadable: [URL] = []
-            for await (root, chunk) in group {
-                if let chunk {
-                    all.append(contentsOf: chunk)
-                } else {
-                    unreadable.append(root)
-                }
-            }
-            // 固定順序：讓同一 seed 的蒙太奇可重現。
-            // 排序鍵先算好：`URL.path` 每次取用都配置一個新 String，
-            // 直接放進比較器等於 90 萬項 × log n 次的重複配置。
-            var keyed = all.map { (key: $0.url.path, item: $0) }
-            keyed.sort { $0.key < $1.key }
-            return MediaScan(
-                items: keyed.map(\.item),
-                unreadableRoots: unreadable.sorted { $0.path < $1.path })
-        }
+        let keys = roots.map(DirectoryTree.key(for:))
+        let result = await TreeScanner().scan(
+            previous: DirectoryTree(), roots: keys, scope: nil, relistAll: true)
+        let (images, videos) = result.tree.flattened()
+        // 圖與影片混在一起照路徑排：同一 seed 的蒙太奇要可重現（跟舊行為一致）
+        var keyed = images.map { (key: $0, kind: MediaKind.image) }
+            + videos.map { (key: $0, kind: MediaKind.video) }
+        keyed.sort { $0.key < $1.key }
+        let unreadable = Set(result.unreadableRoots)
+        return MediaScan(
+            items: keyed.map {
+                IndexedItem(url: URL(filePath: $0.key, directoryHint: .notDirectory), kind: $0.kind)
+            },
+            unreadableRoots: roots
+                .filter { unreadable.contains(DirectoryTree.key(for: $0)) }
+                .sorted { $0.path < $1.path })
     }
 
-    /// - Returns: nil＝這個根目錄打不開（磁碟沒掛／被刪／TCC 拒絕）。
-    ///   空陣列是另一回事：目錄在，只是裡面沒有影像檔。
-    private static func scanRoot(_ root: URL) -> [IndexedItem]? {
-        let fm = FileManager.default
-
-        // 先確認目錄真的在。enumerator(at:) 對不存在的路徑**不一定**回 nil，
-        // 它可能給一個第一次 nextObject 就結束的列舉器——那看起來跟「空目錄」
-        // 一模一樣，正是要避免的誤判。
-        var isDirectory: ObjCBool = false
-        guard fm.fileExists(atPath: root.path(percentEncoded: false), isDirectory: &isDirectory),
-              isDirectory.boolValue
-        else { return nil }
-
-        // **不預取任何 resource key。** `classify` 只看檔名，`.isRegularFileKey`
-        // 從來沒被讀過，但預取會讓列舉器把 file cache 掛在每個 URL 上（見下面）。
-        guard let walker = fm.enumerator(
-            at: root,
-            includingPropertiesForKeys: [],
-            options: [.skipsHiddenFiles, .skipsPackageDescendants]
-        ) else {
-            return nil
-        }
-
-        // 分批包 autoreleasepool：列舉器吐的是 autorelease 的 Foundation 物件，
-        // 這個同步迴圈中途不會讓出，不排掉的話 90 萬檔（4 分鐘）的暫存物件
-        // 會全部堆到走完才釋放。
-        var items: [IndexedItem] = []
-        var finished = false
-        while !finished {
-            autoreleasepool {
-                var step = 0
-                while step < 4096, let element = walker.nextObject() {
-                    step += 1
-                    guard let url = element as? URL, let kind = classify(url) else { continue }
-                    // 重建成純路徑 URL，不要留列舉器給的那個。
-                    //
-                    // 列舉器吐出來的 URL 每個都掛著一份 resource-value 快取：
-                    // 實測 71 萬個檔的堆疊裡有 71 萬個 `_FileCache`（320 B）、
-                    // 71 萬個 CFDictionary（64+32+32 B）、71 萬組 __NSFileSecurity
-                    // ＋ `_filesec`（16+64 B），CFString 更是 187 萬個——
-                    // 合計約 800 MB，而這份清單要在記憶體裡活到 App 關掉。
-                    // 快取對我們一點用都沒有（分類只看副檔名），但它跟著 URL 走。
-                    items.append(IndexedItem(
-                        url: URL(filePath: url.path(percentEncoded: false),
-                                 directoryHint: .notDirectory),
-                        kind: kind))
-                }
-                if step < 4096 { finished = true }
-            }
-        }
-        return items
-    }
-
-    private static func classify(_ url: URL) -> MediaKind? {
-        let name = url.lastPathComponent
-        // .skipsHiddenFiles 已擋掉大部分，這裡再保險一次（含 AppleDouble `._*`）
+    /// 依檔名分類。隱藏檔（含 AppleDouble `._*`）與 sidecar 回 nil。
+    public static func kind(ofName name: String) -> MediaKind? {
         guard !name.hasPrefix(".") else { return nil }
-
-        let ext = url.pathExtension.lowercased()
+        let ext = (name as NSString).pathExtension.lowercased()
         if imageExtensions.contains(ext) { return .image }
         if videoExtensions.contains(ext) { return .video }
-        return nil   // 含 .json 等 sidecar
+        return nil
     }
 }

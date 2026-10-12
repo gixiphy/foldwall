@@ -90,4 +90,89 @@ final class FolderIndexStoreTests: XCTestCase {
         store.clear()
         XCTAssertNil(store.load())
     }
+
+    func testTreeRoundTripsThroughDisk() throws {
+        let url = URL.temporaryDirectory.appending(path: "index-\(UUID().uuidString).plist")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let tree = DirectoryTree(directories: [
+            "/r": IndexedDirectory(modified: 123.5, files: [
+                IndexedFile(name: "照片.jpg", kind: .image, size: 4_000_000, modified: 99.25),
+                IndexedFile(name: "clip.mov", kind: .video, size: -1, modified: 0),
+            ], subdirectories: ["a"]),
+            "/r/a": IndexedDirectory(modified: DirectoryTree.unknownModified, files: [], subdirectories: []),
+        ], rootIsMountPoint: ["/r": true])
+        let fullScanAt = Date(timeIntervalSince1970: 1_000)
+        let store = FolderIndexStore(url: url)
+        store.save(PersistedFolderIndex(roots: ["/r"], scannedAt: .now, images: ["/r/照片.jpg"],
+                                        videos: ["/r/clip.mov"], tree: tree, fullScanAt: fullScanAt))
+
+        let loaded = try XCTUnwrap(store.load())
+        XCTAssertEqual(loaded.version, 2)
+        XCTAssertEqual(loaded.tree, tree)
+        XCTAssertEqual(loaded.rootIsMountPoint, ["/r": true])
+        XCTAssertEqual(loaded.fullScanAt, fullScanAt)
+    }
+
+    func testMissingRootIsMountPointKeyStillLoads() throws {
+        let url = URL.temporaryDirectory.appending(path: "index-\(UUID().uuidString).plist")
+        defer { try? FileManager.default.removeItem(at: url) }
+        // 早期 v2：有 directories、沒有 rootIsMountPoint（也可能還有已廢棄的 rootDevices）
+        struct EarlyV2: Codable {
+            var version = 2
+            var roots: [String]
+            var scannedAt: Date
+            var images: [String]
+            var videos: [String]
+            var isComplete: Bool
+            var directories: [PersistedDirectory]
+            var rootDevices: [String: UInt64]?
+        }
+        let directories = [
+            PersistedDirectory(path: "/r", directory: IndexedDirectory(
+                modified: 1, files: [IndexedFile(name: "a.jpg", kind: .image, size: 1, modified: 1)],
+                subdirectories: [])),
+        ]
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .binary
+        let plist = try encoder.encode(EarlyV2(
+            roots: ["/r"], scannedAt: .now, images: ["/r/a.jpg"], videos: [],
+            isComplete: true, directories: directories, rootDevices: ["/r": 42]))
+        try ((plist as NSData).compressed(using: .zlib) as Data).write(to: url)
+
+        let loaded = try XCTUnwrap(FolderIndexStore(url: url).load())
+        XCTAssertEqual(loaded.rootIsMountPoint, [:], "缺鍵當空字典，下一輪掃描再補")
+        XCTAssertEqual(loaded.tree?.flattened().images, ["/r/a.jpg"])
+    }
+
+    func testVersion1FileStillLoads() throws {
+        let url = URL.temporaryDirectory.appending(path: "index-\(UUID().uuidString).plist")
+        defer { try? FileManager.default.removeItem(at: url) }
+        // 0.14 寫的檔：version 1、沒有 directories／fullScanAt
+        struct V1: Codable {
+            var version = 1; var roots: [String]; var scannedAt: Date
+            var images: [String]; var videos: [String]; var isComplete: Bool
+        }
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .binary
+        let plist = try encoder.encode(V1(roots: ["/r"], scannedAt: .now, images: ["/r/a.jpg"],
+                                          videos: [], isComplete: true))
+        try ((plist as NSData).compressed(using: .zlib) as Data).write(to: url)
+
+        let loaded = try XCTUnwrap(FolderIndexStore(url: url).load(), "升級不該讓使用者重掃四分鐘")
+        XCTAssertEqual(loaded.images, ["/r/a.jpg"])
+        XCTAssertNil(loaded.tree, "v1 沒有樹，呼叫端要從平面清單重建")
+        XCTAssertNil(loaded.fullScanAt)
+    }
+
+    func testCorruptColumnsDropTheTreeButKeepTheLists() throws {
+        var index = PersistedFolderIndex(roots: ["/r"], scannedAt: .now, images: ["/r/a.jpg"], videos: [],
+                                         tree: DirectoryTree(directories: [
+                                             "/r": IndexedDirectory(modified: 1, files: [
+                                                 IndexedFile(name: "a.jpg", kind: .image, size: 1, modified: 1),
+                                             ], subdirectories: []),
+                                         ]))
+        index.directories[0].sizes = Data([1, 2, 3])   // 長度不是 8 的倍數
+        XCTAssertNil(index.tree)
+        XCTAssertEqual(index.images, ["/r/a.jpg"])
+    }
 }

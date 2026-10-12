@@ -116,4 +116,24 @@ final class DisplayHistoryTests: XCTestCase {
         XCTAssertEqual(rotation.next()?.path, "/photos/99.png")
         XCTAssertNil(rotation.next())
     }
+
+    func testUnchangedFileIsDecodedOnlyOnce() throws {
+        let dir = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appending(path: "history.json")
+        DisplayHistory(fileURL: file).record(["a"], now: now)
+
+        let history = DisplayHistory(fileURL: file)
+        for _ in 0..<5 { _ = history.excludedKeys(policy: DisplayRepeatPolicy(), now: now) }
+        XCTAssertEqual(history.decodeCount, 1, "檔案沒換，每輪每台螢幕都不必再解一次")
+
+        history.record(["b"], now: now)
+        XCTAssertEqual(history.excludedKeys(policy: DisplayRepeatPolicy(), now: now), ["a", "b"])
+        XCTAssertEqual(history.decodeCount, 1, "自己剛寫的不必讀回來")
+
+        // 另一個行程（extension）寫過：.atomic 換了新檔，一定要重讀
+        DisplayHistory(fileURL: file).record(["c"], now: now)
+        XCTAssertEqual(history.excludedKeys(policy: DisplayRepeatPolicy(), now: now), ["a", "b", "c"])
+        XCTAssertEqual(history.decodeCount, 2)
+    }
 }

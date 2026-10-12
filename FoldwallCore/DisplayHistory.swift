@@ -93,6 +93,31 @@ public final class DisplayHistory: @unchecked Sendable {
     private let fileURL: URL?
     private var entries: [String: [Date]] = [:]
 
+    /// 上次解碼（或自己寫入）時檔案的身分。沒換就沿用 `entries`，不再解整份 JSON——
+    /// 合成一輪是每台螢幕各問一次、各記一次，extension 那邊每支影片也要問。
+    /// 寫入一律 `.atomic`（換新檔），所以別的行程寫過，inode 一定會變。
+    private var loadedStamp: FileStamp?
+    private var decodes = 0
+
+    /// 測試用：實際解了幾次 JSON。
+    var decodeCount: Int { lock.withLock { decodes } }
+
+    struct FileStamp: Equatable {
+        var inode: UInt64
+        var size: Int64
+        var seconds: Int
+        var nanoseconds: Int
+
+        init?(path: String) {
+            var info = stat()
+            guard stat(path, &info) == 0 else { return nil }
+            inode = UInt64(info.st_ino)
+            size = Int64(info.st_size)
+            seconds = Int(info.st_mtimespec.tv_sec)
+            nanoseconds = Int(info.st_mtimespec.tv_nsec)
+        }
+    }
+
     public init(fileURL: URL? = nil) { self.fileURL = fileURL }
 
     public static func key(for url: URL) -> String {
@@ -135,9 +160,12 @@ public final class DisplayHistory: @unchecked Sendable {
                     descriptor = open(fileURL.path + ".lock", O_CREAT | O_RDWR, 0o600)
                     if descriptor >= 0, flock(descriptor, LOCK_EX) == 0 {
                         hasFileLock = true
-                        if FileManager.default.fileExists(atPath: fileURL.path) {
+                        // 拿著 flock 才看：別的行程寫檔也要先拿同一把鎖，看完到讀完之間不會換。
+                        if let stamp = FileStamp(path: fileURL.path), stamp != loadedStamp {
                             entries = try JSONDecoder().decode([String: [Date]].self,
                                                                from: Data(contentsOf: fileURL))
+                            loadedStamp = stamp
+                            decodes += 1
                         }
                     } else {
                         NSLog("Foldwall: cannot lock display history")
@@ -151,7 +179,10 @@ public final class DisplayHistory: @unchecked Sendable {
             }
             let result = body(&entries)
             if write, hasFileLock, let fileURL {
-                do { try JSONEncoder().encode(entries).write(to: fileURL, options: .atomic) }
+                do {
+                    try JSONEncoder().encode(entries).write(to: fileURL, options: .atomic)
+                    loadedStamp = FileStamp(path: fileURL.path)
+                }
                 catch { NSLog("Foldwall: cannot save display history: %@", error.localizedDescription) }
             }
             return result
