@@ -102,6 +102,20 @@ struct TreeScannerTests {
         #expect(second.tree.rootDevices["/r"] == 1, "沿用上一輪的裝置號，下一輪才能繼續辨認")
     }
 
+    @Test("An emptied root that previously had content is unreadable")
+    func emptiedRootWithPriorContentKeepsSubtree() async {
+        let fs = sample()
+        let first = await fullScan(fs)
+        // 裝置沒變，但根變成空目錄（自訂掛載點卸載後常見）——不能當成使用者清空。
+        fs.remove("/r/a", dirModified: 200)
+        fs.remove("/r/1.jpg", dirModified: 200)
+        let second = await fs.scanner().scan(
+            previous: first.tree, roots: ["/r"], scope: nil, relistAll: true)
+        #expect(second.unreadableRoots == ["/r"])
+        #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
+        #expect(second.tree.flattened().images.contains("/r/1.jpg"))
+    }
+
     @Test("ENOENT on a child after the root vanished mid-scan keeps the subtree")
     func childENOENTWhileRootGoneKeepsSubtree() async {
         let fs = sample()

@@ -229,6 +229,12 @@ public struct TreeScanner: DirectoryTreeScanning {
             }
         }
 
+        // 卸載後常留下空目錄：還能 list，只是什麼都沒有。上一輪有內容就當成讀不到。
+        // （裝置沒變時也要擋——有些自訂掛載點卸掉後 st_dev 仍是宿主的。）
+        if job.path == job.root, files.isEmpty, subdirectories.isEmpty, previous.hasContent(under: job.root) {
+            return .vacated(job)
+        }
+
         let settled = now().timeIntervalSince1970 - modified > Self.settleWindow
         let record = IndexedDirectory(
             modified: settled ? modified : DirectoryTree.unknownModified,
@@ -237,26 +243,33 @@ public struct TreeScanner: DirectoryTreeScanning {
     }
 
     /// ENOENT／ENOTDIR 通常＝真的刪了；但掃到一半整卷卸載時，根目錄驗過後每個子目錄
-    /// 也會回 ENOENT——那時要再看根：根也讀不到、或 `st_dev` 變了，就沿用上一輪。
+    /// 也會回 ENOENT——那時要再看根：根也讀不到、裝置變了、或變成空掛載點，就沿用上一輪。
     private func outcome(for error: DirectoryReadError, _ job: Job, previous: DirectoryTree) -> Outcome {
         switch error {
         case .unreadable(let code):
             guard code == ENOENT || code == ENOTDIR else { return .failed(job) }
             guard job.path != job.root else { return .gone(job) }
-            if rootDeviceChanged(job.root, previous: previous) { return .vacated(job) }
-            do {
-                _ = try stamper(job.root)
-                return .gone(job)
-            } catch {
-                return .failed(job)
-            }
+            if rootLooksVacated(job.root, previous: previous) { return .vacated(job) }
+            return .gone(job)
         }
     }
 
-    /// 上一輪有記裝置，這一輪不一樣（或根本 stat 不到）＝卸載後留下的掛載點／換碟。
-    private func rootDeviceChanged(_ root: String, previous: DirectoryTree) -> Bool {
-        guard let previousDevice = previous.rootDevices[root] else { return false }
-        do { return try deviceReader(root) != previousDevice } catch { return true }
+    /// 根還碰得到，但不像上一輪那顆有內容的碟：裝置變了，或變空而上一輪有東西。
+    private func rootLooksVacated(_ root: String, previous: DirectoryTree) -> Bool {
+        if let previousDevice = previous.rootDevices[root] {
+            do {
+                if try deviceReader(root) != previousDevice { return true }
+            } catch {
+                return true
+            }
+        }
+        guard previous.hasContent(under: root) else { return false }
+        do {
+            let entries = try reader(root)
+            return !entries.contains { !$0.isHidden && !$0.name.hasPrefix(".") }
+        } catch {
+            return true
+        }
     }
 
     /// 比照 `.skipsPackageDescendants`：`.photoslibrary`、`.app` 這類套件不往裡走。
