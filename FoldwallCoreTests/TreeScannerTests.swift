@@ -201,6 +201,26 @@ struct TreeScannerTests {
         #expect(second.tree.rootIsMountPoint["/r"] == false)
     }
 
+    @Test("A regular folder left with only .json is a complete deletion")
+    func regularFolderWithOnlyJSONIsCompleteDeletion() async {
+        // 舊行為：run() 只看媒體／子目錄「空」、rootLooksVacated 看所有非隱藏項——
+        // 照片刪光只剩 .json 時全量／增量會被誤判成空掛載點。
+        let fs = FakeFileSystem()
+        fs.mkdir("/", device: 1)
+        fs.mkdir("/r", device: 1)
+        fs.addFile("/r/photo.jpg", dirModified: 100)
+        fs.addFile("/r/meta.json", dirModified: 100)
+        let first = await fullScan(fs)
+        #expect(first.tree.flattened().images == ["/r/photo.jpg"])
+        fs.remove("/r/photo.jpg", dirModified: 200)
+        let second = await fs.scanner().scan(
+            previous: first.tree, roots: ["/r"], scope: nil, relistAll: true)
+        #expect(second.unreadableRoots.isEmpty, "只剩 .json 仍是一般刪除，可標完整")
+        #expect(second.tree.flattened().images.isEmpty)
+        #expect(second.tree.flattened().videos.isEmpty)
+        #expect(second.tree.directories["/r"]?.files.isEmpty == true)
+    }
+
     @Test("ENOENT on a child after the root vanished mid-scan keeps the subtree")
     func childENOENTWhileRootGoneKeepsSubtree() async {
         let fs = sample()

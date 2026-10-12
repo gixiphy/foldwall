@@ -36,11 +36,6 @@ final class FakeFileSystem: @unchecked Sendable {
         lock.withLock { devices[path] = device }
     }
 
-    /// 讀某個路徑記下的裝置號（測試斷言用）。
-    func deviceNumber(of path: String) -> UInt64? {
-        lock.withLock { devices[path] }
-    }
-
     /// 新增或覆寫一個檔案，並把所在目錄的 mtime 設成 `dirModified`。
     /// 原地改檔（不增刪名）時真的檔案系統不會動目錄 mtime——傳原本的值就是在模擬那個情況。
     func addFile(_ path: String, size: Int64 = 1000, modified: TimeInterval = 100,

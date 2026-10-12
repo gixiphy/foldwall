@@ -59,14 +59,6 @@ public struct DirectoryTree: Sendable, Equatable {
 
     public var isEmpty: Bool { directories.isEmpty }
 
-    /// 這個根底下（含自己）是否還記著媒體檔或子目錄。
-    public func hasContent(under root: String) -> Bool {
-        subtree(of: root).contains { key in
-            guard let directory = directories[key] else { return false }
-            return !directory.files.isEmpty || !directory.subdirectories.isEmpty
-        }
-    }
-
     /// 根目錄路徑的標準形：standardized、不帶結尾斜線。
     ///
     /// 要自己剝結尾斜線：`path(percentEncoded:)` 會保留它，`/a/` 與 `/a` 會被當成兩個根。
