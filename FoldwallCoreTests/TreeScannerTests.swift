@@ -88,6 +88,21 @@ struct TreeScannerTests {
         #expect(second.tree == first.tree)
     }
 
+    @Test("ENOENT on a child after the root vanished mid-scan keeps the subtree")
+    func childENOENTWhileRootGoneKeepsSubtree() async {
+        let fs = sample()
+        let first = await fullScan(fs)
+        // 根先 stamp＋list 完，接著讀 /r/a 時整卷卸載：子目錄 ENOENT，再 stat 根也 ENOENT。
+        // 若把子目錄 ENOENT 當成「真的刪了」，影片會從池消失且 unreadable 仍是空的。
+        fs.allowSuccessesThenFail("/r", successes: 2, errno: ENOENT)
+        fs.fail("/r/a", errno: ENOENT)
+        let second = await fs.scanner().scan(
+            previous: first.tree, roots: ["/r"], scope: nil, relistAll: true)
+        #expect(second.unreadableRoots == ["/r"])
+        #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
+        #expect(second.tree.flattened().images.contains("/r/a/deep/3.heic"))
+    }
+
     @Test("Directories modified moments ago are relisted next time")
     func recentlyModifiedDirectoryIsRelisted() async {
         let fs = sample()

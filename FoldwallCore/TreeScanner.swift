@@ -177,14 +177,14 @@ public struct TreeScanner: DirectoryTreeScanning {
         if let known = job.knownModified {
             modified = known
         } else {
-            do { modified = try stamper(job.path) } catch { return Self.outcome(for: error, job) }
+            do { modified = try stamper(job.path) } catch { return outcome(for: error, job) }
         }
         if !job.forceList, let previous = job.previous, previous.modified == modified {
             return .kept(job, previous)
         }
 
         let entries: [DirectoryEntry]
-        do { entries = try reader(job.path) } catch { return Self.outcome(for: error, job) }
+        do { entries = try reader(job.path) } catch { return outcome(for: error, job) }
 
         var files: [IndexedFile] = []
         var subdirectories: [String] = []
@@ -212,10 +212,20 @@ public struct TreeScanner: DirectoryTreeScanning {
         return .listed(job, record, childModified: childModified)
     }
 
-    private static func outcome(for error: DirectoryReadError, _ job: Job) -> Outcome {
+    /// ENOENT／ENOTDIR 通常＝真的刪了；但掃到一半整卷卸載時，根目錄驗過後每個子目錄
+    /// 也會回 ENOENT——那時要再 stat 一次根：根也讀不到就當成「這一刻讀不到」，
+    /// 沿用上一輪子樹，不准當成刪除（否則影片差異同步會清掉已部署的片）。
+    private func outcome(for error: DirectoryReadError, _ job: Job) -> Outcome {
         switch error {
         case .unreadable(let code):
-            code == ENOENT || code == ENOTDIR ? .gone(job) : .failed(job)
+            guard code == ENOENT || code == ENOTDIR else { return .failed(job) }
+            guard job.path != job.root else { return .gone(job) }
+            do {
+                _ = try stamper(job.root)
+                return .gone(job)
+            } catch {
+                return .failed(job)
+            }
         }
     }
 

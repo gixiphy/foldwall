@@ -14,6 +14,9 @@ final class FakeFileSystem: @unchecked Sendable {
     private let lock = NSLock()
     private var dirs: [String: Dir] = [:]
     private var failures: [String: Int32] = [:]
+    /// 允許成功存取 `allowed` 次後，再回這個 errno（掃到一半卸載：根要先 stamp＋list 完）。
+    private var failAfterSuccesses: [String: (allowed: Int, code: Int32)] = [:]
+    private var successCounts: [String: Int] = [:]
     private var listed: [String] = []
 
     var listCalls: [String] { lock.withLock { listed } }
@@ -59,11 +62,18 @@ final class FakeFileSystem: @unchecked Sendable {
         }
     }
 
+    /// 允許成功存取 `successes` 次（含）後才開始失敗。
+    /// 根目錄一次完整驗過＝stamp＋list 兩次；之後再 stat 就模擬整卷卸載。
+    func allowSuccessesThenFail(_ path: String, successes: Int, errno code: Int32) {
+        lock.withLock { failAfterSuccesses[path] = (successes, code) }
+    }
+
     func read(_ path: String) throws(DirectoryReadError) -> [DirectoryEntry] {
         let result: Result<[DirectoryEntry], DirectoryReadError> = lock.withLock {
             listed.append(path)
-            if let code = failures[path] { return .failure(.unreadable(errno: code)) }
+            if let error = accessError(path) { return .failure(error) }
             guard let dir = dirs[path] else { return .failure(.unreadable(errno: ENOENT)) }
+            markSuccess(path)
             return .success(Array(dir.entries.values))
         }
         return try result.get()
@@ -71,11 +81,24 @@ final class FakeFileSystem: @unchecked Sendable {
 
     func stamp(_ path: String) throws(DirectoryReadError) -> TimeInterval {
         let result: Result<TimeInterval, DirectoryReadError> = lock.withLock {
-            if let code = failures[path] { return .failure(.unreadable(errno: code)) }
+            if let error = accessError(path) { return .failure(error) }
             guard let dir = dirs[path] else { return .failure(.unreadable(errno: ENOENT)) }
+            markSuccess(path)
             return .success(dir.modified)
         }
         return try result.get()
+    }
+
+    private func accessError(_ path: String) -> DirectoryReadError? {
+        if let code = failures[path] { return .unreadable(errno: code) }
+        if let rule = failAfterSuccesses[path], (successCounts[path] ?? 0) >= rule.allowed {
+            return .unreadable(errno: rule.code)
+        }
+        return nil
+    }
+
+    private func markSuccess(_ path: String) {
+        if failAfterSuccesses[path] != nil { successCounts[path, default: 0] += 1 }
     }
 
     /// `now` 預設遠在所有 mtime 之後，避開「剛改過的目錄一律重列」那條規則；
