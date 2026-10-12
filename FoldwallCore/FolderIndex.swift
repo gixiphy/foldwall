@@ -316,7 +316,8 @@ public actor FolderIndex {
         scanTask = Task { [scanner] in
             let scan = await scanner.scan(previous: previous, roots: liveKeys,
                                           scope: scope, relistAll: full)
-            await self.commit(scan, roots: roots, scope: scope, full: full)
+            // Task 已在 FolderIndex actor 上跑，commit 是 actor 隔離方法，不必再 await。
+            self.commit(scan, roots: roots, scope: scope, full: full)
         }
     }
 
