@@ -13,6 +13,65 @@
 
 import Foundation
 
+/// 一個目錄的落地形式。**欄式存**：每個檔一個名字，大小、mtime、種類各自打包成一塊 Data。
+///
+/// 為什麼不直接 Codable `[IndexedFile]`：90 萬個 keyed container 解碼起來比 90 萬個字串
+/// 慢好幾倍，而冷啟動第一次被問到時就要解這份。Data 解碼是一次 memcpy。
+public struct PersistedDirectory: Codable, Sendable, Equatable {
+    public var path: String
+    public var modified: Double
+    public var names: [String]
+    /// 每檔 1 byte：0＝圖、1＝影片。
+    public var kinds: Data
+    /// 每檔 8 bytes，little-endian Int64 的 bit pattern。
+    public var sizes: Data
+    /// 每檔 8 bytes，little-endian Double 的 bit pattern。
+    public var fileModified: Data
+    public var subdirectories: [String]
+
+    init(path: String, directory: IndexedDirectory) {
+        self.path = path
+        modified = directory.modified
+        names = directory.files.map(\.name)
+        kinds = Data(directory.files.map { $0.kind == .video ? UInt8(1) : 0 })
+        sizes = Self.pack(directory.files.map { UInt64(bitPattern: $0.size) })
+        fileModified = Self.pack(directory.files.map { $0.modified.bitPattern })
+        subdirectories = directory.subdirectories
+    }
+
+    /// 欄位長度對不上＝檔案壞了。回 nil，讓呼叫端整棵樹都不信。
+    var directory: IndexedDirectory? {
+        let count = names.count
+        guard kinds.count == count,
+              let sizes = Self.unpack(sizes), sizes.count == count,
+              let stamps = Self.unpack(fileModified), stamps.count == count
+        else { return nil }
+        let kindBytes = [UInt8](kinds)
+        let files = (0..<count).map { i in
+            IndexedFile(name: names[i], kind: kindBytes[i] == 1 ? .video : .image,
+                        size: Int64(bitPattern: sizes[i]), modified: Double(bitPattern: stamps[i]))
+        }
+        return IndexedDirectory(modified: modified, files: files, subdirectories: subdirectories)
+    }
+
+    static func pack(_ values: [UInt64]) -> Data {
+        var data = Data(capacity: values.count * 8)
+        for value in values {
+            withUnsafeBytes(of: value.littleEndian) { data.append(contentsOf: $0) }
+        }
+        return data
+    }
+
+    static func unpack(_ data: Data) -> [UInt64]? {
+        guard data.count % 8 == 0 else { return nil }
+        return data.withUnsafeBytes { raw in
+            (0..<data.count / 8).map {
+                UInt64(littleEndian: raw.loadUnaligned(fromByteOffset: $0 * 8, as: UInt64.self))
+            }
+        }
+    }
+}
+
 /// 落地格式。欄位對應 `FolderIndex.Snapshot` 加上「這份是掃哪些根目錄、什麼時候掃的」。
 public struct PersistedFolderIndex: Codable, Sendable, Equatable {
 
@@ -30,11 +89,16 @@ public struct PersistedFolderIndex: Codable, Sendable, Equatable {
     /// 這件事：不然下次 hydrate 會把不完整的清單當成完整的，影片差異同步會把
     /// 那顆碟上已部署的影片全當成「已移除」刪掉。
     public var isComplete: Bool
+    /// 目錄樹（v2 起）。增量重掃要靠每個目錄的 mtime，沒存的話冷啟動又得全量一次。
+    /// 平面清單 `images`／`videos` 仍然照存：冷啟動直接拿來當池，不必先攤平、排序 90 萬項。
+    public var directories: [PersistedDirectory]
+    /// 上一次全量校正掃描的時間。沒存的話每次開 App 都會被當成「該全量了」。
+    public var fullScanAt: Date?
 
     public init(
         version: Int = FolderIndexStore.currentVersion,
         roots: [String], scannedAt: Date, images: [String], videos: [String],
-        isComplete: Bool = true
+        isComplete: Bool = true, tree: DirectoryTree = DirectoryTree(), fullScanAt: Date? = nil
     ) {
         self.version = version
         self.roots = roots
@@ -42,6 +106,8 @@ public struct PersistedFolderIndex: Codable, Sendable, Equatable {
         self.images = images
         self.videos = videos
         self.isComplete = isComplete
+        self.directories = tree.directories.map { PersistedDirectory(path: $0.key, directory: $0.value) }
+        self.fullScanAt = fullScanAt
     }
 
     /// 舊檔沒有 `isComplete` 這個鍵。當時的規則是「只存完整的那份」，
@@ -54,6 +120,21 @@ public struct PersistedFolderIndex: Codable, Sendable, Equatable {
         images = try c.decode([String].self, forKey: .images)
         videos = try c.decode([String].self, forKey: .videos)
         isComplete = try c.decodeIfPresent(Bool.self, forKey: .isComplete) ?? true
+        // v1 沒有這兩個鍵：樹由呼叫端從平面清單重建，全量時間當成從沒做過。
+        directories = try c.decodeIfPresent([PersistedDirectory].self, forKey: .directories) ?? []
+        fullScanAt = try c.decodeIfPresent(Date.self, forKey: .fullScanAt)
+    }
+
+    /// nil＝v1 檔或欄位壞了：呼叫端要用 `DirectoryTree(images:videos:roots:)` 重建。
+    public var tree: DirectoryTree? {
+        guard !directories.isEmpty else { return nil }
+        var directories: [String: IndexedDirectory] = [:]
+        directories.reserveCapacity(self.directories.count)
+        for entry in self.directories {
+            guard let directory = entry.directory else { return nil }
+            directories[entry.path] = directory
+        }
+        return DirectoryTree(directories: directories)
     }
 }
 
@@ -64,7 +145,9 @@ public protocol FolderIndexPersisting: Sendable {
 
 public struct FolderIndexStore: FolderIndexPersisting {
 
-    public static let currentVersion = 1
+    public static let currentVersion = 2
+    /// v1（0.14 以前）照讀：只是沒有樹，下一輪重列一次而已，池從第一秒就是滿的。
+    public static let supportedVersions = 1...2
 
     private let url: URL
 
@@ -83,7 +166,7 @@ public struct FolderIndexStore: FolderIndexPersisting {
         let plist = ((try? (data as NSData).decompressed(using: .zlib)) as Data?) ?? data
         guard let decoded = try? PropertyListDecoder().decode(PersistedFolderIndex.self, from: plist)
         else { return nil }
-        return decoded.version == Self.currentVersion ? decoded : nil
+        return Self.supportedVersions.contains(decoded.version) ? decoded : nil
     }
 
     public func save(_ index: PersistedFolderIndex) {
