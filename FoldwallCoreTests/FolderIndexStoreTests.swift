@@ -113,6 +113,36 @@ final class FolderIndexStoreTests: XCTestCase {
         XCTAssertEqual(loaded.fullScanAt, fullScanAt)
     }
 
+    func testMissingRootDevicesKeyStillLoads() throws {
+        let url = URL.temporaryDirectory.appending(path: "index-\(UUID().uuidString).plist")
+        defer { try? FileManager.default.removeItem(at: url) }
+        // 早期 v2：有 directories、沒有 rootDevices
+        struct EarlyV2: Codable {
+            var version = 2
+            var roots: [String]
+            var scannedAt: Date
+            var images: [String]
+            var videos: [String]
+            var isComplete: Bool
+            var directories: [PersistedDirectory]
+        }
+        let directories = [
+            PersistedDirectory(path: "/r", directory: IndexedDirectory(
+                modified: 1, files: [IndexedFile(name: "a.jpg", kind: .image, size: 1, modified: 1)],
+                subdirectories: [])),
+        ]
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .binary
+        let plist = try encoder.encode(EarlyV2(
+            roots: ["/r"], scannedAt: .now, images: ["/r/a.jpg"], videos: [],
+            isComplete: true, directories: directories))
+        try ((plist as NSData).compressed(using: .zlib) as Data).write(to: url)
+
+        let loaded = try XCTUnwrap(FolderIndexStore(url: url).load())
+        XCTAssertEqual(loaded.rootDevices, [:], "缺鍵當空字典，下一輪掃描再補")
+        XCTAssertEqual(loaded.tree?.flattened().images, ["/r/a.jpg"])
+    }
+
     func testVersion1FileStillLoads() throws {
         let url = URL.temporaryDirectory.appending(path: "index-\(UUID().uuidString).plist")
         defer { try? FileManager.default.removeItem(at: url) }

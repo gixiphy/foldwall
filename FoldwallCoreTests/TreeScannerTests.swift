@@ -106,6 +106,46 @@ struct TreeScannerTests {
         #expect(second.tree == first.tree)
     }
 
+    @Test("A first scan of an empty root is complete, not unreadable")
+    func firstScanOfEmptyRootIsComplete() async {
+        let fs = FakeFileSystem()
+        fs.mkdir("/empty")
+        let scan = await fs.scanner().scan(
+            previous: DirectoryTree(), roots: ["/empty"], scope: nil, relistAll: false)
+        #expect(scan.unreadableRoots.isEmpty)
+        #expect(scan.tree.directories["/empty"] != nil)
+        #expect(scan.tree.rootDevices["/empty"] == 1)
+        #expect(scan.tree.flattened().images.isEmpty)
+        #expect(scan.tree.flattened().videos.isEmpty)
+    }
+
+    @Test("Missing rootDevices from an old index does not false-vacate")
+    func missingRootDevicesDoesNotFalseVacate() async {
+        let fs = sample()
+        let first = await fullScan(fs)
+        // 升級後的樹：有內容、還沒記 st_dev。缺欄位不得當成「裝置變了」。
+        var previous = first.tree
+        previous.rootDevices = [:]
+        let second = await fs.scanner().scan(
+            previous: previous, roots: ["/r"], scope: nil, relistAll: false)
+        #expect(second.unreadableRoots.isEmpty)
+        #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
+        #expect(second.tree.rootDevices["/r"] == 1, "第一輪補上裝置號")
+    }
+
+    @Test("Scoped scan: emptied root vacates through child ENOENT")
+    func scopedEmptiedRootKeepsSubtree() async {
+        let fs = sample()
+        let first = await fullScan(fs)
+        fs.remove("/r/a", dirModified: 200)
+        fs.remove("/r/1.jpg", dirModified: 200)
+        // 局部掃描只點名 /r/a：根走 passThrough，子目錄 ENOENT 時要回頭看出空掛載點。
+        let second = await fs.scanner().scan(
+            previous: first.tree, roots: ["/r"], scope: ["/r/a"], relistAll: false)
+        #expect(second.unreadableRoots == ["/r"])
+        #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
+    }
+
     @Test("Root device change is treated as unreadable, not deletion")
     func rootDeviceChangeKeepsSubtree() async {
         let fs = sample()
