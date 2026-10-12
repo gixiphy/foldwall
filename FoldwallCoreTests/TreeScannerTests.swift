@@ -67,6 +67,24 @@ struct TreeScannerTests {
         #expect(second.tree.directories["/r/a/deep"] == nil)
     }
 
+    @Test("Root still present: a real subdirectory deletion drops the subtree and stays complete")
+    func realSubdirectoryDeletionDropsSubtreeAndStaysComplete() async {
+        // 專門鎖住這個語意：根還在、st_dev 沒變、只是子目錄沒了 → 必須當成刪除，
+        // 不能被「空掛載點」那條規則誤傷（否則使用者刪資料夾永遠清不掉池裡的片）。
+        let fs = sample()
+        let first = await fullScan(fs)
+        #expect(first.tree.rootDevices["/r"] == 1)
+        fs.remove("/r/a", dirModified: 200)
+        let second = await fs.scanner().scan(
+            previous: first.tree, roots: ["/r"], scope: nil, relistAll: false)
+        #expect(second.unreadableRoots.isEmpty, "清單仍可標完整")
+        #expect(second.tree.flattened().videos.isEmpty)
+        #expect(second.tree.flattened().images == ["/r/1.jpg"])
+        #expect(second.tree.directories["/r/a"] == nil)
+        #expect(second.tree.directories["/r/a/deep"] == nil)
+        #expect(second.tree.rootDevices["/r"] == 1)
+    }
+
     @Test("A transient error keeps the old subtree and marks the root unreadable")
     func transientErrorKeepsSubtree() async {
         let fs = sample()
