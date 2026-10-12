@@ -44,6 +44,7 @@ public struct TreeScanner: DirectoryTreeScanning {
 
     public typealias Reader = @Sendable (String) throws(DirectoryReadError) -> [DirectoryEntry]
     public typealias Stamper = @Sendable (String) throws(DirectoryReadError) -> TimeInterval
+    public typealias DeviceReader = @Sendable (String) throws(DirectoryReadError) -> UInt64
 
     /// 同時在讀的目錄數。本機 SSD 實測 4 條就飽和（12 萬項：單執行緒 0.82 s → 0.34 s）；
     /// SMB 靠並行把網路往返疊起來，8 是保守的起點——在 NAS 上量過再調（見 ScanBenchmark）。
@@ -59,17 +60,20 @@ public struct TreeScanner: DirectoryTreeScanning {
     private let width: Int
     private let reader: Reader
     private let stamper: Stamper
+    private let deviceReader: DeviceReader
     private let now: @Sendable () -> Date
 
     public init(
         width: Int = Self.defaultWidth,
         reader: @escaping Reader = BulkDirectoryReader.read,
         stamper: @escaping Stamper = BulkDirectoryReader.modificationTime,
+        deviceReader: @escaping DeviceReader = BulkDirectoryReader.device,
         now: @escaping @Sendable () -> Date = { .now }
     ) {
         self.width = max(1, width)
         self.reader = reader
         self.stamper = stamper
+        self.deviceReader = deviceReader
         self.now = now
     }
 
@@ -85,12 +89,14 @@ public struct TreeScanner: DirectoryTreeScanning {
     }
 
     enum Outcome: Sendable {
-        case kept(Job, IndexedDirectory)
-        case listed(Job, IndexedDirectory, childModified: [String: TimeInterval])
+        case kept(Job, IndexedDirectory, rootDevice: UInt64?)
+        case listed(Job, IndexedDirectory, childModified: [String: TimeInterval], rootDevice: UInt64?)
         /// ENOENT／ENOTDIR：真的不在了。
         case gone(Job)
-        /// 其他錯誤：這一刻讀不到，不等於被刪。
+        /// 其他錯誤：這一刻讀不到，不等於被刪（只還原子樹那一截）。
         case failed(Job)
+        /// 根看起來像卸載後的空掛載點（裝置變了或變空）：整棵根沿用上一輪。
+        case vacated(Job)
     }
 
     public func scan(previous: DirectoryTree, roots: [String], scope: [String]?,
@@ -129,29 +135,35 @@ public struct TreeScanner: DirectoryTreeScanning {
             func fill() {
                 while inFlight < width, let job = pending.popLast() {
                     inFlight += 1
-                    group.addTask { await self.perform(job) }
+                    group.addTask { await self.perform(job, previous: previous) }
                 }
             }
             fill()
             while let outcome = await group.next() {
                 inFlight -= 1
                 switch outcome {
-                case .kept(let job, let record):
+                case .kept(let job, let record, let rootDevice):
                     if !job.passThrough { checked += 1 }
                     tree.directories[job.path] = record
+                    if let rootDevice { tree.rootDevices[job.root] = rootDevice }
                     for name in record.subdirectories {
                         plan(DirectoryTree.join(job.path, name), root: job.root, knownModified: nil)
                     }
-                case .listed(let job, let record, let childModified):
+                case .listed(let job, let record, let childModified, let rootDevice):
                     checked += 1
                     listed += 1
                     tree.directories[job.path] = record
+                    if let rootDevice { tree.rootDevices[job.root] = rootDevice }
                     for name in record.subdirectories {
                         plan(DirectoryTree.join(job.path, name), root: job.root,
                              knownModified: childModified[name])
                     }
                 case .gone(let job) where job.path != job.root:
                     break   // 被刪了：整棵子樹都不帶過去
+                case .vacated(let job):
+                    // 空掛載點／換裝置：整棵根沿用上一輪，不准宣稱完整。
+                    unreadable.insert(job.root)
+                    tree.copySubtree(of: job.root, from: previous)
                 case .gone(let job), .failed(let job):
                     // 根不見了（NAS 沒掛）或子目錄這一刻讀不到：沿用上一輪，不准宣稱完整。
                     unreadable.insert(job.root)
@@ -164,27 +176,38 @@ public struct TreeScanner: DirectoryTreeScanning {
                         listedDirectories: listed, checkedDirectories: checked)
     }
 
-    private func perform(_ job: Job) async -> Outcome {
+    private func perform(_ job: Job, previous: DirectoryTree) async -> Outcome {
         await withCheckedContinuation { continuation in
-            Self.ioQueue.async { continuation.resume(returning: self.run(job)) }
+            Self.ioQueue.async { continuation.resume(returning: self.run(job, previous: previous)) }
         }
     }
 
-    private func run(_ job: Job) -> Outcome {
-        if job.passThrough, let previous = job.previous { return .kept(job, previous) }
+    private func run(_ job: Job, previous: DirectoryTree) -> Outcome {
+        if job.passThrough, let record = job.previous {
+            let device = job.path == job.root ? previous.rootDevices[job.root] : nil
+            return .kept(job, record, rootDevice: device)
+        }
+
+        var rootDevice: UInt64?
+        if job.path == job.root {
+            do { rootDevice = try deviceReader(job.path) } catch { return outcome(for: error, job, previous: previous) }
+            if let previousDevice = previous.rootDevices[job.root], previousDevice != rootDevice {
+                return .vacated(job)
+            }
+        }
 
         let modified: TimeInterval
         if let known = job.knownModified {
             modified = known
         } else {
-            do { modified = try stamper(job.path) } catch { return outcome(for: error, job) }
+            do { modified = try stamper(job.path) } catch { return outcome(for: error, job, previous: previous) }
         }
-        if !job.forceList, let previous = job.previous, previous.modified == modified {
-            return .kept(job, previous)
+        if !job.forceList, let previousRecord = job.previous, previousRecord.modified == modified {
+            return .kept(job, previousRecord, rootDevice: rootDevice)
         }
 
         let entries: [DirectoryEntry]
-        do { entries = try reader(job.path) } catch { return outcome(for: error, job) }
+        do { entries = try reader(job.path) } catch { return outcome(for: error, job, previous: previous) }
 
         var files: [IndexedFile] = []
         var subdirectories: [String] = []
@@ -205,21 +228,22 @@ public struct TreeScanner: DirectoryTreeScanning {
                 continue
             }
         }
+
         let settled = now().timeIntervalSince1970 - modified > Self.settleWindow
         let record = IndexedDirectory(
             modified: settled ? modified : DirectoryTree.unknownModified,
             files: files, subdirectories: subdirectories)
-        return .listed(job, record, childModified: childModified)
+        return .listed(job, record, childModified: childModified, rootDevice: rootDevice)
     }
 
     /// ENOENT／ENOTDIR 通常＝真的刪了；但掃到一半整卷卸載時，根目錄驗過後每個子目錄
-    /// 也會回 ENOENT——那時要再 stat 一次根：根也讀不到就當成「這一刻讀不到」，
-    /// 沿用上一輪子樹，不准當成刪除（否則影片差異同步會清掉已部署的片）。
-    private func outcome(for error: DirectoryReadError, _ job: Job) -> Outcome {
+    /// 也會回 ENOENT——那時要再看根：根也讀不到、或 `st_dev` 變了，就沿用上一輪。
+    private func outcome(for error: DirectoryReadError, _ job: Job, previous: DirectoryTree) -> Outcome {
         switch error {
         case .unreadable(let code):
             guard code == ENOENT || code == ENOTDIR else { return .failed(job) }
             guard job.path != job.root else { return .gone(job) }
+            if rootDeviceChanged(job.root, previous: previous) { return .vacated(job) }
             do {
                 _ = try stamper(job.root)
                 return .gone(job)
@@ -227,6 +251,12 @@ public struct TreeScanner: DirectoryTreeScanning {
                 return .failed(job)
             }
         }
+    }
+
+    /// 上一輪有記裝置，這一輪不一樣（或根本 stat 不到）＝卸載後留下的掛載點／換碟。
+    private func rootDeviceChanged(_ root: String, previous: DirectoryTree) -> Bool {
+        guard let previousDevice = previous.rootDevices[root] else { return false }
+        do { return try deviceReader(root) != previousDevice } catch { return true }
     }
 
     /// 比照 `.skipsPackageDescendants`：`.photoslibrary`、`.app` 這類套件不往裡走。

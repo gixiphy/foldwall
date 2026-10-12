@@ -100,7 +100,7 @@ final class FolderIndexStoreTests: XCTestCase {
                 IndexedFile(name: "clip.mov", kind: .video, size: -1, modified: 0),
             ], subdirectories: ["a"]),
             "/r/a": IndexedDirectory(modified: DirectoryTree.unknownModified, files: [], subdirectories: []),
-        ])
+        ], rootDevices: ["/r": 42])
         let fullScanAt = Date(timeIntervalSince1970: 1_000)
         let store = FolderIndexStore(url: url)
         store.save(PersistedFolderIndex(roots: ["/r"], scannedAt: .now, images: ["/r/照片.jpg"],
@@ -109,6 +109,7 @@ final class FolderIndexStoreTests: XCTestCase {
         let loaded = try XCTUnwrap(store.load())
         XCTAssertEqual(loaded.version, 2)
         XCTAssertEqual(loaded.tree, tree)
+        XCTAssertEqual(loaded.rootDevices, ["/r": 42])
         XCTAssertEqual(loaded.fullScanAt, fullScanAt)
     }
 

@@ -88,6 +88,20 @@ struct TreeScannerTests {
         #expect(second.tree == first.tree)
     }
 
+    @Test("Root device change is treated as unreadable, not deletion")
+    func rootDeviceChangeKeepsSubtree() async {
+        let fs = sample()
+        let first = await fullScan(fs)
+        #expect(first.tree.rootDevices["/r"] == 1)
+        // 卸載後掛載點還在，但 st_dev 換成宿主／另一顆碟——內容看似被「刪光」其實碟沒了。
+        fs.setDevice("/r", 99)
+        let second = await fs.scanner().scan(
+            previous: first.tree, roots: ["/r"], scope: nil, relistAll: true)
+        #expect(second.unreadableRoots == ["/r"])
+        #expect(second.tree.flattened().videos == ["/r/a/2.MOV"])
+        #expect(second.tree.rootDevices["/r"] == 1, "沿用上一輪的裝置號，下一輪才能繼續辨認")
+    }
+
     @Test("ENOENT on a child after the root vanished mid-scan keeps the subtree")
     func childENOENTWhileRootGoneKeepsSubtree() async {
         let fs = sample()

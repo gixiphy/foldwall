@@ -95,6 +95,13 @@ public enum BulkDirectoryReader {
         return TimeInterval(info.st_mtimespec.tv_sec) + TimeInterval(info.st_mtimespec.tv_nsec) / 1e9
     }
 
+    /// 目錄所在的磁碟裝置（`stat.st_dev`）。卸載後留下空掛載點時路徑還在，但裝置會變。
+    public static func device(of path: String) throws(DirectoryReadError) -> UInt64 {
+        var info = stat()
+        guard stat(path, &info) == 0 else { throw .unreadable(errno: errno) }
+        return UInt64(info.st_dev)
+    }
+
     private static func parse(_ record: UnsafeRawPointer) -> DirectoryEntry? {
         var p = record + MemoryLayout<UInt32>.size          // 這筆的長度
         p += MemoryLayout<attribute_set_t>.size              // ATTR_CMN_RETURNED_ATTRS

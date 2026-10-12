@@ -17,16 +17,23 @@ final class FakeFileSystem: @unchecked Sendable {
     /// 允許成功存取 `allowed` 次後，再回這個 errno（掃到一半卸載：根要先 stamp＋list 完）。
     private var failAfterSuccesses: [String: (allowed: Int, code: Int32)] = [:]
     private var successCounts: [String: Int] = [:]
+    private var devices: [String: UInt64] = [:]
     private var listed: [String] = []
 
     var listCalls: [String] { lock.withLock { listed } }
     func resetCalls() { lock.withLock { listed = [] } }
 
-    func mkdir(_ path: String, modified: TimeInterval = 100) {
+    func mkdir(_ path: String, modified: TimeInterval = 100, device: UInt64 = 1) {
         lock.withLock {
             dirs[path] = Dir(modified: modified, entries: [:])
+            devices[path] = device
             linkInParent(path)
         }
+    }
+
+    /// 模擬卸載後掛載點還在、但底下換成另一顆碟（或宿主空目錄）。
+    func setDevice(_ path: String, _ device: UInt64) {
+        lock.withLock { devices[path] = device }
     }
 
     /// 新增或覆寫一個檔案，並把所在目錄的 mtime 設成 `dirModified`。
@@ -101,6 +108,15 @@ final class FakeFileSystem: @unchecked Sendable {
         if failAfterSuccesses[path] != nil { successCounts[path, default: 0] += 1 }
     }
 
+    func device(_ path: String) throws(DirectoryReadError) -> UInt64 {
+        let result: Result<UInt64, DirectoryReadError> = lock.withLock {
+            if let error = accessError(path) { return .failure(error) }
+            guard dirs[path] != nil else { return .failure(.unreadable(errno: ENOENT)) }
+            return .success(devices[path] ?? 1)
+        }
+        return try result.get()
+    }
+
     /// `now` 預設遠在所有 mtime 之後，避開「剛改過的目錄一律重列」那條規則；
     /// 要測那條規則時再傳一個貼近 mtime 的值。
     func scanner(now: TimeInterval = 10_000) -> TreeScanner {
@@ -108,6 +124,7 @@ final class FakeFileSystem: @unchecked Sendable {
             width: 4,
             reader: { path throws(DirectoryReadError) in try self.read(path) },
             stamper: { path throws(DirectoryReadError) in try self.stamp(path) },
+            deviceReader: { path throws(DirectoryReadError) in try self.device(path) },
             now: { Date(timeIntervalSince1970: now) })
     }
 

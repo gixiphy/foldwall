@@ -94,6 +94,8 @@ public struct PersistedFolderIndex: Codable, Sendable, Equatable {
     public var directories: [PersistedDirectory]
     /// 上一次全量校正掃描的時間。沒存的話每次開 App 都會被當成「該全量了」。
     public var fullScanAt: Date?
+    /// 每個根的 `st_dev`（v2 後續補上）。舊檔沒有這個鍵時當空字典，第一輪掃描再填。
+    public var rootDevices: [String: UInt64]
 
     public init(
         version: Int = FolderIndexStore.currentVersion,
@@ -108,6 +110,7 @@ public struct PersistedFolderIndex: Codable, Sendable, Equatable {
         self.isComplete = isComplete
         self.directories = tree.directories.map { PersistedDirectory(path: $0.key, directory: $0.value) }
         self.fullScanAt = fullScanAt
+        self.rootDevices = tree.rootDevices
     }
 
     /// 舊檔沒有 `isComplete` 這個鍵。當時的規則是「只存完整的那份」，
@@ -123,6 +126,7 @@ public struct PersistedFolderIndex: Codable, Sendable, Equatable {
         // v1 沒有這兩個鍵：樹由呼叫端從平面清單重建，全量時間當成從沒做過。
         directories = try c.decodeIfPresent([PersistedDirectory].self, forKey: .directories) ?? []
         fullScanAt = try c.decodeIfPresent(Date.self, forKey: .fullScanAt)
+        rootDevices = try c.decodeIfPresent([String: UInt64].self, forKey: .rootDevices) ?? [:]
     }
 
     /// nil＝v1 檔或欄位壞了：呼叫端要用 `DirectoryTree(images:videos:roots:)` 重建。
@@ -134,7 +138,7 @@ public struct PersistedFolderIndex: Codable, Sendable, Equatable {
             guard let directory = entry.directory else { return nil }
             directories[entry.path] = directory
         }
-        return DirectoryTree(directories: directories)
+        return DirectoryTree(directories: directories, rootDevices: rootDevices)
     }
 }
 

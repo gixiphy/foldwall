@@ -46,12 +46,25 @@ public struct DirectoryTree: Sendable, Equatable {
 
     /// 鍵是目錄的絕對路徑，不帶結尾斜線（見 `key(for:)`）。
     public var directories: [String: IndexedDirectory]
+    /// 每個根的 `st_dev`。卸載後空掛載點仍可 stat／list，但裝置號會變——用來跟「真的清空」分開。
+    /// 舊落地檔沒有這個欄位時是空的；缺值不得當成裝置變了。
+    public var rootDevices: [String: UInt64]
 
-    public init(directories: [String: IndexedDirectory] = [:]) {
+    public init(directories: [String: IndexedDirectory] = [:],
+                rootDevices: [String: UInt64] = [:]) {
         self.directories = directories
+        self.rootDevices = rootDevices
     }
 
     public var isEmpty: Bool { directories.isEmpty }
+
+    /// 這個根底下（含自己）是否還記著媒體檔或子目錄。
+    public func hasContent(under root: String) -> Bool {
+        subtree(of: root).contains { key in
+            guard let directory = directories[key] else { return false }
+            return !directory.files.isEmpty || !directory.subdirectories.isEmpty
+        }
+    }
 
     /// 根目錄路徑的標準形：standardized、不帶結尾斜線。
     ///
@@ -82,12 +95,16 @@ public struct DirectoryTree: Sendable, Equatable {
         for key in other.subtree(of: path) {
             directories[key] = other.directories[key]
         }
+        if let device = other.rootDevices[path] {
+            rootDevices[path] = device
+        }
     }
 
     /// 只留下屬於這些根的目錄（使用者移除了資料夾）。
     public mutating func removeAll(outside roots: [String]) {
         let matcher = RootMatcher(roots.map { URL(filePath: $0, directoryHint: .isDirectory) })
         directories = directories.filter { matcher.root(ofPath: $0.key) != nil }
+        rootDevices = rootDevices.filter { matcher.root(ofPath: $0.key) != nil }
     }
 
     /// 攤平成 `FolderIndex.Snapshot` 用的路徑清單，排序過——同一 seed 的蒙太奇要可重現。
