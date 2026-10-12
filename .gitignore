@@ -34,3 +34,4 @@ docs/research/
 # 同目錄的 xcworkspace 與 scheme 生成結果是穩定的，留著。
 # clone 之後要先 `xcodegen generate` 才開得了專案，見 docs/DEVELOPMENT.md。
 Foldwall.xcodeproj/project.pbxproj
+docs/superpowers/
