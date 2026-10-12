@@ -74,6 +74,10 @@ final class WallpaperCoordinator {
     /// 每輪合成後順手清，否則它每輪長 37 MB、從不回收。
     @ObservationIgnored private let wallpaperImageCache = WallpaperImageCache.standard()
     @ObservationIgnored private var folderIndex: FolderIndex!
+    /// 本機與外接磁碟的來源用 FSEvents 即時盯著；SMB 看不到別台電腦的修改，
+    /// 只靠 FolderIndex 定期的增量檢查（見 DirectoryChangeMonitor）。
+    @ObservationIgnored private var changeMonitor: DirectoryChangeMonitor?
+    @ObservationIgnored private var watchedRoots: [String] = []
     @ObservationIgnored private let videoLibrary = VideoLibrary()
     @ObservationIgnored private let remotePool = RemoteSourcePool()
     @ObservationIgnored private let remoteVideoPool = RemoteVideoPool()
@@ -157,6 +161,7 @@ final class WallpaperCoordinator {
         // 背景掃描落地時立刻補一輪，不必乾等到下一個間隔。
         // store：上次的索引落地在磁碟上，冷啟動直接接手，不必重掃一次全量才有圖。
         self.folderIndex = FolderIndex(
+            scanner: TreeScanner(),
             store: FolderIndexStore(paths: paths),
             onScanCompleted: { [weak self] in
                 Task { @MainActor in self?.refreshSoon("資料夾索引掃完") }
@@ -757,6 +762,30 @@ final class WallpaperCoordinator {
         hasLoadedFolders = true
         status.sourceCount = folders.count
         status.offlineCount = bookmarks.offlineCount
+        await updateChangeMonitor()
+    }
+
+    /// 只盯本機卷上的根。根沒變就沿用現有的 stream，不要每輪 refresh 重建一次。
+    private func updateChangeMonitor() async {
+        let candidates = folders
+        // volumeIsLocal 要問檔案系統，不放在主執行緒上（NAS 卡住時會一起卡）
+        let local = await Task.detached(priority: .utility) {
+            candidates
+                .filter { (try? $0.resourceValues(forKeys: [.volumeIsLocalKey]))?.volumeIsLocal == true }
+                .map(DirectoryTree.key(for:))
+                .sorted()
+        }.value
+        guard local != watchedRoots else { return }
+        watchedRoots = local
+        guard !local.isEmpty else {
+            changeMonitor = nil
+            return
+        }
+        let index: FolderIndex = folderIndex
+        changeMonitor = DirectoryChangeMonitor(roots: local) { paths in
+            Task { await index.directoriesChanged(paths) }
+        }
+        Log.app.info("FSEvents 監看 \(local.count) 個本機來源")
     }
 
     /// 給索引看的根：**含離線的那些**。池只吃 `folders`，索引要吃全部——
